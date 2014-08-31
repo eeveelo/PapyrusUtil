@@ -1,0 +1,339 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="..\skse\NiExtraData.cpp">
+      <Filter>skse\netimmerse</Filter>
+    </ClCompile>
+    <ClCompile Include="..\skse\NiGeometry.cpp">
+      <Filter>skse\netimmerse</Filter>
+    </ClCompile>
+    <ClCompile Include="..\skse\NiNodes.cpp">
+      <Filter>skse\netimmerse</Filter>
+    </ClCompile>
+    <ClCompile Include="..\skse\NiObjects.cpp">
+      <Filter>skse\netimmerse</Filter>
+    </ClCompile>
+    <ClCompile Include="..\skse\NiProperties.cpp">
+      <Filter>skse\netimmerse</Filter>
+    </ClCompile>
+    <ClCompile Include="..\skse\NiRenderer.cpp">
+      <Filter>skse\netimmerse</Filter>
+    </ClCompile>
+    <ClCompile Include="..\skse\NiRTTI.cpp">
+      <Filter>skse\netimmerse</Filter>
+    </ClCompile>
+    <ClCompile Include="..\skse\NiTextures.cpp">
+      <Filter>skse\netimmerse</Filter>
+    </ClCompile>
+    <ClCompile Include="..\skse\NiTypes.cpp">
+      <Filter>skse\netimmerse</Filter>
+    </ClCompile>
+    <ClCompile Include="..\skse\PapyrusArgs.cpp">
+      <Filter>skse\papyrus\vm</Filter>
+    </ClCompile>
+    <ClCompile Include="..\skse\PapyrusClass.cpp">
+      <Filter>skse\papyrus\vm</Filter>
+    </ClCompile>
+    <ClCompile Include="..\skse\PapyrusNativeFunctions.cpp">
+      <Filter>skse\papyrus\vm</Filter>
+    </ClCompile>
+    <ClCompile Include="..\skse\PapyrusVM.cpp">
+      <Filter>skse\papyrus\vm</Filter>
+    </ClCompile>
+    <ClCompile Include="..\skse\PapyrusObjects.cpp">
+      <Filter>skse\papyrus\internals</Filter>
+    </ClCompile>
+    <ClCompile Include="..\skse\GlobalLocks.cpp">
+      <Filter>skse\internals</Filter>
+    </ClCompile>
+    <ClCompile Include="..\skse\HashUtil.cpp">
+      <Filter>skse\internals</Filter>
+    </ClCompile>
+    <ClCompile Include="..\skse\SafeWrite.cpp">
+      <Filter>skse\internals</Filter>
+    </ClCompile>
+    <ClCompile Include="..\skse\Utilities.cpp">
+      <Filter>skse\internals</Filter>
+    </ClCompile>
+    <ClCompile Include="PapyrusUtil.cpp" />
+    <ClCompile Include="..\skse\GameAPI.cpp">
+      <Filter>skse\api</Filter>
+    </ClCompile>
+    <ClCompile Include="..\skse\GameCamera.cpp">
+      <Filter>skse\api</Filter>
+    </ClCompile>
+    <ClCompile Include="..\skse\GameData.cpp">
+      <Filter>skse\api</Filter>
+    </ClCompile>
+    <ClCompile Include="..\skse\GameEvents.cpp">
+      <Filter>skse\api</Filter>
+    </ClCompile>
+    <ClCompile Include="..\skse\GameExtraData.cpp">
+      <Filter>skse\api</Filter>
+    </ClCompile>
+    <ClCompile Include="..\skse\GameFormComponents.cpp">
+      <Filter>skse\api</Filter>
+    </ClCompile>
+    <ClCompile Include="..\skse\GameForms.cpp">
+      <Filter>skse\api</Filter>
+    </ClCompile>
+    <ClCompile Include="..\skse\GameHandlers.cpp">
+      <Filter>skse\api</Filter>
+    </ClCompile>
+    <ClCompile Include="..\skse\GameInput.cpp">
+      <Filter>skse\api</Filter>
+    </ClCompile>
+    <ClCompile Include="..\skse\GameObjects.cpp">
+      <Filter>skse\api</Filter>
+    </ClCompile>
+    <ClCompile Include="..\skse\GamePathing.cpp">
+      <Filter>skse\api</Filter>
+    </ClCompile>
+    <ClCompile Include="..\skse\GameReferences.cpp">
+      <Filter>skse\api</Filter>
+    </ClCompile>
+    <ClCompile Include="..\skse\GameResources.cpp">
+      <Filter>skse\api</Filter>
+    </ClCompile>
+    <ClCompile Include="..\skse\GameRTTI.cpp">
+      <Filter>skse\api</Filter>
+    </ClCompile>
+    <ClCompile Include="..\skse\GameSettings.cpp">
+      <Filter>skse\api</Filter>
+    </ClCompile>
+    <ClCompile Include="..\skse\GameStreams.cpp">
+      <Filter>skse\api</Filter>
+    </ClCompile>
+    <ClCompile Include="..\skse\GameTypes.cpp">
+      <Filter>skse\api</Filter>
+    </ClCompile>
+    <ClCompile Include="StorageUtil.cpp">
+      <Filter>papyrus</Filter>
+    </ClCompile>
+    <ClCompile Include="jsoncpp.cpp">
+      <Filter>json</Filter>
+    </ClCompile>
+    <ClCompile Include="JsonUtil.cpp">
+      <Filter>papyrus</Filter>
+    </ClCompile>
+    <ClCompile Include="MiscUtil.cpp">
+      <Filter>papyrus</Filter>
+    </ClCompile>
+    <ClCompile Include="ActorUtil.cpp">
+      <Filter>papyrus</Filter>
+    </ClCompile>
+    <ClCompile Include="ObjectUtil.cpp">
+      <Filter>papyrus</Filter>
+    </ClCompile>
+    <ClCompile Include="Data.cpp">
+      <Filter>lib</Filter>
+    </ClCompile>
+    <ClCompile Include="External.cpp">
+      <Filter>lib</Filter>
+    </ClCompile>
+    <ClCompile Include="SafeRead.cpp">
+      <Filter>lib</Filter>
+    </ClCompile>
+    <ClCompile Include="Forms.cpp">
+      <Filter>lib</Filter>
+    </ClCompile>
+    <ClCompile Include="Serialize.cpp">
+      <Filter>lib</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\skse\NiExtraData.h">
+      <Filter>skse\netimmerse</Filter>
+    </ClInclude>
+    <ClInclude Include="..\skse\NiGeometry.h">
+      <Filter>skse\netimmerse</Filter>
+    </ClInclude>
+    <ClInclude Include="..\skse\NiNodes.h">
+      <Filter>skse\netimmerse</Filter>
+    </ClInclude>
+    <ClInclude Include="..\skse\NiObjects.h">
+      <Filter>skse\netimmerse</Filter>
+    </ClInclude>
+    <ClInclude Include="..\skse\NiProperties.h">
+      <Filter>skse\netimmerse</Filter>
+    </ClInclude>
+    <ClInclude Include="..\skse\NiRenderer.h">
+      <Filter>skse\netimmerse</Filter>
+    </ClInclude>
+    <ClInclude Include="..\skse\NiRTTI.h">
+      <Filter>skse\netimmerse</Filter>
+    </ClInclude>
+    <ClInclude Include="..\skse\NiTextures.h">
+      <Filter>skse\netimmerse</Filter>
+    </ClInclude>
+    <ClInclude Include="..\skse\NiTypes.h">
+      <Filter>skse\netimmerse</Filter>
+    </ClInclude>
+    <ClInclude Include="..\skse\PapyrusArgs.h">
+      <Filter>skse\papyrus\vm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\skse\PapyrusClass.h">
+      <Filter>skse\papyrus\vm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\skse\PapyrusNativeFunctions.h">
+      <Filter>skse\papyrus\vm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\skse\PapyrusVM.h">
+      <Filter>skse\papyrus\vm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\skse\PapyrusObjects.h">
+      <Filter>skse\papyrus\internals</Filter>
+    </ClInclude>
+    <ClInclude Include="..\skse\GlobalLocks.h">
+      <Filter>skse\internals</Filter>
+    </ClInclude>
+    <ClInclude Include="..\skse\HashUtil.h">
+      <Filter>skse\internals</Filter>
+    </ClInclude>
+    <ClInclude Include="..\skse\PluginAPI.h">
+      <Filter>skse\internals</Filter>
+    </ClInclude>
+    <ClInclude Include="..\skse\SafeWrite.h">
+      <Filter>skse\internals</Filter>
+    </ClInclude>
+    <ClInclude Include="..\skse\Utilities.h">
+      <Filter>skse\internals</Filter>
+    </ClInclude>
+    <ClInclude Include="..\skse\skse_version.h">
+      <Filter>skse</Filter>
+    </ClInclude>
+    <ClInclude Include="PapyrusUtil.h" />
+    <ClInclude Include="..\skse\GameTypes.h">
+      <Filter>skse\api</Filter>
+    </ClInclude>
+    <ClInclude Include="..\skse\GameAPI.h">
+      <Filter>skse\api</Filter>
+    </ClInclude>
+    <ClInclude Include="..\skse\GameBSExtraData.h">
+      <Filter>skse\api</Filter>
+    </ClInclude>
+    <ClInclude Include="..\skse\GameCamera.h">
+      <Filter>skse\api</Filter>
+    </ClInclude>
+    <ClInclude Include="..\skse\GameData.h">
+      <Filter>skse\api</Filter>
+    </ClInclude>
+    <ClInclude Include="..\skse\GameEvents.h">
+      <Filter>skse\api</Filter>
+    </ClInclude>
+    <ClInclude Include="..\skse\GameExtraData.h">
+      <Filter>skse\api</Filter>
+    </ClInclude>
+    <ClInclude Include="..\skse\GameFormComponents.h">
+      <Filter>skse\api</Filter>
+    </ClInclude>
+    <ClInclude Include="..\skse\GameForms.h">
+      <Filter>skse\api</Filter>
+    </ClInclude>
+    <ClInclude Include="..\skse\GameHandlers.h">
+      <Filter>skse\api</Filter>
+    </ClInclude>
+    <ClInclude Include="..\skse\GameInput.h">
+      <Filter>skse\api</Filter>
+    </ClInclude>
+    <ClInclude Include="..\skse\GameObjects.h">
+      <Filter>skse\api</Filter>
+    </ClInclude>
+    <ClInclude Include="..\skse\GamePathing.h">
+      <Filter>skse\api</Filter>
+    </ClInclude>
+    <ClInclude Include="..\skse\GameReferences.h">
+      <Filter>skse\api</Filter>
+    </ClInclude>
+    <ClInclude Include="..\skse\GameResources.h">
+      <Filter>skse\api</Filter>
+    </ClInclude>
+    <ClInclude Include="..\skse\GameRTTI.h">
+      <Filter>skse\api</Filter>
+    </ClInclude>
+    <ClInclude Include="..\skse\GameSettings.h">
+      <Filter>skse\api</Filter>
+    </ClInclude>
+    <ClInclude Include="..\skse\GameStreams.h">
+      <Filter>skse\api</Filter>
+    </ClInclude>
+    <ClInclude Include="json\json.h">
+      <Filter>json</Filter>
+    </ClInclude>
+    <ClInclude Include="json\json-forwards.h">
+      <Filter>json</Filter>
+    </ClInclude>
+    <ClInclude Include="StorageUtil.h">
+      <Filter>papyrus</Filter>
+    </ClInclude>
+    <ClInclude Include="JsonUtil.h">
+      <Filter>papyrus</Filter>
+    </ClInclude>
+    <ClInclude Include="MiscUtil.h">
+      <Filter>papyrus</Filter>
+    </ClInclude>
+    <ClInclude Include="ActorUtil.h">
+      <Filter>papyrus</Filter>
+    </ClInclude>
+    <ClInclude Include="ObjectUtil.h">
+      <Filter>papyrus</Filter>
+    </ClInclude>
+    <ClInclude Include="Data.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="External.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="SafeRead.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="Forms.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="Serialize.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\skse\PapyrusNativeFunctionDef.inl">
+      <Filter>skse\papyrus\vm</Filter>
+    </None>
+    <None Include="..\skse\PapyrusNativeFunctionDef_Base.inl">
+      <Filter>skse\papyrus\vm</Filter>
+    </None>
+    <None Include="exports.def" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="skse">
+      <UniqueIdentifier>{649d5035-d045-47f8-99a4-4e6e8d8c991d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="skse\api">
+      <UniqueIdentifier>{12b885ee-c68c-40cf-a00a-3d923b7d1f72}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="skse\netimmerse">
+      <UniqueIdentifier>{c2ead6c7-abdc-4a78-9659-442e1286e94f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="skse\papyrus">
+      <UniqueIdentifier>{f2b7d48c-8c8e-4440-951d-3ed7eb2a28d4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="skse\papyrus\vm">
+      <UniqueIdentifier>{8f95c2de-7bbb-4e89-88e4-5691347b3c0e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="skse\papyrus\internals">
+      <UniqueIdentifier>{eb2da9b5-0165-4292-8b6e-d2c94043727a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="skse\internals">
+      <UniqueIdentifier>{3d2469da-14fe-4885-a9e9-114571a1a7d8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="json">
+      <UniqueIdentifier>{bf3629bc-63df-4014-96bb-2284585ba332}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="lib">
+      <UniqueIdentifier>{b6151e07-b6fe-4f13-b3cb-eb6c7c672535}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="papyrus">
+      <UniqueIdentifier>{9dd3b2a4-c9c9-4626-a747-e52f15eeb23d}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>
