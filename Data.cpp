@@ -8,7 +8,6 @@
 
 namespace Data {
 
-
 	// Flat obj=>key=>value storage
 	intv* intValues = NULL;
 	flov* floatValues = NULL;
@@ -21,22 +20,22 @@ namespace Data {
 	strl* stringLists = NULL;
 	forl* formLists = NULL;
 
+	template <> intv* GetValues<SInt32, SInt32>() { if (!intValues) intValues = new intv(); return intValues; }
+	template <> flov* GetValues<float, float>() { if (!floatValues) floatValues = new flov(); return floatValues; }
+	template <> strv* GetValues<BSFixedString, std::string>() { if (!stringValues) stringValues = new strv(); return stringValues; }
+	template <> forv* GetValues<TESForm*, UInt32>() { if (!formValues) formValues = new forv(); return formValues; }
+
+	template <> intl* GetLists<SInt32, SInt32>() { if (!intLists) intLists = new intl(); return intLists; }
+	template <> flol* GetLists<float, float>() { if (!floatLists) floatLists = new flol(); return floatLists; }
+	template <> strl* GetLists<BSFixedString, std::string>() { if (!stringLists) stringLists = new strl(); return stringLists; }
+	template <> forl* GetLists<TESForm*, UInt32>() { if (!formLists) formLists = new forl(); return formLists; }
+
 	// Overrides
 	forl* packageLists = NULL;
-	forl* GetPackages(){ return packageLists; }
+	forl* GetPackages(){ if (!packageLists) packageLists = new forl(); return packageLists; }
 
 	//aniv* animValues = NULL;
 	//aniv* GetAnimations(){ return animValues; }
-
-	template <> intv* GetValues<SInt32, SInt32>() { return intValues; }
-	template <> flov* GetValues<float, float>() { return floatValues; }
-	template <> strv* GetValues<BSFixedString, std::string>() { return stringValues; }
-	template <> forv* GetValues<TESForm*, UInt32>() { return formValues; }
-
-	template <> intl* GetLists<SInt32, SInt32>() { return intLists; }
-	template <> flol* GetLists<float, float>() { return floatLists; }
-	template <> strl* GetLists<BSFixedString, std::string>() { return stringLists; }
-	template <> forl* GetLists<TESForm*, UInt32>() { return formLists; }
 
 	void InitLists() {
 		intValues = new intv();
@@ -458,11 +457,10 @@ namespace Data {
 			int count = vector->size();
 			std::string var = value.data;
 			for (List::iterator itr = vector->begin(); itr != vector->end();){
-				if (!boost::iequals(var, *itr)){
-					vector->erase(itr);
+				if (boost::iequals(var, *itr)){
 					count++;
-					if (allInstances)
-						break;
+					vector->erase(itr);
+					if (!allInstances) break;
 				}
 				else ++itr;
 			}
@@ -609,6 +607,7 @@ namespace Data {
 		if (count < 1)
 			return;
 		s_dataLock.Enter();
+
 		for (int i = 0; i < count; i++) {
 			UInt64 objKey;
 			ss >> objKey;
@@ -626,8 +625,8 @@ namespace Data {
 						std::string key;
 						S value;
 						ss >> key;
-						ss >> value;	
-						_MESSAGE("---- Key: %s", key.c_str());
+						ss >> value;
+						// _MESSAGE("---- Key: %s", key.c_str());
 					}
 					continue;
 				}

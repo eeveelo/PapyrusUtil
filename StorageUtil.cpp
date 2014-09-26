@@ -18,38 +18,45 @@
 namespace StorageUtil {
 	using namespace Forms;
 
+	// template <typename T, typename S> T Empty(){ S s = S(); return cast(s); }
+
 	bool IsValidKey(BSFixedString &key) { return !(key == NULL || !key.data || strlen(key.data) == 0); }
-	template <typename T, typename S> T Empty(){ S s = S(); return cast(s); }
+
+	template <typename T> inline T Empty() { return T(); }
+	template <> inline SInt32 Empty<SInt32>() { return 0; }
+	template <> inline float Empty<float>() { return 0.0f; }
+	template <> inline BSFixedString Empty<BSFixedString>() { return BSFixedString(""); }
+	template <> inline TESForm* Empty<TESForm*>() { return NULL; }
 
 	// Flat key=>value storage
 	template <typename T, typename S>
 	T SetValue(StaticFunctionTag* base, TESForm* obj, BSFixedString key, T value) {
 		Data::Values<T, S>* Data = Data::GetValues<T, S>();
-		if (Data == NULL || !IsValidKey(key))
-			return Empty<T, S>();
+		if (!Data || !IsValidKey(key))
+			return Empty<T>();
 		return Data->SetValue(GetFormKey(obj), key.data, value);
 	}
 
 	template <typename T, typename S>
-	T GetValue(StaticFunctionTag* base, TESForm* obj, BSFixedString key, T value) {
+	T GetValue(StaticFunctionTag* base, TESForm* obj, BSFixedString key, T missing) {
 		Data::Values<T, S>* Data = Data::GetValues<T, S>();
-		if (Data == NULL || !IsValidKey(key))
-			return Empty<T, S>();
-		return Data->GetValue(GetFormKey(obj), key.data, value);
+		if (!Data || !IsValidKey(key))
+			return missing;
+		return Data->GetValue(GetFormKey(obj), key.data, missing);
 	}
 
 	template <typename T, typename S>
 	T AdjustValue(StaticFunctionTag* base, TESForm* obj, BSFixedString key, T value) {
 		Data::Values<T, S>* Data = Data::GetValues<T, S>();
-		if (Data == NULL || !IsValidKey(key))
-			return Empty<T, S>();
+		if (!Data || !IsValidKey(key))
+			return Empty<T>();
 		return Data->AdjustValue(GetFormKey(obj), key.data, value);
 	}
 
 	template <typename T, typename S>
 	bool UnsetValue(StaticFunctionTag* base, TESForm* obj, BSFixedString key) {
 		Data::Values<T, S>* Data = Data::GetValues<T, S>();
-		if (Data == NULL || !IsValidKey(key))
+		if (!Data || !IsValidKey(key))
 			return false;
 		return Data->UnsetValue(GetFormKey(obj), key.data);
 	}
@@ -57,7 +64,7 @@ namespace StorageUtil {
 	template <typename T, typename S>
 	bool HasValue(StaticFunctionTag* base, TESForm* obj, BSFixedString key) {
 		Data::Values<T, S>* Data = Data::GetValues<T, S>();
-		if (Data == NULL || !IsValidKey(key))
+		if (!Data || !IsValidKey(key))
 			return false;
 		return Data->HasValue(GetFormKey(obj), key.data);
 	}
@@ -66,7 +73,7 @@ namespace StorageUtil {
 	template <typename T, typename S>
 	SInt32 ListAdd(StaticFunctionTag* base, TESForm* obj, BSFixedString key, T value, bool allowDuplicate) {
 		Data::Lists<T, S>* Data = Data::GetLists<T, S>();
-		if (Data == NULL || !IsValidKey(key))
+		if (!Data || !IsValidKey(key))
 			return -1;
 		return Data->ListAdd(GetFormKey(obj), key.data, value, allowDuplicate);
 	}
@@ -74,31 +81,31 @@ namespace StorageUtil {
 	template <typename T, typename S>
 	T ListGet(StaticFunctionTag* base, TESForm* obj, BSFixedString key, UInt32 index) {
 		Data::Lists<T, S>* Data = Data::GetLists<T, S>();
-		if (Data == NULL || !IsValidKey(key))
-			return Empty<T, S>();
+		if (!Data || !IsValidKey(key))
+			return Empty<T>();
 		return Data->ListGet(GetFormKey(obj), key.data, index);
 	}
 
 	template <typename T, typename S>
 	T ListSet(StaticFunctionTag* base, TESForm* obj, BSFixedString key, UInt32 index, T value) {
 		Data::Lists<T, S>* Data = Data::GetLists<T, S>();
-		if (Data == NULL || !IsValidKey(key))
-			return Empty<T, S>();
+		if (!Data || !IsValidKey(key))
+			return Empty<T>();
 		return Data->ListSet(GetFormKey(obj), key.data, index, value);
 	}
 
 	template <typename T, typename S>
 	T ListAdjust(StaticFunctionTag* base, TESForm* obj, BSFixedString key, UInt32 index, T value) {
 		Data::Lists<T, S>* Data = Data::GetLists<T, S>();
-		if (Data == NULL || !IsValidKey(key))
-			return Empty<T, S>();
+		if (!Data || !IsValidKey(key))
+			return Empty<T>();
 		return Data->ListAdjust(GetFormKey(obj), key.data, index, value);
 	}
 
 	template <typename T, typename S>
 	UInt32 ListRemove(StaticFunctionTag* base, TESForm* obj, BSFixedString key, T value, bool allInstances) {
 		Data::Lists<T, S>* Data = Data::GetLists<T, S>();
-		if (Data == NULL || !IsValidKey(key))
+		if (!Data || !IsValidKey(key))
 			return 0;
 		return Data->ListRemove(GetFormKey(obj), key.data, value, allInstances);
 	}
@@ -106,7 +113,7 @@ namespace StorageUtil {
 	template <typename T, typename S>
 	bool ListInsertAt(StaticFunctionTag* base, TESForm* obj, BSFixedString key, UInt32 index, T value) {
 		Data::Lists<T, S>* Data = Data::GetLists<T, S>();
-		if (Data == NULL || !IsValidKey(key))
+		if (!Data || !IsValidKey(key))
 			return false;
 		return Data->ListInsertAt(GetFormKey(obj), key.data, index, value);
 	}
@@ -114,7 +121,7 @@ namespace StorageUtil {
 	template <typename T, typename S>
 	bool ListRemoveAt(StaticFunctionTag* base, TESForm* obj, BSFixedString key, UInt32 index) {
 		Data::Lists<T, S>* Data = Data::GetLists<T, S>();
-		if (Data == NULL || !IsValidKey(key))
+		if (!Data || !IsValidKey(key))
 			return false;
 		return Data->ListRemoveAt(GetFormKey(obj), key.data, index);
 	}
@@ -122,7 +129,7 @@ namespace StorageUtil {
 	template <typename T, typename S>
 	UInt32 ListClear(StaticFunctionTag* base, TESForm* obj, BSFixedString key) {
 		Data::Lists<T, S>* Data = Data::GetLists<T, S>();
-		if (Data == NULL || !IsValidKey(key))
+		if (!Data || !IsValidKey(key))
 			return 0;
 		return Data->ListClear(GetFormKey(obj), key.data);
 	}
@@ -130,7 +137,7 @@ namespace StorageUtil {
 	template <typename T, typename S>
 	UInt32 ListCount(StaticFunctionTag* base, TESForm* obj, BSFixedString key) {
 		Data::Lists<T, S>* Data = Data::GetLists<T, S>();
-		if (Data == NULL || !IsValidKey(key))
+		if (!Data || !IsValidKey(key))
 			return 0;
 		return Data->ListCount(GetFormKey(obj), key.data);
 	}
@@ -138,7 +145,7 @@ namespace StorageUtil {
 	template <typename T, typename S>
 	SInt32 ListFind(StaticFunctionTag* base, TESForm* obj, BSFixedString key, T value) {
 		Data::Lists<T, S>* Data = Data::GetLists<T, S>();
-		if (Data == NULL || !IsValidKey(key))
+		if (!Data || !IsValidKey(key))
 			return -1;
 		return Data->ListFind(GetFormKey(obj), key.data, value);
 	}
@@ -146,7 +153,7 @@ namespace StorageUtil {
 	template <typename T, typename S>
 	bool ListHas(StaticFunctionTag* base, TESForm* obj, BSFixedString key, T value) {
 		Data::Lists<T, S>* Data = Data::GetLists<T, S>();
-		if (Data == NULL || !IsValidKey(key))
+		if (!Data || !IsValidKey(key))
 			return false;
 		return Data->ListHas(GetFormKey(obj), key.data, value);
 	}
@@ -154,23 +161,21 @@ namespace StorageUtil {
 	template <typename T, typename S>
 	void ListSort(StaticFunctionTag* base, TESForm* obj, BSFixedString key) {
 		Data::Lists<T, S>* Data = Data::GetLists<T, S>();
-		if (Data == NULL || !IsValidKey(key))
-			return;
-		return Data->ListSort(GetFormKey(obj), key.data);
+		if (Data && IsValidKey(key))
+			Data->ListSort(GetFormKey(obj), key.data);
 	}
 
 	template <typename T, typename S>
 	void ListSlice(StaticFunctionTag* base, TESForm* obj, BSFixedString key, VMArray<T> Output, UInt32 startIndex) {
 		Data::Lists<T, S>* Data = Data::GetLists<T, S>();
-		if (Data == NULL || !IsValidKey(key) || !Output.arr || Output.Length() < 1)
-			return;
-		return Data->ListSlice(GetFormKey(obj), key.data, Output, startIndex);
+		if (Data && Output.arr && Output.Length() > 0 && startIndex >= 0 && IsValidKey(key))
+			Data->ListSlice(GetFormKey(obj), key.data, Output, startIndex);
 	}
 
 	template <typename T, typename S>
 	SInt32 ListResize(StaticFunctionTag* base, TESForm* obj, BSFixedString key, UInt32 length, T filler) {
 		Data::Lists<T, S>* Data = Data::GetLists<T, S>();
-		if (Data == NULL || !IsValidKey(key) || length > 500)
+		if (!Data || !IsValidKey(key) || length > 500)
 			return 0;
 		return Data->ListResize(GetFormKey(obj), key.data, length, filler);
 	}
@@ -178,7 +183,7 @@ namespace StorageUtil {
 	template <typename T, typename S>
 	bool ListCopy(StaticFunctionTag* base, TESForm* obj, BSFixedString key, VMArray<T> Input) {
 		Data::Lists<T, S>* Data = Data::GetLists<T, S>();
-		if (Data == NULL || !IsValidKey(key) || !Input.arr || Input.Length() < 1)
+		if (!Data || !IsValidKey(key) || !Input.arr || Input.Length() < 1)
 			return false;
 		return Data->ListCopy(GetFormKey(obj), key.data, Input);
 	}
@@ -186,143 +191,164 @@ namespace StorageUtil {
 
 
 
+
 	// Global external StorageUtil.json file
 	template <typename T, typename S>
 	T FileSetValue(StaticFunctionTag* base, BSFixedString key, T value) {
-		if (!IsValidKey(key))
-			return Empty<T, S>();
-		return External::GetSingleton()->SetValue<T>(key.data, value);
+		External::ExternalFile* File = External::GetSingleton();
+		if (!File || !IsValidKey(key))
+			return Empty<T>();
+		return File->SetValue<T>(key.data, value);
 	}
 
 	template <typename T, typename S>
 	T FileGetValue(StaticFunctionTag* base, BSFixedString key, T missing) {
-		if (!IsValidKey(key))
-			return Empty<T, S>();
-		return External::GetSingleton()->GetValue<T>(key.data, missing);
+		External::ExternalFile* File = External::GetSingleton();
+		if (!File || !IsValidKey(key))
+			return Empty<T>();
+		return File->GetValue<T>(key.data, missing);
 	}
 
 	template <typename T, typename S>
 	T FileAdjustValue(StaticFunctionTag* base, BSFixedString key, T value) {
-		if (!IsValidKey(key))
-			return Empty<T, S>();
-		return External::GetSingleton()->AdjustValue<T>(key.data, value);
+		External::ExternalFile* File = External::GetSingleton();
+		if (!File || !IsValidKey(key))
+			return Empty<T>();
+		return File->AdjustValue<T>(key.data, value);
 	}
 
 	template <typename T>
 	bool FileUnsetValue(StaticFunctionTag* base, BSFixedString key) {
-		if (!IsValidKey(key))
+		External::ExternalFile* File = External::GetSingleton();
+		if (!File || !IsValidKey(key))
 			return false;
-		return External::GetSingleton()->UnsetValue<T>(key.data);
+		return File->UnsetValue<T>(key.data);
 	}
 
 	template <typename T>
 	bool FileHasValue(StaticFunctionTag* base, BSFixedString key) {
-		if (!IsValidKey(key))
+		External::ExternalFile* File = External::GetSingleton();
+		if (!File || !IsValidKey(key))
 			return false;
-		return External::GetSingleton()->HasValue<T>(key.data);
+		return File->HasValue<T>(key.data);
 	}
 
 	template <typename T>
-	UInt32 FileListAdd(StaticFunctionTag* base, BSFixedString key, T value, bool allowDuplicate) {
-		if (!IsValidKey(key))
+	SInt32 FileListAdd(StaticFunctionTag* base, BSFixedString key, T value, bool allowDuplicate) {
+		External::ExternalFile* File = External::GetSingleton();
+		if (!File || !IsValidKey(key))
 			return -1;
-		return External::GetSingleton()->ListAdd<T>(key.data, value, allowDuplicate);
+		return File->ListAdd<T>(key.data, value, allowDuplicate);
 	}
 
 	template <typename T, typename S>
 	T FileListGet(StaticFunctionTag* base, BSFixedString key, UInt32 index) {
-		if (!IsValidKey(key))
-			return Empty<T, S>();
-		return External::GetSingleton()->ListGet<T>(key.data, index);
+		External::ExternalFile* File = External::GetSingleton();
+		if (!File || !IsValidKey(key))
+			return Empty<T>();
+		return File->ListGet<T>(key.data, index);
 	}
 
 	template <typename T, typename S>
 	T FileListSet(StaticFunctionTag* base, BSFixedString key, UInt32 index, T value) {
-		if (!IsValidKey(key))
-			return Empty<T, S>();
-		return External::GetSingleton()->ListSet<T>(key.data, index, value);
+		External::ExternalFile* File = External::GetSingleton();
+		if (!File || !IsValidKey(key))
+			return Empty<T>();
+		return File->ListSet<T>(key.data, index, value);
 	}
 
 	template <typename T, typename S>
 	T FileListAdjust(StaticFunctionTag* base, BSFixedString key, UInt32 index, T value) {
-		if (!IsValidKey(key))
-			return Empty<T, S>();
-		return External::GetSingleton()->ListAdjust<T>(key.data, index, value);
+		External::ExternalFile* File = External::GetSingleton();
+		if (!File || !IsValidKey(key))
+			return Empty<T>();
+		return File->ListAdjust<T>(key.data, index, value);
 	}
 
 	template <typename T>
 	UInt32 FileListRemove(StaticFunctionTag* base, BSFixedString key, T value, bool allInstances) {
-		if (!IsValidKey(key))
+		External::ExternalFile* File = External::GetSingleton();
+		if (!File || !IsValidKey(key))
 			return 0;
-		return External::GetSingleton()->ListRemove<T>(key.data, value, allInstances);
+		return File->ListRemove<T>(key.data, value, allInstances);
 	}
 
 	template <typename T>
 	bool FileListRemoveAt(StaticFunctionTag* base, BSFixedString key, UInt32 index) {
-		if (!IsValidKey(key))
+		External::ExternalFile* File = External::GetSingleton();
+		if (!File || !IsValidKey(key))
 			return false;
-		return External::GetSingleton()->ListRemoveAt<T>(key.data, index);
+		return File->ListRemoveAt<T>(key.data, index);
 	}
 
 	template <typename T>
 	bool FileListInsertAt(StaticFunctionTag* base, BSFixedString key, UInt32 index, T value) {
-		if (!IsValidKey(key))
+		External::ExternalFile* File = External::GetSingleton();
+		if (!File || !IsValidKey(key))
 			return false;
-		return External::GetSingleton()->ListInsertAt<T>(key.data, index, value);
+		return File->ListInsertAt<T>(key.data, index, value);
 	}
 
 	template <typename T>
 	UInt32 FileListClear(StaticFunctionTag* base, BSFixedString key) {
-		if (!IsValidKey(key))
+		External::ExternalFile* File = External::GetSingleton();
+		if (!File || !IsValidKey(key))
 			return 0;
-		return External::GetSingleton()->ListClear<T>(key.data);
+		return File->ListClear<T>(key.data);
 	}
 
 	template <typename T>
 	UInt32 FileListCount(StaticFunctionTag* base, BSFixedString key) {
-		if (!IsValidKey(key))
+		External::ExternalFile* File = External::GetSingleton();
+		if (!File || !IsValidKey(key))
 			return 0;
-		return External::GetSingleton()->ListCount<T>(key.data);
+		return File->ListCount<T>(key.data);
 	}
 
 	template <typename T>
 	SInt32 FileListFind(StaticFunctionTag* base, BSFixedString key, T value) {
-		if (!IsValidKey(key))
+		External::ExternalFile* File = External::GetSingleton();
+		if (!File || !IsValidKey(key))
 			return -1;
-		return External::GetSingleton()->ListFind<T>(key.data, value);
+		return File->ListFind<T>(key.data, value);
 	}
 
 	template <typename T>
 	bool FileListHas(StaticFunctionTag* base, BSFixedString key, T value) {
-		if (!IsValidKey(key))
+		External::ExternalFile* File = External::GetSingleton();
+		if (!File || !IsValidKey(key))
 			return false;
-		return External::GetSingleton()->ListHas<T>(key.data, value);
+		return File->ListHas<T>(key.data, value);
 	}
 
 	template <typename T>
 	void FileListSlice(StaticFunctionTag* base, BSFixedString key, VMArray<T> Output, UInt32 startIndex){
-		if (!IsValidKey(key))
-			return;
-		External::GetSingleton()->ListSlice<T>(key.data, Output, startIndex);
+		External::ExternalFile* File = External::GetSingleton();
+		if (File && Output.Length() > 0 && startIndex >= 0 && IsValidKey(key))
+			File->ListSlice<T>(key.data, Output, startIndex);
 	}
 
 	template <typename T>
 	SInt32 FileListResize(StaticFunctionTag* base, BSFixedString key, UInt32 length, T filler) {
-		if (!IsValidKey(key) || length > 500)
+		External::ExternalFile* File = External::GetSingleton();
+		if (!File || !IsValidKey(key) || length > 500)
 			return 0;
-		return External::GetSingleton()->ListResize(key.data, length, filler);
+		return File->ListResize(key.data, length, filler);
 	}
 
 	template <typename T>
 	bool FileListCopy(StaticFunctionTag* base, BSFixedString key, VMArray<T> Input) {
-		if (!IsValidKey(key) || !Input.arr || Input.Length() < 1)
+		External::ExternalFile* File = External::GetSingleton();
+		if (!File || !IsValidKey(key) || !Input.arr || Input.Length() < 1)
 			return false;
-		return External::GetSingleton()->ListCopy(key.data, Input);
+		return File->ListCopy(key.data, Input);
 	}
 
 	// Debug functions
 	void SaveExternalFile(StaticFunctionTag* base) {
-		External::GetSingleton()->SaveFile(false);
+		External::ExternalFile* File = External::GetSingleton();
+		if (File)
+			File->SaveFile(false);
 	}
 
 	UInt32 Cleanup(StaticFunctionTag* base) {
@@ -627,10 +653,10 @@ namespace StorageUtil {
 		registry->SetFunctionFlags("StorageUtil", "FileHasFormValue", VMClassRegistry::kFunctionFlag_NoWait);
 
 		// Global file lists
-		registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, UInt32, BSFixedString, SInt32, bool>("FileIntListAdd", "StorageUtil", FileListAdd<SInt32>, registry));
-		registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, UInt32, BSFixedString, float, bool>("FileFloatListAdd", "StorageUtil", FileListAdd<float>, registry));
-		registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, UInt32, BSFixedString, BSFixedString, bool>("FileStringListAdd", "StorageUtil", FileListAdd<BSFixedString>, registry));
-		registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, UInt32, BSFixedString, TESForm*, bool>("FileFormListAdd", "StorageUtil", FileListAdd<TESForm*>, registry));
+		registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, SInt32, BSFixedString, SInt32, bool>("FileIntListAdd", "StorageUtil", FileListAdd<SInt32>, registry));
+		registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, SInt32, BSFixedString, float, bool>("FileFloatListAdd", "StorageUtil", FileListAdd<float>, registry));
+		registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, SInt32, BSFixedString, BSFixedString, bool>("FileStringListAdd", "StorageUtil", FileListAdd<BSFixedString>, registry));
+		registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, SInt32, BSFixedString, TESForm*, bool>("FileFormListAdd", "StorageUtil", FileListAdd<TESForm*>, registry));
 		registry->SetFunctionFlags("StorageUtil", "FileIntListAdd", VMClassRegistry::kFunctionFlag_NoWait);
 		registry->SetFunctionFlags("StorageUtil", "FileFloatListAdd", VMClassRegistry::kFunctionFlag_NoWait);
 		registry->SetFunctionFlags("StorageUtil", "FileStringListAdd", VMClassRegistry::kFunctionFlag_NoWait);

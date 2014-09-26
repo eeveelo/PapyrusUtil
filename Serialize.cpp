@@ -13,6 +13,11 @@
 #include "External.h"
 #include "Forms.h"
 
+#include <fstream>
+#include <boost/archive/text_oarchive.hpp>
+#include <boost/archive/text_iarchive.hpp>
+
+
 namespace Data {
 
 	const UInt32 kSerializationDataVersion = 1;

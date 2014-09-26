@@ -4,37 +4,36 @@
 #include "skse/PapyrusNativeFunctions.h"
 
 #include <boost/algorithm/string.hpp>
+#include <boost/filesystem.hpp>
+#include <boost/filesystem/fstream.hpp>
+
 #include <vector>
 #include <sstream>
 #include <iostream>
 #include <fstream>
-#include <direct.h>
+//#include <direct.h>
 
-/*
-TODO: idot. You overwrote this file with the wrong paste. It's not currently reverted to v2.5.
-
-Filepath needs to be rewritten to 2.6 level
-Re-add adjust functions.
-
-*/
 namespace External {
+	namespace fs = boost::filesystem;
 
 	FileVector* s_Files;
 	ExternalFile* GetFile(std::string name) {
+		if (name.find(".json") == std::string::npos)
+			name += ".json";
+
 		if (s_Files == NULL)
 			s_Files = new FileVector();
-		if (name.find(".") == std::string::npos)
-			name += ".json";
 
 		for (FileVector::iterator itr = s_Files->begin(); itr != s_Files->end(); ++itr){
 			if (boost::iequals(name, (*itr)->name)){
 				return (*itr);
 			}
 		}
-		ExternalFile* file = new ExternalFile(name);
-		s_Files->push_back(file);
-		_MESSAGE("Loaded file: %s", name.c_str());
-		return file;
+
+		ExternalFile* File = new ExternalFile(name);
+		s_Files->push_back(File);
+		_MESSAGE("Loaded file: %s", File->name.c_str());
+		return File;
 	}
 
 	ExternalFile* s_Global;
@@ -78,39 +77,48 @@ namespace External {
 		}
 	}
 
-
+	/*/
+	/// Class: ExternalFile
+	/*/
+	
 
 	// read/write
+	inline fs::path GetPath(std::string &name){
+		std::string docpath = "Data\\SKSE\\Plugins\\StorageUtilData\\" + name;
+		return fs::path(docpath);
+	}
+
 	bool ExternalFile::LoadFile(){
 		_MESSAGE("Papyrus Loading File: %s", name.c_str());
-		s_dataLock.Enter();
-		_mkdir("Data\\SKSE\\Plugins\\StorageUtilData");
-		std::string docpath = "Data\\SKSE\\Plugins\\StorageUtilData\\" + name;
-		std::ifstream doc;
-		try {
-			doc.open(docpath.c_str(), std::ifstream::in | std::ifstream::binary);
-		}
-		catch (std::exception&) {
-			_MESSAGE("Catch");
-			reader.parse("{}", root, true);
-			doc.close();
-			return false;
-		}
-		bool parsed = false;
-		if (doc.fail()){
-			_MESSAGE("Fail");
-			parsed = reader.parse("{}", root, true);
-		}
-		else {
-			_MESSAGE("Read");
-			parsed = reader.parse(doc, root, true);
-		}
-		doc.close();
-		if (!parsed || root.size() == 0){
-			_MESSAGE("Empty");
-			parsed = reader.parse("{}", root, true);
+
+		// Path to file
+		fs::path Path = GetPath(name);
+
+		// Check if file exists
+		if (!fs::exists(Path)) {
+			reader.parse("{}", root, false);
+			return false; // File doesn't exists, why bother?
 		}
 
+		// Attempt to read and load the file into root
+		bool parsed = false;
+		s_dataLock.Enter();
+
+		fs::ifstream doc;
+		try
+		{
+			doc.open(Path, fs::ifstream::in); //| std::ios_base::binary
+			if (!doc.fail()) parsed = reader.parse(doc, root, true);
+		}
+		catch (std::exception&)
+		{
+			_MESSAGE("Failed to load/read file...");
+			parsed = false;
+		}
+		if (doc.is_open()) doc.close();
+
+		// Failed to parse file properly, init empty root
+		if (!parsed || !root.isObject()) reader.parse("{}", root, false);
 
 		s_dataLock.Leave();
 		return parsed;
@@ -118,33 +126,44 @@ namespace External {
 
 	bool ExternalFile::SaveFile(){
 		_MESSAGE("Papyrus Saving File: %s", name.c_str());
+
+		// Check if anything even needs saving
+		if (!isModified || !root.isObject()) return false;
+
+		// Path to file
+		fs::path Path = GetPath(name);
+		try
+		{
+			if (!fs::exists(Path.parent_path()))
+				fs::create_directories(Path.parent_path());
+		}
+		catch (const fs::filesystem_error& ex)
+		{
+			_MESSAGE("Failed to check or create path to file: %s", ex.what());
+			return false;
+		}
+
+		// Attempt to read and load the file into root
 		s_dataLock.Enter();
-		// stringify json
-		std::string out = "";
-		if (styledWrite){
-			Json::StyledWriter style;
-			out = style.write(root);
+
+		fs::ofstream doc;
+		try
+		{
+			doc.open(Path, fs::ofstream::out | fs::ofstream::trunc);
+			if (!doc.fail()) {
+				Json::StyledStreamWriter writer;
+				writer.write(doc, root);
+				isModified = false;
+			}
 		}
-		else{
-			Json::FastWriter fast;
-			out = fast.write(root);
+		catch (const std::exception& ex)
+		{
+			_MESSAGE("Failed to load/read file: %s", ex.what());
 		}
-		const char * cstr = out.c_str();
-		// Open file
-		std::string docpath = "Data\\SKSE\\Plugins\\StorageUtilData\\" + name;
-		std::ofstream doc;
-		try {
-			doc.open(docpath.c_str());
-		}
-		catch (std::exception*) {
-			return false;
-		}
-		if (doc.fail())
-			return false;
-		// Write to file
-		doc.write(cstr, strlen(cstr));
-		doc.close();
-		isModified = false;
+
+		// Close file if it's still open
+		if (doc.is_open()) doc.close();
+
 		s_dataLock.Leave();
 		return true;
 	}
@@ -152,6 +171,13 @@ namespace External {
 	bool ExternalFile::SaveFile(bool styled) {
 		styledWrite = styled;
 		return SaveFile();
+	}
+
+	void ExternalFile::ClearAll() {
+		s_dataLock.Enter();
+		root.clear();
+		isModified = true;
+		s_dataLock.Leave();
 	}
 
 	void ExternalFile::RevertFile() {
@@ -181,7 +207,7 @@ namespace External {
 	T ExternalFile::GetValue(std::string key, T missing) {
 		s_dataLock.Enter();
 		boost::to_lower(key);
-		Json::Value value = Json::Value::null;
+		Value value = Value::null;
 		if (HasKey(Type<T>(), key))
 			value = root[Type<T>()][key];
 		s_dataLock.Leave();
@@ -191,6 +217,21 @@ namespace External {
 	template float ExternalFile::GetValue<float>(std::string key, float missing);
 	template BSFixedString ExternalFile::GetValue<BSFixedString>(std::string key, BSFixedString missing);
 	template TESForm* ExternalFile::GetValue<TESForm*>(std::string key, TESForm* missing);
+
+	template <typename T>
+	T ExternalFile::AdjustValue(std::string key, T value) {
+		s_dataLock.Enter();
+		boost::to_lower(key);
+		std::string type = Type<T>();
+		if (HasKey(type, key))
+			value = value + ParseValue(root[type][key], T());
+		root[type][key] = MakeValue<T>(value);
+		isModified = true;
+		s_dataLock.Leave();
+		return value;
+	}
+	template SInt32 ExternalFile::AdjustValue<SInt32>(std::string key, SInt32 value);
+	template float ExternalFile::AdjustValue<float>(std::string key, float value);
 
 	bool ExternalFile::UnsetValue(std::string type, std::string key){
 		bool removed = false;
@@ -226,15 +267,15 @@ namespace External {
 		s_dataLock.Enter();
 
 		std::string type = List<T>();
-		if (root.get(type, Json::Value::null).isNull())
-			root[type] = Json::Value(Json::objectValue);
+		if (root.get(type, Value::null).isNull())
+			root[type] = Value(Json::objectValue);
 
 		boost::to_lower(key);
-		if (root[type].get(key, Json::Value::null).isNull())
-			root[type][key] = Json::Value(Json::arrayValue);
+		if (root[type].get(key, Value::null).isNull())
+			root[type][key] = Value(Json::arrayValue);
 
 		int index = root[type][key].size();
-		Json::Value &v = root[type][key].append(MakeValue<T>(value));
+		Value &v = root[type][key].append(MakeValue<T>(value));
 		isModified = true;
 
 		s_dataLock.Leave();
@@ -250,9 +291,9 @@ namespace External {
 		s_dataLock.Enter();
 		boost::to_lower(key);
 		std::string type = List<T>();
-		Json::Value value;
+		Value value;
 		if (HasKey(type, key) && root[type][key].isValidIndex(index))
-			value = root[type][key].get(index, Json::Value::null);
+			value = root[type][key].get(index, Value::null);
 		s_dataLock.Leave();
 		return ParseValue<T>(value);
 	}
@@ -279,6 +320,22 @@ namespace External {
 	template TESForm* ExternalFile::ListSet<TESForm*>(std::string key, int index, TESForm* value);
 
 	template <typename T>
+	T ExternalFile::ListAdjust(std::string key, int index, T value){
+		s_dataLock.Enter();
+		boost::to_lower(key);
+		std::string type = List<T>();
+		if (HasKey(type, key) && root[type][key].isValidIndex(index)){
+			value = value + ParseValue(root[type][key][index], T());
+			root[type][key][index] = MakeValue<T>(value);
+			isModified = true;
+		}
+		s_dataLock.Leave();
+		return value;
+	}
+	template SInt32 ExternalFile::ListAdjust<SInt32>(std::string key, int index, SInt32 value);
+	template float ExternalFile::ListAdjust<float>(std::string key, int index, float value);
+
+	template <typename T>
 	int ExternalFile::ListRemove(std::string key, T value, bool allInstances){
 		int removed = 0;
 		s_dataLock.Enter();
@@ -286,9 +343,9 @@ namespace External {
 		boost::to_lower(key);
 		std::string type = List<T>();
 		if (HasKey(type, key)){
-			Json::Value list = Json::Value(Json::arrayValue);
-			Json::Value removing = MakeValue<T>(value);
-			Json::Value::iterator itr = root[type][key].begin();
+			Value list = Value(Json::arrayValue);
+			Value removing = MakeValue<T>(value);
+			Value::iterator itr = root[type][key].begin();
 			if (allInstances) {
 				for (itr = root[type][key].begin(); itr != root[type][key].end(); itr++){
 					if (removing != (*itr))
@@ -328,8 +385,8 @@ namespace External {
 		boost::to_lower(key);
 		std::string type = List<T>();
 		if (HasKey(type, key) && root[type][key].isValidIndex(index)){
-			Json::Value list = Json::Value(Json::arrayValue);
-			Json::Value::iterator itr = root[type][key].begin();
+			Value list = Value(Json::arrayValue);
+			Value::iterator itr = root[type][key].begin();
 			for (itr = root[type][key].begin(); itr != root[type][key].end(); itr++){
 				if (itr.key().asInt() == index)
 					removed = true;
@@ -360,9 +417,9 @@ namespace External {
 		boost::to_lower(key);
 		std::string type = List<T>();
 		if (HasKey(type, key) && root[type][key].isValidIndex(index)){
-			Json::Value find = MakeValue<T>(value);
-			Json::Value list = Json::Value(Json::arrayValue);
-			Json::Value::iterator itr = root[type][key].begin();
+			Value find = MakeValue<T>(value);
+			Value list = Value(Json::arrayValue);
+			Value::iterator itr = root[type][key].begin();
 			for (itr = root[type][key].begin(); itr != root[type][key].end(); itr++){
 				if (itr.key().asInt() == index){
 					list.append(MakeValue<T>(value));
@@ -431,7 +488,7 @@ namespace External {
 		boost::to_lower(key);
 		std::string type = List<T>();
 		if (HasKey(type, key)){
-			Json::Value::iterator itr = std::find(root[type][key].begin(), root[type][key].end(), MakeValue<T>(value));
+			Value::iterator itr = std::find(root[type][key].begin(), root[type][key].end(), MakeValue<T>(value));
 			if (itr != root[type][key].end())
 				index = itr.key().asInt();
 		}
@@ -469,10 +526,10 @@ namespace External {
 		boost::to_lower(key);
 		std::string type = List<T>();
 		if (HasKey(type, key) && startIndex < root[type][key].size()){
-			Json::Value::iterator itr = root[type][key].begin();
+			Value::iterator itr = root[type][key].begin();
 			std::advance(itr, startIndex);
 			for (int index = 0; index < Output.Length() && itr != root[type][key].end(); ++itr, ++index){
-				T value = ParseValue<T>(root[type][key].get(itr.index(), Json::Value::null));
+				T value = ParseValue<T>(root[type][key].get(itr.index(), Value::null));
 				Output.Set(&value, index);
 			}
 		}
@@ -491,7 +548,7 @@ namespace External {
 		s_dataLock.Enter();
 
 		int start = 0;
-		Json::Value value = MakeValue<T>(filler);
+		Value value = MakeValue<T>(filler);
 		std::string type = List<T>();
 		boost::to_lower(key);
 		if (HasKey(type, key)){
@@ -550,8 +607,8 @@ namespace External {
 		std::string type = "stringList";
 		if (HasKey(type, key)){
 			std::string var = value.data;
-			for (Json::Value::iterator itr = root[type][key].begin(); itr != root[type][key].end(); ++itr){
-				std::string str = root[type][key].get(itr.index(), Json::Value::null).asString();
+			for (Value::iterator itr = root[type][key].begin(); itr != root[type][key].end(); ++itr){
+				std::string str = root[type][key].get(itr.index(), Value::null).asString();
 				if (boost::iequals(var, str)) {
 					index = itr.key().asInt();
 					break;
@@ -574,7 +631,7 @@ namespace External {
 	boost::to_lower(key);
 	std::string type = "stringList";
 	int index = root[type][key].size();
-	Json::Value &v = root[type][key].append(MakeValue<BSFixedString>(value));
+	Value &v = root[type][key].append(MakeValue<BSFixedString>(value));
 	isModified = true;
 
 	s_dataLock.Leave();
@@ -589,9 +646,9 @@ namespace External {
 		std::string type = "stringList";
 		if (HasKey(type, key)){
 			std::string var = value.data;
-			Json::Value list = Json::Value(Json::arrayValue);
-			Json::Value removing = MakeValue<BSFixedString>(value);
-			Json::Value::iterator itr = root[type][key].begin();
+			Value list = Value(Json::arrayValue);
+			Value removing = MakeValue<BSFixedString>(value);
+			Value::iterator itr = root[type][key].begin();
 			for (itr = root[type][key].begin(); itr != root[type][key].end(); ++itr){
 				std::string str = (*itr).asString();
 				if (!boost::iequals(var, str))

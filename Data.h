@@ -1,17 +1,16 @@
 #pragma once
 
+#include <sstream>
+#include <vector>
+#include <boost/container/flat_map.hpp>
+
+#include "common/ICriticalSection.h"
+
 #include "skse/PluginAPI.h"
-//#include "skse/GameAPI.h"
 #include "skse/GameTypes.h"
 #include "skse/GameData.h"
 #include "skse/PapyrusVM.h"
 #include "skse/PapyrusArgs.h"
-//#include "Forms.h"
-#include "common/ICriticalSection.h"
-
-#include <boost/unordered_map.hpp>
-#include <sstream>
-#include <vector>
 
 inline SInt32 cast(SInt32 &v) { return v; }
 inline float cast(float &v) { return v; }
@@ -20,10 +19,9 @@ inline BSFixedString cast(std::string &v) { return BSFixedString(v.c_str()); }
 inline UInt32 cast(TESForm* v) { return v == NULL ? 0 : v->formID; }
 inline TESForm* cast(UInt32 &v) { return v == 0 ? NULL : LookupFormByID(v); }
 
-namespace Data {
-
+namespace Data
+{
 	void InitLists();
-
 
 	/*
 	*
@@ -36,8 +34,8 @@ namespace Data {
 	public:
 		ICriticalSection s_dataLock;
 
-		typedef boost::unordered_map<std::string, S> Obj;
-		typedef boost::unordered_map<UInt64, Obj> Map;
+		typedef boost::container::flat_map<std::string, S> Obj;
+		typedef boost::container::flat_map<UInt64, Obj> Map;
 		Map Data;
 
 		T SetValue(UInt64 obj, std::string key, T value);
@@ -66,8 +64,8 @@ namespace Data {
 		ICriticalSection s_dataLock;
 
 		typedef std::vector<S> List;
-		typedef boost::unordered_map<std::string, List> Obj;
-		typedef boost::unordered_map<UInt64, Obj> Map;
+		typedef boost::container::flat_map<std::string, List> Obj;
+		typedef boost::container::flat_map<UInt64, Obj> Map;
 		Map Data;
 
 		int ListAdd(UInt64 obj, std::string key, T value, bool allowDuplicate);
@@ -85,7 +83,6 @@ namespace Data {
 		void ListSlice(UInt64 obj, std::string key, VMArray<T> Output, UInt32 startIndex);
 		int ListResize(UInt64 obj, std::string key, UInt32 length, T filler);
 		bool ListCopy(UInt64 obj, std::string key, VMArray<T> Input);
-		
 
 		List* GetVector(UInt64 &obj, std::string &key){
 			Map::iterator itr = Data.find(obj);
@@ -109,7 +106,6 @@ namespace Data {
 		std::string GetNthKey(UInt64 obj, UInt32 i);
 		void RemoveForm(UInt64 &obj);
 		int Cleanup();
-
 	};
 
 	/*
@@ -145,6 +141,3 @@ namespace Data {
 	forl* GetPackages();
 	//aniv* GetAnimations();
 }
-
-
-

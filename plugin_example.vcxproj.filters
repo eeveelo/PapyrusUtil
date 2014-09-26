@@ -111,9 +111,6 @@
     <ClCompile Include="StorageUtil.cpp">
       <Filter>papyrus</Filter>
     </ClCompile>
-    <ClCompile Include="jsoncpp.cpp">
-      <Filter>json</Filter>
-    </ClCompile>
     <ClCompile Include="JsonUtil.cpp">
       <Filter>papyrus</Filter>
     </ClCompile>
@@ -140,6 +137,9 @@
     </ClCompile>
     <ClCompile Include="Serialize.cpp">
       <Filter>lib</Filter>
+    </ClCompile>
+    <ClCompile Include="jsoncpp\jsoncpp.cpp">
+      <Filter>jsoncpp</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -258,12 +258,6 @@
     <ClInclude Include="..\skse\GameStreams.h">
       <Filter>skse\api</Filter>
     </ClInclude>
-    <ClInclude Include="json\json.h">
-      <Filter>json</Filter>
-    </ClInclude>
-    <ClInclude Include="json\json-forwards.h">
-      <Filter>json</Filter>
-    </ClInclude>
     <ClInclude Include="StorageUtil.h">
       <Filter>papyrus</Filter>
     </ClInclude>
@@ -293,6 +287,15 @@
     </ClInclude>
     <ClInclude Include="Serialize.h">
       <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="Header.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="jsoncpp\json\json.h">
+      <Filter>jsoncpp</Filter>
+    </ClInclude>
+    <ClInclude Include="jsoncpp\json\json-forwards.h">
+      <Filter>jsoncpp</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -326,14 +329,14 @@
     <Filter Include="skse\internals">
       <UniqueIdentifier>{3d2469da-14fe-4885-a9e9-114571a1a7d8}</UniqueIdentifier>
     </Filter>
-    <Filter Include="json">
-      <UniqueIdentifier>{bf3629bc-63df-4014-96bb-2284585ba332}</UniqueIdentifier>
-    </Filter>
     <Filter Include="lib">
       <UniqueIdentifier>{b6151e07-b6fe-4f13-b3cb-eb6c7c672535}</UniqueIdentifier>
     </Filter>
     <Filter Include="papyrus">
       <UniqueIdentifier>{9dd3b2a4-c9c9-4626-a747-e52f15eeb23d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="jsoncpp">
+      <UniqueIdentifier>{53adaf09-90df-4f79-ad06-c80531cd2932}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

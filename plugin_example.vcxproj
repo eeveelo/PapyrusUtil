@@ -82,7 +82,7 @@
     <ClCompile>
       <Optimization>MaxSpeed</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <AdditionalIncludeDirectories>$(SolutionDir);$(SolutionDir)\..;%(AdditionalIncludeDirectories);D:\libs\boost</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir);$(SolutionDir)\..;%(AdditionalIncludeDirectories);D:\libs\boost;D:\libs\jsoncpp</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;PLUGIN_EXAMPLE_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <FunctionLevelLinking>true</FunctionLevelLinking>
@@ -147,7 +147,7 @@
     <ClCompile Include="ActorUtil.cpp" />
     <ClCompile Include="Data.cpp" />
     <ClCompile Include="Forms.cpp" />
-    <ClCompile Include="jsoncpp.cpp" />
+    <ClCompile Include="jsoncpp\jsoncpp.cpp" />
     <ClCompile Include="JsonUtil.cpp" />
     <ClCompile Include="SafeRead.cpp" />
     <ClCompile Include="main.cpp" />
@@ -200,9 +200,10 @@
     <ClInclude Include="ActorUtil.h" />
     <ClInclude Include="Data.h" />
     <ClInclude Include="Forms.h" />
+    <ClInclude Include="Header.h" />
+    <ClInclude Include="jsoncpp\json\json-forwards.h" />
+    <ClInclude Include="jsoncpp\json\json.h" />
     <ClInclude Include="JsonUtil.h" />
-    <ClInclude Include="json\json-forwards.h" />
-    <ClInclude Include="json\json.h" />
     <ClInclude Include="SafeRead.h" />
     <ClInclude Include="MiscUtil.h" />
     <ClInclude Include="ObjectUtil.h" />
