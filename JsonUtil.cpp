@@ -24,149 +24,130 @@ namespace JsonUtil {
 
 	bool SaveJson(StaticFunctionTag* base, BSFixedString name, bool styled){
 		ExternalFile* File = GetFile(name.data);
-		if (!File)
-			return false;
-		return File->SaveFile(styled);
+		if (!File) return false;
+		else return File->SaveFile(styled);
 	}
 	bool LoadJson(StaticFunctionTag* base, BSFixedString name){
 		ExternalFile* File = GetFile(name.data);
-		if (!File)
-			return false;
-		return File->LoadFile();
+		if (!File) return false;
+		else return File->LoadFile();
 	}
 
 	void ClearAll(StaticFunctionTag* base, BSFixedString name){
 		ExternalFile* File = GetFile(name.data);
-		if (File)
-			File->ClearAll();
+		if (File) File->ClearAll();
 	}
 
 	template <typename T>
 	T SetValue(StaticFunctionTag* base, BSFixedString name, BSFixedString key, T value) {
 		ExternalFile* File = GetFile(name.data);
-		if (!File || !IsValidKey(key))
-			return Empty<T>();
-		return File->SetValue<T>(key.data, value);
+		if (!File || !IsValidKey(key)) return Empty<T>();
+		else return ParseValue<T>(File->SetValue(Type<T>(), key.data, MakeValue<T>(value)));
 	}
 
 	template <typename T>
 	T GetValue(StaticFunctionTag* base, BSFixedString name, BSFixedString key, T missing) {
 		ExternalFile* File = GetFile(name.data);
-		if (!File || !IsValidKey(key))
-			return Empty<T>();
-		return File->GetValue<T>(key.data, missing);
+		if (!File || !IsValidKey(key)) return Empty<T>();
+		else return ParseValue<T>(File->GetValue(Type<T>(), key.data, MakeValue<T>(missing)));
 	}
 
 	template <typename T>
 	T AdjustValue(StaticFunctionTag* base, BSFixedString name, BSFixedString key, T value) {
 		ExternalFile* File = GetFile(name.data);
-		if (!File || !IsValidKey(key))
-			return Empty<T>();
-		return File->AdjustValue<T>(key.data, value);
+		if (!File || !IsValidKey(key)) return Empty<T>();
+		else return ParseValue<T>(File->AdjustValue(Type<T>(), key.data, MakeValue<T>(value)));
 	}
 
 	template <typename T>
 	bool UnsetValue(StaticFunctionTag* base, BSFixedString name, BSFixedString key) {
 		ExternalFile* File = GetFile(name.data);
-		if (!File || !IsValidKey(key))
-			return false;
-		return File->UnsetValue<T>(key.data);
+		if (!File || !IsValidKey(key)) return false;
+		else return File->UnsetValue(Type<T>(), key.data);
 	}
 
 	template <typename T>
 	bool HasValue(StaticFunctionTag* base, BSFixedString name, BSFixedString key) {
 		ExternalFile* File = GetFile(name.data);
-		if (!File || !IsValidKey(key))
-			return false;
-		return File->HasValue<T>(key.data);
+		if (!File || !IsValidKey(key)) return false;
+		else return File->HasValue(Type<T>(), key.data);
 	}
 
 	template <typename T>
 	SInt32 ListAdd(StaticFunctionTag* base, BSFixedString name, BSFixedString key, T value, bool allowDuplicate) {
 		ExternalFile* File = GetFile(name.data);
-		if (!File || !IsValidKey(key))
-			return -1;
-		return File->ListAdd<T>(key.data, value, allowDuplicate);
+		if (!File || !IsValidKey(key)) return -1;
+		else return File->ListAdd<T>(key.data, value, allowDuplicate);
 	}
 
 	template <typename T>
 	T ListGet(StaticFunctionTag* base, BSFixedString name, BSFixedString key, UInt32 index) {
 		ExternalFile* File = GetFile(name.data);
-		if (!File || !IsValidKey(key))
-			return Empty<T>();
-		return File->ListGet<T>(key.data, index);
+		if (!File || !IsValidKey(key)) return Empty<T>();
+		else return File->ListGet<T>(key.data, index);
 	}
 
 	template <typename T>
 	T ListSet(StaticFunctionTag* base, BSFixedString name, BSFixedString key, UInt32 index, T value) {
 		ExternalFile* File = GetFile(name.data);
-		if (!File || !IsValidKey(key))
-			return Empty<T>();
-		return File->ListSet<T>(key.data, index, value);
+		if (!File || !IsValidKey(key)) return Empty<T>();
+		else return File->ListSet<T>(key.data, index, value);
 	}
 
 	template <typename T>
 	T ListAdjust(StaticFunctionTag* base, BSFixedString name, BSFixedString key, UInt32 index, T value) {
 		ExternalFile* File = GetFile(name.data);
-		if (!File || !IsValidKey(key))
-			return Empty<T>();
-		return File->ListAdjust<T>(key.data, index, value);
+		if (!File || !IsValidKey(key)) return Empty<T>();
+		else return File->ListAdjust<T>(key.data, index, value);
 	}
 
 	template <typename T>
 	UInt32 ListRemove(StaticFunctionTag* base, BSFixedString name, BSFixedString key, T value, bool allInstances) {
 		ExternalFile* File = GetFile(name.data);
-		if (!File || !IsValidKey(key))
-			return 0;
-		return File->ListRemove<T>(key.data, value, allInstances);
+		if (!File || !IsValidKey(key)) return 0;
+		else return File->ListRemove<T>(key.data, value, allInstances);
 	}
 
 	template <typename T>
 	bool ListRemoveAt(StaticFunctionTag* base, BSFixedString name, BSFixedString key, UInt32 index) {
 		ExternalFile* File = GetFile(name.data);
-		if (!File || !IsValidKey(key))
-			return false;
-		return File->ListRemoveAt<T>(key.data, index);
+		if (!File || !IsValidKey(key)) return false;
+		else return File->ListRemoveAt<T>(key.data, index);
 	}
 
 	template <typename T>
 	bool ListInsertAt(StaticFunctionTag* base, BSFixedString name, BSFixedString key, UInt32 index, T value) {
 		ExternalFile* File = GetFile(name.data);
-		if (!File || !IsValidKey(key))
-			return false;
-		return File->ListInsertAt<T>(key.data, index, value);
+		if (!File || !IsValidKey(key)) return false;
+		else return File->ListInsertAt<T>(key.data, index, value);
 	}
 
 	template <typename T>
 	UInt32 ListClear(StaticFunctionTag* base, BSFixedString name, BSFixedString key) {
 		ExternalFile* File = GetFile(name.data);
-		if (!File || !IsValidKey(key))
-			return 0;
-		return File->ListClear<T>(key.data);
+		if (!File || !IsValidKey(key)) return 0;
+		else return File->ListClear<T>(key.data);
 	}
 
 	template <typename T>
 	UInt32 ListCount(StaticFunctionTag* base, BSFixedString name, BSFixedString key) {
 		ExternalFile* File = GetFile(name.data);
-		if (!File || !IsValidKey(key))
-			return 0;
+		if (!File || !IsValidKey(key)) return 0;
 		return File->ListCount<T>(key.data);
 	}
 
 	template <typename T>
 	SInt32 ListFind(StaticFunctionTag* base, BSFixedString name, BSFixedString key, T value) {
 		ExternalFile* File = GetFile(name.data);
-		if (!File || !IsValidKey(key))
-			return -1;
-		return File->ListFind<T>(key.data, value);
+		if (!File || !IsValidKey(key)) return -1;
+		else return File->ListFind<T>(key.data, value);
 	}
 
 	template <typename T>
 	bool ListHas(StaticFunctionTag* base, BSFixedString name, BSFixedString key, T value) {
 		ExternalFile* File = GetFile(name.data);
-		if (!File || !IsValidKey(key))
-			return false;
-		return File->ListHas<T>(key.data, value);
+		if (!File || !IsValidKey(key)) return false;
+		else return File->ListHas<T>(key.data, value);
 	}
 
 	template <typename T>
@@ -179,17 +160,15 @@ namespace JsonUtil {
 	template <typename T>
 	SInt32 ListResize(StaticFunctionTag* base, BSFixedString name, BSFixedString key, UInt32 length, T filler) {
 		ExternalFile* File = GetFile(name.data);
-		if (!File || !IsValidKey(key) || length > 500)
-			return 0;
-		return File->ListResize(key.data, length, filler);
+		if (!File || !IsValidKey(key) || length > 500) return 0;
+		else return File->ListResize(key.data, length, filler);
 	}
 
 	template <typename T>
 	bool ListCopy(StaticFunctionTag* base, BSFixedString name, BSFixedString key, VMArray<T> Input) {
 		ExternalFile* File = GetFile(name.data);
-		if (!File || !IsValidKey(key) || !Input.arr || Input.Length() < 1)
-			return false;
-		return File->ListCopy(key.data, Input);
+		if (!File || !IsValidKey(key) || !Input.arr || Input.Length() < 1) return false;
+		else return File->ListCopy(key.data, Input);
 	}
 
 

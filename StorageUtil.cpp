@@ -17,6 +17,7 @@
 
 namespace StorageUtil {
 	using namespace Forms;
+	using namespace External;
 
 	// template <typename T, typename S> T Empty(){ S s = S(); return cast(s); }
 
@@ -193,44 +194,41 @@ namespace StorageUtil {
 
 
 	// Global external StorageUtil.json file
-	template <typename T, typename S>
+
+
+	template <typename T>
 	T FileSetValue(StaticFunctionTag* base, BSFixedString key, T value) {
-		External::ExternalFile* File = External::GetSingleton();
-		if (!File || !IsValidKey(key))
-			return Empty<T>();
-		return File->SetValue<T>(key.data, value);
+		ExternalFile* File = GetSingleton();
+		if (!File || !IsValidKey(key)) return Empty<T>();
+		else return ParseValue<T>(File->SetValue(Type<T>(), key.data, MakeValue<T>(value)));
 	}
 
-	template <typename T, typename S>
+	template <typename T>
 	T FileGetValue(StaticFunctionTag* base, BSFixedString key, T missing) {
-		External::ExternalFile* File = External::GetSingleton();
-		if (!File || !IsValidKey(key))
-			return Empty<T>();
-		return File->GetValue<T>(key.data, missing);
+		ExternalFile* File = GetSingleton();
+		if (!File || !IsValidKey(key)) return Empty<T>();
+		else return ParseValue<T>(File->GetValue(Type<T>(), key.data, MakeValue<T>(missing)));
 	}
 
-	template <typename T, typename S>
+	template <typename T>
 	T FileAdjustValue(StaticFunctionTag* base, BSFixedString key, T value) {
-		External::ExternalFile* File = External::GetSingleton();
-		if (!File || !IsValidKey(key))
-			return Empty<T>();
-		return File->AdjustValue<T>(key.data, value);
+		ExternalFile* File = GetSingleton();
+		if (!File || !IsValidKey(key)) return Empty<T>();
+		else return ParseValue<T>(File->AdjustValue(Type<T>(), key.data, MakeValue<T>(value)));
 	}
 
 	template <typename T>
 	bool FileUnsetValue(StaticFunctionTag* base, BSFixedString key) {
-		External::ExternalFile* File = External::GetSingleton();
-		if (!File || !IsValidKey(key))
-			return false;
-		return File->UnsetValue<T>(key.data);
+		ExternalFile* File = GetSingleton();
+		if (!File || !IsValidKey(key)) return false;
+		else return File->UnsetValue(Type<T>(), key.data);
 	}
 
 	template <typename T>
 	bool FileHasValue(StaticFunctionTag* base, BSFixedString key) {
-		External::ExternalFile* File = External::GetSingleton();
-		if (!File || !IsValidKey(key))
-			return false;
-		return File->HasValue<T>(key.data);
+		ExternalFile* File = GetSingleton();
+		if (!File || !IsValidKey(key)) return false;
+		else return File->HasValue(Type<T>(), key.data);
 	}
 
 	template <typename T>
@@ -611,26 +609,26 @@ namespace StorageUtil {
 		registry->SetFunctionFlags("StorageUtil", "FormListCopy", VMClassRegistry::kFunctionFlag_NoWait);
 
 		// Global file values
-		registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, SInt32, BSFixedString, SInt32>("FileSetIntValue", "StorageUtil", FileSetValue<SInt32, SInt32>, registry));
-		registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, float, BSFixedString, float>("FileSetFloatValue", "StorageUtil", FileSetValue<float, float>, registry));
-		registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, BSFixedString, BSFixedString, BSFixedString>("FileSetStringValue", "StorageUtil", FileSetValue<BSFixedString, std::string>, registry));
-		registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, TESForm*, BSFixedString, TESForm*>("FileSetFormValue", "StorageUtil", FileSetValue<TESForm*, UInt32>, registry));
+		registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, SInt32, BSFixedString, SInt32>("FileSetIntValue", "StorageUtil", FileSetValue<SInt32>, registry));
+		registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, float, BSFixedString, float>("FileSetFloatValue", "StorageUtil", FileSetValue<float>, registry));
+		registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, BSFixedString, BSFixedString, BSFixedString>("FileSetStringValue", "StorageUtil", FileSetValue<BSFixedString>, registry));
+		registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, TESForm*, BSFixedString, TESForm*>("FileSetFormValue", "StorageUtil", FileSetValue<TESForm*>, registry));
 		registry->SetFunctionFlags("StorageUtil", "FileSetIntValue", VMClassRegistry::kFunctionFlag_NoWait);
 		registry->SetFunctionFlags("StorageUtil", "FileSetFloatValue", VMClassRegistry::kFunctionFlag_NoWait);
 		registry->SetFunctionFlags("StorageUtil", "FileSetStringValue", VMClassRegistry::kFunctionFlag_NoWait);
 		registry->SetFunctionFlags("StorageUtil", "FileSetFormValue", VMClassRegistry::kFunctionFlag_NoWait);
 
-		registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, SInt32, BSFixedString, SInt32>("FileGetIntValue", "StorageUtil", FileGetValue<SInt32, SInt32>, registry));
-		registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, float, BSFixedString, float>("FileGetFloatValue", "StorageUtil", FileGetValue<float, float>, registry));
-		registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, BSFixedString, BSFixedString, BSFixedString>("FileGetStringValue", "StorageUtil", FileGetValue<BSFixedString, std::string>, registry));
-		registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, TESForm*, BSFixedString, TESForm*>("FileGetFormValue", "StorageUtil", FileGetValue<TESForm*, UInt32>, registry));
+		registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, SInt32, BSFixedString, SInt32>("FileGetIntValue", "StorageUtil", FileGetValue<SInt32>, registry));
+		registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, float, BSFixedString, float>("FileGetFloatValue", "StorageUtil", FileGetValue<float>, registry));
+		registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, BSFixedString, BSFixedString, BSFixedString>("FileGetStringValue", "StorageUtil", FileGetValue<BSFixedString>, registry));
+		registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, TESForm*, BSFixedString, TESForm*>("FileGetFormValue", "StorageUtil", FileGetValue<TESForm*>, registry));
 		registry->SetFunctionFlags("StorageUtil", "FileGetIntValue", VMClassRegistry::kFunctionFlag_NoWait);
 		registry->SetFunctionFlags("StorageUtil", "FileGetFloatValue", VMClassRegistry::kFunctionFlag_NoWait);
 		registry->SetFunctionFlags("StorageUtil", "FileGetStringValue", VMClassRegistry::kFunctionFlag_NoWait);
 		registry->SetFunctionFlags("StorageUtil", "FileGetFormValue", VMClassRegistry::kFunctionFlag_NoWait);
 
-		registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, SInt32, BSFixedString, SInt32>("FileAdjustIntValue", "StorageUtil", FileAdjustValue<SInt32, SInt32>, registry));
-		registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, float, BSFixedString, float>("FileAdjustFloatValue", "StorageUtil", FileAdjustValue<float, float>, registry));
+		registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, SInt32, BSFixedString, SInt32>("FileAdjustIntValue", "StorageUtil", FileAdjustValue<SInt32>, registry));
+		registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, float, BSFixedString, float>("FileAdjustFloatValue", "StorageUtil", FileAdjustValue<float>, registry));
 		registry->SetFunctionFlags("StorageUtil", "FileAdjustIntValue", VMClassRegistry::kFunctionFlag_NoWait);
 		registry->SetFunctionFlags("StorageUtil", "FileAdjustFloatValue", VMClassRegistry::kFunctionFlag_NoWait);
 

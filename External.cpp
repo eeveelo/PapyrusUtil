@@ -196,51 +196,38 @@ namespace External {
 	}
 
 	// Global key=>value
-	template <typename T>
-	T ExternalFile::SetValue(std::string key, T value) {
+	Value ExternalFile::SetValue(std::string type, std::string key, Value value) {
 		s_dataLock.Enter();
 		boost::to_lower(key);
-		root[Type<T>()][key] = MakeValue<T>(value);
+		root[type][key] = value;
 		isModified = true;
 		s_dataLock.Leave();
 		return value;
 	}
-	template SInt32 ExternalFile::SetValue<SInt32>(std::string key, SInt32 value);
-	template float ExternalFile::SetValue<float>(std::string key, float value);
-	template BSFixedString ExternalFile::SetValue<BSFixedString>(std::string key, BSFixedString value);
-	template TESForm* ExternalFile::SetValue<TESForm*>(std::string key, TESForm* value);
 
-	template <typename T>
-	T ExternalFile::GetValue(std::string key, T missing) {
+	Value ExternalFile::GetValue(std::string type, std::string key, Value value) {
 		s_dataLock.Enter();
 		boost::to_lower(key);
-		Value value = Value::null;
-		if (HasKey(Type<T>(), key))
-			value = root[Type<T>()][key];
-		s_dataLock.Leave();
-		return ParseValue<T>(value, missing);
-	}
-	template SInt32 ExternalFile::GetValue<SInt32>(std::string key, SInt32 missing);
-	template float ExternalFile::GetValue<float>(std::string key, float missing);
-	template BSFixedString ExternalFile::GetValue<BSFixedString>(std::string key, BSFixedString missing);
-	template TESForm* ExternalFile::GetValue<TESForm*>(std::string key, TESForm* missing);
-
-	template <typename T>
-	T ExternalFile::AdjustValue(std::string key, T value) {
-		s_dataLock.Enter();
-		boost::to_lower(key);
-		std::string type = Type<T>();
 		if (HasKey(type, key))
-			value = value + ParseValue(root[type][key], T());
-		root[type][key] = MakeValue<T>(value);
+			value = root[type][key];
+		s_dataLock.Leave();
+		return value;
+	}
+
+	Value ExternalFile::AdjustValue(std::string type, std::string key, Json::Value value) {
+		s_dataLock.Enter();
+		boost::to_lower(key);
+		if (HasKey(type, key)){
+			if (value.isInt()) value = Value::Int(value.asInt() + root[type][key].asInt());
+			else value = Value::Int(value.asFloat() + root[type][key].asFloat());
+		}
+		root[type][key] = value;
 		isModified = true;
 		s_dataLock.Leave();
 		return value;
 	}
-	template SInt32 ExternalFile::AdjustValue<SInt32>(std::string key, SInt32 value);
-	template float ExternalFile::AdjustValue<float>(std::string key, float value);
 
-	bool ExternalFile::UnsetValue(std::string type, std::string &key){
+	bool ExternalFile::UnsetValue(std::string type, std::string key){
 		bool removed = false;
 		s_dataLock.Enter();
 
@@ -257,7 +244,7 @@ namespace External {
 		return removed;
 	}
 
-	bool ExternalFile::HasValue(std::string type, std::string &key){
+	bool ExternalFile::HasValue(std::string type, std::string key){
 		bool has = false;
 		s_dataLock.Enter();
 		boost::to_lower(key);
