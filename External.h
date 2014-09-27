@@ -14,22 +14,28 @@
 #include "Forms.h"
 
 namespace External {
+	typedef Json::Value Value;
 
 	class ExternalFile{
-		typedef Json::Value Value;
+	private:
 		Value root;
 		Json::Reader reader;
 		ICriticalSection s_dataLock;
 	public:
-
 		std::string name;
 		bool isModified;
 		bool styledWrite;
 		ExternalFile(std::string doc) : isModified(false), styledWrite(true) { name = doc; LoadFile(); }
+		ExternalFile(Value doc, bool save) : isModified(false), styledWrite(true){ root = doc; if(save) SaveFile(); }
 
 		inline bool HasKey(std::string &type, std::string &key){ return root.isMember(type) && root[type].isMember(key); }
 
 		// Global key=>value
+		
+		//inline Value* GetMember(std::string &type, std::string &key){
+		//	return root.isMember(type) ? &root[type].get(key, NULL) : NULL;
+		//}
+		
 		template <typename T> T SetValue(std::string key, T value);
 		template <typename T> T GetValue(std::string key, T missing);
 		template <typename T> T AdjustValue(std::string key, T value);
@@ -70,7 +76,7 @@ namespace External {
 
 		// Parse values
 		template<typename T>
-		inline Json::Value MakeValue(T v) { return Value(v); }
+		inline Value MakeValue(T v) { return Value(v); }
 		template <> inline Value MakeValue<SInt32>(SInt32 v) { return Value::Int(v); }
 		template <> inline Value MakeValue<float>(float v) { return Value(v); }
 		template <> inline Value MakeValue<BSFixedString>(BSFixedString v) { return Value(v.data); }
@@ -108,6 +114,7 @@ namespace External {
 		bool SaveFile();
 		bool SaveFile(bool styled);
 		void RevertFile();
+		void CopyFileTo(std::string copyTo);
 		void ClearAll();
 
 	};

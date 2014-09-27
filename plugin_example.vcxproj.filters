@@ -288,14 +288,14 @@
     <ClInclude Include="Serialize.h">
       <Filter>lib</Filter>
     </ClInclude>
-    <ClInclude Include="Header.h">
-      <Filter>lib</Filter>
-    </ClInclude>
     <ClInclude Include="jsoncpp\json\json.h">
       <Filter>jsoncpp</Filter>
     </ClInclude>
     <ClInclude Include="jsoncpp\json\json-forwards.h">
       <Filter>jsoncpp</Filter>
+    </ClInclude>
+    <ClInclude Include="Value.h">
+      <Filter>lib</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -18,21 +18,18 @@ namespace External {
 
 	FileVector* s_Files;
 	ExternalFile* GetFile(std::string name) {
-		if (name.find(".json") == std::string::npos)
-			name += ".json";
-
 		if (s_Files == NULL)
 			s_Files = new FileVector();
 
-		for (FileVector::iterator itr = s_Files->begin(); itr != s_Files->end(); ++itr){
-			if (boost::iequals(name, (*itr)->name)){
-				return (*itr);
-			}
-		}
+		if (name.find(".json") == std::string::npos)
+			name += ".json";
+		
+		for (FileVector::iterator itr = s_Files->begin(); itr != s_Files->end(); ++itr)
+			if (boost::iequals(name, (*itr)->name))	return (*itr);
 
 		ExternalFile* File = new ExternalFile(name);
 		s_Files->push_back(File);
-		_MESSAGE("Loaded file: %s", File->name.c_str());
+
 		return File;
 	}
 
@@ -80,7 +77,6 @@ namespace External {
 	/*/
 	/// Class: ExternalFile
 	/*/
-	
 
 	// read/write
 	inline fs::path GetPath(std::string &name){
@@ -188,6 +184,17 @@ namespace External {
 		s_dataLock.Leave();
 	}
 
+	void ExternalFile::CopyFileTo(std::string copyTo) {
+		s_dataLock.Enter();
+		if (s_Files == NULL)
+			s_Files = new FileVector();
+
+		if (copyTo.find(".json") == std::string::npos)
+			copyTo += ".json";
+
+		s_dataLock.Leave();
+	}
+
 	// Global key=>value
 	template <typename T>
 	T ExternalFile::SetValue(std::string key, T value) {
@@ -233,7 +240,7 @@ namespace External {
 	template SInt32 ExternalFile::AdjustValue<SInt32>(std::string key, SInt32 value);
 	template float ExternalFile::AdjustValue<float>(std::string key, float value);
 
-	bool ExternalFile::UnsetValue(std::string type, std::string key){
+	bool ExternalFile::UnsetValue(std::string type, std::string &key){
 		bool removed = false;
 		s_dataLock.Enter();
 
@@ -250,7 +257,7 @@ namespace External {
 		return removed;
 	}
 
-	bool ExternalFile::HasValue(std::string type, std::string key){
+	bool ExternalFile::HasValue(std::string type, std::string &key){
 		bool has = false;
 		s_dataLock.Enter();
 		boost::to_lower(key);

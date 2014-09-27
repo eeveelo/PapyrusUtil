@@ -200,7 +200,6 @@
     <ClInclude Include="ActorUtil.h" />
     <ClInclude Include="Data.h" />
     <ClInclude Include="Forms.h" />
-    <ClInclude Include="Header.h" />
     <ClInclude Include="jsoncpp\json\json-forwards.h" />
     <ClInclude Include="jsoncpp\json\json.h" />
     <ClInclude Include="JsonUtil.h" />
@@ -211,6 +210,7 @@
     <ClInclude Include="External.h" />
     <ClInclude Include="Serialize.h" />
     <ClInclude Include="StorageUtil.h" />
+    <ClInclude Include="Value.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\skse\PapyrusNativeFunctionDef.inl">
