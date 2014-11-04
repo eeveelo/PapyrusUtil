@@ -317,8 +317,7 @@ namespace Data {
 		List* vector = GetVector(obj, key);
 		if (vector != NULL){
 			List::iterator itr = std::find(vector->begin(), vector->end(), cast(value));
-			if (itr != vector->end())
-				index = itr - vector->begin();
+			if (itr != vector->end()) index = itr - vector->begin();
 		}
 		s_dataLock.Leave();
 		return index;

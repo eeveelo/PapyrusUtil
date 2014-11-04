@@ -1,6 +1,6 @@
 #pragma once
 
-#include <json/json.h>
+#include "json/json.h"
 //#define JSON_VALUE_USE_INTERNAL_MAP
 
 #include "common/ICriticalSection.h"
@@ -58,59 +58,33 @@ namespace External {
 	public:
 		std::string name;
 		bool isModified;
-		bool styledWrite;
-		ExternalFile(std::string doc) : isModified(false), styledWrite(true) { name = doc; LoadFile(); }
-		ExternalFile(Value doc, bool save) : isModified(false), styledWrite(true){ root = doc; if(save) SaveFile(); }
+		bool minify;
+
+		ExternalFile(std::string doc) : isModified(false), minify(false) { name = doc; LoadFile(); } //reader = Json::Features::strictMode(); 
 
 		inline bool HasKey(std::string &type, std::string &key){ return root.isMember(type) && root[type].isMember(key); }
-
-		// Global key=>value
-		
-		//inline Value* GetMember(std::string &type, std::string &key){
-		//	return root.isMember(type) ? &root[type].get(key, NULL) : NULL;
-		//}
-		
+	
 		Value SetValue(std::string type, std::string key, Value value);
 		Value GetValue(std::string type, std::string key, Value value);
 		Value AdjustValue(std::string type, std::string key, Value value);
 		bool UnsetValue(std::string type, std::string key);
 		bool HasValue(std::string type, std::string key);
 
+		int ListAdd(std::string type, std::string key, Value value, bool allowDuplicate);
+		Value ListGet(std::string type, std::string key, int index);
+		Value ListSet(std::string type, std::string key, int index, Value value);
+		int ListRemove(std::string type, std::string key, Value removing, bool allInstances);
+		bool ListRemoveAt(std::string type, std::string key, int index);
+		bool ListInsertAt(std::string type, std::string key, int index, Value value);
+		int ListClear(std::string type, std::string key);
+		int ListCount(std::string type, std::string key);
+		int ListFind(std::string type, std::string key, Value value);
+		bool ListHas(std::string type, std::string key, Value value);
+		int ListResize(std::string type, std::string key, int length, Value filler);
 
-		template <typename T> int ListAdd(std::string key, T value, bool allowDuplicate);
-		template <typename T> T ListGet(std::string key, int index);
-		template <typename T> T ListSet(std::string key, int index, T value);
-		template <typename T> T ListAdjust(std::string key, int index, T value);
-		template <typename T> int ListRemove(std::string key, T value, bool allInstances);
-		template <typename T> bool ListRemoveAt(std::string key, int index);
-		template <typename T> bool ListInsertAt(std::string key, int index, T value);
-		template <typename T> int ListClear(std::string key);
-		template <typename T> int ListCount(std::string key);
-		template <typename T> int ListFind(std::string key, T value);
-		template <typename T> bool ListHas(std::string key, T value);
+		template <typename T> T ListAdjust(std::string key, int index, T adjustBy);
 		template <typename T> void ListSlice(std::string key, VMArray<T> Output, int startIndex);
-		template <typename T> int ListResize(std::string key, int length, T filler);
 		template <typename T> bool ListCopy(std::string key, VMArray<T> Input);
-
-		// Special case for strings
-		int ListRemove(std::string key, BSFixedString value, bool allInstances);
-		int ListFind(std::string key, BSFixedString value);
-		bool ListHas(std::string key, BSFixedString value);
-
-		// Parse values
-		/*template<typename T> inline Value MakeValue(T v) { return Value(v); }
-		template <> inline Value MakeValue<SInt32>(SInt32 v) { return Value::Int(v); }
-		template <> inline Value MakeValue<float>(float v) { return Value(v); }
-		template <> inline Value MakeValue<BSFixedString>(BSFixedString v) { return Value(v.data); }
-		template <> inline Value MakeValue<TESForm*>(TESForm* v) { return Value(Forms::GetFormString(v)); }
-		inline Value MakeValue(boost::any &v){ 
-			if (typeid(SInt32) == v.type()) return Value::Int(any_cast<SInt32>(v));
-			else if (typeid(float) == v.type()) return Value(any_cast<float>(v));
-			else if (typeid(BSFixedString) == v.type()) return Value(any_cast<BSFixedString>(v).data);
-			else if (typeid(TESForm*) == v.type()) return Value(Forms::GetFormString(any_cast<TESForm*>(v)));
-			else return Value::null;
-		}*/
-
 
 		// read/write
 		bool LoadFile();
@@ -120,6 +94,9 @@ namespace External {
 		void CopyFileTo(std::string copyTo);
 		void ClearAll();
 
+		//
+		bool ExternalFile::ImportOnForm(TESForm*);
+		
 	};
 
 	typedef std::vector<ExternalFile*> FileVector;

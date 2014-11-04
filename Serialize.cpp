@@ -9,13 +9,14 @@
 #include "skse/PapyrusVM.h"
 #include "skse/PapyrusArgs.h"
 
+#include "Forms.h"
 #include "Data.h"
 #include "External.h"
-#include "Forms.h"
+#include "PackageData.h"
 
-#include <fstream>
-#include <boost/archive/text_oarchive.hpp>
-#include <boost/archive/text_iarchive.hpp>
+//#include <fstream>
+//#include <boost/archive/text_oarchive.hpp>
+//#include <boost/archive/text_iarchive.hpp>
 
 
 namespace Data {
@@ -35,7 +36,7 @@ namespace Data {
 	extern forl* formLists;
 
 	// Overrides
-	extern forl* packageLists;
+	//extern forl* packageLists;
 	//extern aniv* animValues;
 
 	template <class T> void Load(T *Data, SKSESerializationInterface *intfc, UInt32 &version, UInt32 &length) {
@@ -45,8 +46,20 @@ namespace Data {
 			buf[length] = 0;
 			std::stringstream ss(buf);
 			_MESSAGE("- length: %d", strlen(buf));
+			if (strlen(buf) < 200) _MESSAGE(buf);
 			Data->LoadStream(ss);
 			delete[] buf;
+		}
+	}
+
+	template <class T> void Save(T *Data, SKSESerializationInterface* intfc, UInt32 type) {
+		std::stringstream ss;
+		Data->SaveStream(ss);
+		if (intfc->OpenRecord(type, kSerializationDataVersion)) {
+			std::string str = ss.str();
+			const char *cstr = str.c_str();
+			intfc->WriteRecordData(cstr, strlen(cstr));
+			if (strlen(cstr) < 200) _MESSAGE(cstr);
 		}
 	}
 
@@ -54,7 +67,6 @@ namespace Data {
 		UInt32	type;
 		UInt32	version;
 		UInt32	length;
-		bool	error = false;
 
 		if (!intValues)
 			InitLists();
@@ -63,7 +75,7 @@ namespace Data {
 
 		_MESSAGE("Storage Loading...");
 
-		while (!error && intfc->GetNextRecordInfo(&type, &version, &length)) {
+		while (intfc->GetNextRecordInfo(&type, &version, &length)) {
 			switch (type) {
 			case 'INTV':
 				_MESSAGE("INTV Load");
@@ -105,11 +117,16 @@ namespace Data {
 				Load(formLists, intfc, version, length);
 				break;
 			
-			case 'PACK':
-				_MESSAGE("PACK Load");
-				Load(packageLists, intfc, version, length);
+			case 'PKGO':
+				_MESSAGE("PKGO Load");
+				Load(PackageData::GetPackages(), intfc, version, length);
 				break;
 
+			/*case 'PACK':
+				_MESSAGE("PACK Load");
+				Load(packageLists, intfc, version, length);
+				break;*/
+			
 			case 'DATA':
 				if (version == kSerializationDataVersion && length > 0) {
 					char *buf = new char[length + 1];
@@ -145,17 +162,6 @@ namespace Data {
 		_MESSAGE("Done!\n");
 	}
 
-
-	template <class T> void Save(T *Data, SKSESerializationInterface* intfc, UInt32 type) {
-		std::stringstream ss;
-		Data->SaveStream(ss);
-		if (intfc->OpenRecord(type, kSerializationDataVersion)) {
-			std::string str = ss.str();
-			const char *cstr = str.c_str();
-			intfc->WriteRecordData(cstr, strlen(cstr));
-		}
-	}
-
 	void Serialization_Save(SKSESerializationInterface *intfc) {
 		_MESSAGE("Storage Saving...");
 
@@ -186,6 +192,9 @@ namespace Data {
 		cleaned += floatLists->Cleanup();
 		cleaned += stringLists->Cleanup();
 		cleaned += formLists->Cleanup();
+
+		cleaned += formLists->Cleanup();
+
 		if (cleaned > 0)
 			_MESSAGE("- discarded: %d", cleaned);		
 
@@ -202,7 +211,7 @@ namespace Data {
 		Save(formLists, intfc, 'FORL');
 
 		// Overrides
-		Save(packageLists, intfc, 'PACK');
+		Save(PackageData::GetPackages(), intfc, 'PKGO');
 
 		// Save external files
 		External::SaveFiles();
@@ -228,7 +237,7 @@ namespace Data {
 			stringLists->Revert();
 			formLists->Revert();
 
-			packageLists->Revert();
+			PackageData::GetPackages()->Revert();
 
 			// Revert external files
 			External::RevertFiles();

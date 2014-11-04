@@ -24,9 +24,7 @@ namespace Data
 	void InitLists();
 
 	/*
-	*
 	* Decalare classes methods
-	*
 	*/
 
 	template <typename T, typename S>
@@ -109,9 +107,7 @@ namespace Data
 	};
 
 	/*
-	*
 	* Data storage holders
-	*
 	*/
 
 	typedef Values<SInt32, SInt32> intv;
@@ -119,8 +115,7 @@ namespace Data
 	typedef Values<BSFixedString, std::string> strv;
 	typedef Values<TESForm*, UInt32> forv;
 
-	template <typename T, typename S>
-	Values<T, S>* GetValues();
+	template <typename T, typename S> Values<T, S>* GetValues();
 	template <> intv* GetValues<SInt32, SInt32>();
 	template <> flov* GetValues<float, float>();
 	template <> strv* GetValues<BSFixedString, std::string>();
@@ -131,13 +126,12 @@ namespace Data
 	typedef Lists<BSFixedString, std::string> strl;
 	typedef Lists<TESForm*, UInt32> forl;
 
-	template <typename T, typename S>
-	Lists<T, S>* GetLists();
+	template <typename T, typename S> Lists<T, S>* GetLists();
 	template <> intl* GetLists<SInt32, SInt32>();
 	template <> flol* GetLists<float, float>();
 	template <> strl* GetLists<BSFixedString, std::string>();
 	template <> forl* GetLists<TESForm*, UInt32>();
 
-	forl* GetPackages();
+	//forl* GetPackages();
 	//aniv* GetAnimations();
 }

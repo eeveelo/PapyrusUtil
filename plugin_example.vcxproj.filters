@@ -41,9 +41,6 @@
     <ClCompile Include="..\skse\PapyrusVM.cpp">
       <Filter>skse\papyrus\vm</Filter>
     </ClCompile>
-    <ClCompile Include="..\skse\PapyrusObjects.cpp">
-      <Filter>skse\papyrus\internals</Filter>
-    </ClCompile>
     <ClCompile Include="..\skse\GlobalLocks.cpp">
       <Filter>skse\internals</Filter>
     </ClCompile>
@@ -56,7 +53,6 @@
     <ClCompile Include="..\skse\Utilities.cpp">
       <Filter>skse\internals</Filter>
     </ClCompile>
-    <ClCompile Include="PapyrusUtil.cpp" />
     <ClCompile Include="..\skse\GameAPI.cpp">
       <Filter>skse\api</Filter>
     </ClCompile>
@@ -138,8 +134,15 @@
     <ClCompile Include="Serialize.cpp">
       <Filter>lib</Filter>
     </ClCompile>
-    <ClCompile Include="jsoncpp\jsoncpp.cpp">
+    <ClCompile Include="jsoncpp.cpp">
       <Filter>jsoncpp</Filter>
+    </ClCompile>
+    <ClCompile Include="Plugin.cpp" />
+    <ClCompile Include="PapyrusUtil.cpp">
+      <Filter>papyrus</Filter>
+    </ClCompile>
+    <ClCompile Include="PackageData.cpp">
+      <Filter>lib</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -182,9 +185,6 @@
     <ClInclude Include="..\skse\PapyrusVM.h">
       <Filter>skse\papyrus\vm</Filter>
     </ClInclude>
-    <ClInclude Include="..\skse\PapyrusObjects.h">
-      <Filter>skse\papyrus\internals</Filter>
-    </ClInclude>
     <ClInclude Include="..\skse\GlobalLocks.h">
       <Filter>skse\internals</Filter>
     </ClInclude>
@@ -203,7 +203,6 @@
     <ClInclude Include="..\skse\skse_version.h">
       <Filter>skse</Filter>
     </ClInclude>
-    <ClInclude Include="PapyrusUtil.h" />
     <ClInclude Include="..\skse\GameTypes.h">
       <Filter>skse\api</Filter>
     </ClInclude>
@@ -288,13 +287,20 @@
     <ClInclude Include="Serialize.h">
       <Filter>lib</Filter>
     </ClInclude>
-    <ClInclude Include="jsoncpp\json\json.h">
-      <Filter>jsoncpp</Filter>
-    </ClInclude>
-    <ClInclude Include="jsoncpp\json\json-forwards.h">
-      <Filter>jsoncpp</Filter>
-    </ClInclude>
     <ClInclude Include="Value.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="json\json.h">
+      <Filter>jsoncpp</Filter>
+    </ClInclude>
+    <ClInclude Include="json\json-forwards.h">
+      <Filter>jsoncpp</Filter>
+    </ClInclude>
+    <ClInclude Include="Plugin.h" />
+    <ClInclude Include="PapyrusUtil.h">
+      <Filter>papyrus</Filter>
+    </ClInclude>
+    <ClInclude Include="PackageData.h">
       <Filter>lib</Filter>
     </ClInclude>
   </ItemGroup>

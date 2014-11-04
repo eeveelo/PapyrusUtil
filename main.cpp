@@ -1,7 +1,9 @@
+#include <locale.h>
+
 #include "skse/PluginAPI.h"
 #include "skse/skse_version.h"
-#include "PapyrusUtil.h"
 
+#include "Plugin.h"
 #include "Data.h"
 #include "Serialize.h"
 
@@ -57,6 +59,7 @@ extern "C" {
 	}
 
 	bool SKSEPlugin_Load(const SKSEInterface * skse) {
+		//setlocale(LC_ALL, "POSIX");
 		_MESSAGE("Loading");
 
 		Data::InitLists();
@@ -69,9 +72,9 @@ extern "C" {
 		g_serialization->SetLoadCallback(g_pluginHandle, Data::Serialization_Load);
 		g_serialization->SetRevertCallback(g_pluginHandle, Data::Serialization_Revert);
 
-		g_papyrus->Register(PapyrusUtil::RegisterFuncs);
+		g_papyrus->Register(Plugin::RegisterFuncs);
 
-		PapyrusUtil::InitPlugin();
+		Plugin::InitPlugin();
 
 		return true;
 	}

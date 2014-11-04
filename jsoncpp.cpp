@@ -3236,7 +3236,7 @@ void FastWriter::writeValue(const Value& value) {
 // //////////////////////////////////////////////////////////////////
 
 StyledWriter::StyledWriter()
-    : rightMargin_(74), indentSize_(3), addChildValues_() {}
+    : rightMargin_(250), indentSize_(2), addChildValues_() {}
 
 std::string StyledWriter::write(const Value& root) {
   document_ = "";
@@ -3458,7 +3458,7 @@ std::string StyledWriter::normalizeEOL(const std::string& text) {
 // //////////////////////////////////////////////////////////////////
 
 StyledStreamWriter::StyledStreamWriter(std::string indentation)
-    : document_(NULL), rightMargin_(74), indentation_(indentation),
+    : document_(NULL), rightMargin_(250), indentation_(indentation),
       addChildValues_() {}
 
 void StyledStreamWriter::write(std::ostream& out, const Value& root) {

@@ -23,7 +23,7 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
-    <PlatformToolset>v90</PlatformToolset>
+    <PlatformToolset>v100</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
     <WholeProgramOptimization>true</WholeProgramOptimization>
   </PropertyGroup>
@@ -82,7 +82,7 @@
     <ClCompile>
       <Optimization>MaxSpeed</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <AdditionalIncludeDirectories>$(SolutionDir);$(SolutionDir)\..;%(AdditionalIncludeDirectories);D:\libs\boost;D:\libs\jsoncpp</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir);$(SolutionDir)\..;%(AdditionalIncludeDirectories);D:\libs\boost156;D:\libs\jsoncpp</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;PLUGIN_EXAMPLE_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <FunctionLevelLinking>true</FunctionLevelLinking>
@@ -98,7 +98,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <TargetMachine>MachineX86</TargetMachine>
-      <AdditionalLibraryDirectories>D:\libs\boost\stage\lib</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>D:\libs\boost156\stage\lib</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -140,15 +140,16 @@
     <ClCompile Include="..\skse\PapyrusArgs.cpp" />
     <ClCompile Include="..\skse\PapyrusClass.cpp" />
     <ClCompile Include="..\skse\PapyrusNativeFunctions.cpp" />
-    <ClCompile Include="..\skse\PapyrusObjects.cpp" />
     <ClCompile Include="..\skse\PapyrusVM.cpp" />
     <ClCompile Include="..\skse\SafeWrite.cpp" />
     <ClCompile Include="..\skse\Utilities.cpp" />
     <ClCompile Include="ActorUtil.cpp" />
     <ClCompile Include="Data.cpp" />
     <ClCompile Include="Forms.cpp" />
-    <ClCompile Include="jsoncpp\jsoncpp.cpp" />
+    <ClCompile Include="jsoncpp.cpp" />
     <ClCompile Include="JsonUtil.cpp" />
+    <ClCompile Include="PackageData.cpp" />
+    <ClCompile Include="Plugin.cpp" />
     <ClCompile Include="SafeRead.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MiscUtil.cpp" />
@@ -191,7 +192,6 @@
     <ClInclude Include="..\skse\PapyrusArgs.h" />
     <ClInclude Include="..\skse\PapyrusClass.h" />
     <ClInclude Include="..\skse\PapyrusNativeFunctions.h" />
-    <ClInclude Include="..\skse\PapyrusObjects.h" />
     <ClInclude Include="..\skse\PapyrusVM.h" />
     <ClInclude Include="..\skse\PluginAPI.h" />
     <ClInclude Include="..\skse\SafeWrite.h" />
@@ -200,9 +200,11 @@
     <ClInclude Include="ActorUtil.h" />
     <ClInclude Include="Data.h" />
     <ClInclude Include="Forms.h" />
-    <ClInclude Include="jsoncpp\json\json-forwards.h" />
-    <ClInclude Include="jsoncpp\json\json.h" />
     <ClInclude Include="JsonUtil.h" />
+    <ClInclude Include="json\json-forwards.h" />
+    <ClInclude Include="json\json.h" />
+    <ClInclude Include="PackageData.h" />
+    <ClInclude Include="Plugin.h" />
     <ClInclude Include="SafeRead.h" />
     <ClInclude Include="MiscUtil.h" />
     <ClInclude Include="ObjectUtil.h" />

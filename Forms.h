@@ -1,15 +1,19 @@
 #pragma once
 
+#include <sstream>
+
+#include "skse/PluginAPI.h"
 #include "skse/GameTypes.h"
 #include "skse/GameData.h"
-
-#include <sstream>
 
 namespace Forms {
 
 	// Load Order
 	void LoadCurrentMods();
 	void ClearPreviousMods();
+
+	void LoadModList(SKSESerializationInterface * intfc);
+	void SaveModList(SKSESerializationInterface * intfc);
 
 	void SaveCurrentMods(std::stringstream &ss);
 	void LoadPreviousMods(std::stringstream &ss);

@@ -1,35 +1,42 @@
 #include "External.h"
 
-#include "skse/PapyrusVM.h"
-#include "skse/PapyrusNativeFunctions.h"
-
-#include <boost/algorithm/string.hpp>
-#include <boost/filesystem.hpp>
-#include <boost/filesystem/fstream.hpp>
-
 #include <vector>
 #include <sstream>
 #include <iostream>
 #include <fstream>
 //#include <direct.h>
 
+#include <boost/algorithm/string.hpp>
+#include <boost/filesystem.hpp>
+#include <boost/filesystem/fstream.hpp>
+
+#include "skse/PapyrusVM.h"
+#include "skse/PapyrusNativeFunctions.h"
+
 namespace External {
 	namespace fs = boost::filesystem;
+	ICriticalSection* s_loadLock;
 
 	FileVector* s_Files;
 	ExternalFile* GetFile(std::string name) {
+		if (s_loadLock == NULL)
+			s_loadLock = new ICriticalSection();
+		s_loadLock->Enter();
+
 		if (s_Files == NULL)
 			s_Files = new FileVector();
-
+		
 		if (name.find(".json") == std::string::npos)
 			name += ".json";
 		
-		for (FileVector::iterator itr = s_Files->begin(); itr != s_Files->end(); ++itr)
-			if (boost::iequals(name, (*itr)->name))	return (*itr);
+		for (FileVector::iterator itr = s_Files->begin(); itr != s_Files->end(); ++itr){
+			if (boost::iequals(name, (*itr)->name)){ s_loadLock->Leave(); return (*itr); }
+		}
 
 		ExternalFile* File = new ExternalFile(name);
 		s_Files->push_back(File);
 
+		s_loadLock->Leave();
 		return File;
 	}
 
@@ -74,6 +81,10 @@ namespace External {
 		}
 	}
 
+	bool ExternalFile::ImportOnForm(TESForm* FormRef) {
+		return false;
+	}
+
 	/*/
 	/// Class: ExternalFile
 	/*/
@@ -85,6 +96,7 @@ namespace External {
 	}
 
 	bool ExternalFile::LoadFile(){
+		setlocale(LC_NUMERIC, "POSIX");
 		_MESSAGE("Papyrus Loading File: %s", name.c_str());
 
 		// Path to file
@@ -103,7 +115,7 @@ namespace External {
 		fs::ifstream doc;
 		try
 		{
-			doc.open(Path, fs::ifstream::in); //| std::ios_base::binary
+			doc.open(Path, fs::ifstream::in | std::ios_base::binary); //
 			if (!doc.fail()) parsed = reader.parse(doc, root, true);
 		}
 		catch (std::exception&)
@@ -122,10 +134,8 @@ namespace External {
 
 	bool ExternalFile::SaveFile(){
 		_MESSAGE("Papyrus Saving File: %s", name.c_str());
-
 		// Check if anything even needs saving
 		if (!isModified || !root.isObject()) return false;
-
 		// Path to file
 		fs::path Path = GetPath(name);
 		try
@@ -141,6 +151,7 @@ namespace External {
 
 		// Attempt to read and load the file into root
 		s_dataLock.Enter();
+
 
 		fs::ofstream doc;
 		try
@@ -164,8 +175,9 @@ namespace External {
 		return true;
 	}
 
+
 	bool ExternalFile::SaveFile(bool styled) {
-		styledWrite = styled;
+		minify = styled;
 		return SaveFile();
 	}
 
@@ -196,6 +208,7 @@ namespace External {
 	}
 
 	// Global key=>value
+
 	Value ExternalFile::SetValue(std::string type, std::string key, Value value) {
 		s_dataLock.Enter();
 		boost::to_lower(key);
@@ -214,7 +227,7 @@ namespace External {
 		return value;
 	}
 
-	Value ExternalFile::AdjustValue(std::string type, std::string key, Json::Value value) {
+	Value ExternalFile::AdjustValue(std::string type, std::string key, Value value) {
 		s_dataLock.Enter();
 		boost::to_lower(key);
 		if (HasKey(type, key)){
@@ -254,106 +267,50 @@ namespace External {
 	}
 
 	// Global key=>value=>list
-	template <typename T>
-	int ExternalFile::ListAdd(std::string key, T value, bool allowDuplicate){
-		if (!allowDuplicate && ListHas(key, value))
-			return -1;
+
+	int ExternalFile::ListAdd(std::string type, std::string key, Value value, bool allowDuplicate){
+		if (!allowDuplicate && ListFind(type, key, value) != -1) return -1;
 		s_dataLock.Enter();
-
-		std::string type = List<T>();
-		if (root.get(type, Value::null).isNull())
-			root[type] = Value(Json::objectValue);
-
 		boost::to_lower(key);
-		if (root[type].get(key, Value::null).isNull())
-			root[type][key] = Value(Json::arrayValue);
-
-		int index = root[type][key].size();
-		Value &v = root[type][key].append(MakeValue<T>(value));
+		value = root[type][key].append(value);
 		isModified = true;
-
 		s_dataLock.Leave();
-		return index;
+		return (root[type][key].size() - 1);
 	}
-	template int ExternalFile::ListAdd<SInt32>(std::string key, SInt32 value, bool allowDuplicate);
-	template int ExternalFile::ListAdd<float>(std::string key, float value, bool allowDuplicate);
-	template int ExternalFile::ListAdd<BSFixedString>(std::string key, BSFixedString value, bool allowDuplicate);
-	template int ExternalFile::ListAdd<TESForm*>(std::string key, TESForm* value, bool allowDuplicate);
 
-	template <typename T>
-	T ExternalFile::ListGet(std::string key, int index){
+	Value ExternalFile::ListGet(std::string type, std::string key, int index){
 		s_dataLock.Enter();
 		boost::to_lower(key);
-		std::string type = List<T>();
 		Value value;
 		if (HasKey(type, key) && root[type][key].isValidIndex(index))
 			value = root[type][key].get(index, Value::null);
 		s_dataLock.Leave();
-		return ParseValue<T>(value);
+		return value;
 	}
-	template SInt32 ExternalFile::ListGet<SInt32>(std::string key, int index);
-	template float ExternalFile::ListGet<float>(std::string key, int index);
-	template BSFixedString ExternalFile::ListGet<BSFixedString>(std::string key, int index);
-	template TESForm* ExternalFile::ListGet<TESForm*>(std::string key, int index);
 
-	template <typename T>
-	T ExternalFile::ListSet(std::string key, int index, T value){
+	Value ExternalFile::ListSet(std::string type, std::string key, int index, Value value){
 		s_dataLock.Enter();
 		boost::to_lower(key);
-		std::string type = List<T>();
 		if (HasKey(type, key) && root[type][key].isValidIndex(index)){
-			root[type][key][index] = MakeValue<T>(value);
+			root[type][key][index] = value;
 			isModified = true;
 		}
 		s_dataLock.Leave();
 		return value;
 	}
-	template SInt32 ExternalFile::ListSet<SInt32>(std::string key, int index, SInt32 value);
-	template float ExternalFile::ListSet<float>(std::string key, int index, float value);
-	template BSFixedString ExternalFile::ListSet<BSFixedString>(std::string key, int index, BSFixedString value);
-	template TESForm* ExternalFile::ListSet<TESForm*>(std::string key, int index, TESForm* value);
 
-	template <typename T>
-	T ExternalFile::ListAdjust(std::string key, int index, T value){
-		s_dataLock.Enter();
-		boost::to_lower(key);
-		std::string type = List<T>();
-		if (HasKey(type, key) && root[type][key].isValidIndex(index)){
-			value = value + ParseValue(root[type][key][index], T());
-			root[type][key][index] = MakeValue<T>(value);
-			isModified = true;
-		}
-		s_dataLock.Leave();
-		return value;
-	}
-	template SInt32 ExternalFile::ListAdjust<SInt32>(std::string key, int index, SInt32 value);
-	template float ExternalFile::ListAdjust<float>(std::string key, int index, float value);
-
-	template <typename T>
-	int ExternalFile::ListRemove(std::string key, T value, bool allInstances){
+	int ExternalFile::ListRemove(std::string type, std::string key, Value removing, bool allInstances){
 		int removed = 0;
 		s_dataLock.Enter();
 
 		boost::to_lower(key);
-		std::string type = List<T>();
 		if (HasKey(type, key)){
 			Value list = Value(Json::arrayValue);
-			Value removing = MakeValue<T>(value);
 			Value::iterator itr = root[type][key].begin();
-			if (allInstances) {
-				for (itr = root[type][key].begin(); itr != root[type][key].end(); itr++){
-					if (removing != (*itr))
-						list.append((*itr));
-				}
-				removed = root[type][key].size() - list.size();
-			}
-			else {
-				for (itr = root[type][key].begin(); itr != root[type][key].end(); itr++){
-					if (removed < 1 && removing == (*itr))
-						removed = 1;
-					else
-						list.append((*itr));
-				}
+			for (itr = root[type][key].begin(); itr != root[type][key].end(); ++itr){
+				if (!allInstances && removed > 0) list.append((*itr));
+				else if (removing != (*itr)) list.append((*itr));
+				else removed += 1;
 			}
 			root[type][key] = list;
 			if (root[type][key].size() == 0){
@@ -367,25 +324,18 @@ namespace External {
 		s_dataLock.Leave();
 		return removed;
 	}
-	template int ExternalFile::ListRemove<SInt32>(std::string key, SInt32 value, bool allInstances);
-	template int ExternalFile::ListRemove<float>(std::string key, float value, bool allInstances);
-	template int ExternalFile::ListRemove<TESForm*>(std::string key, TESForm* value, bool allInstances);
-
-	template <typename T>
-	bool ExternalFile::ListRemoveAt(std::string key, int index){
+	
+	bool ExternalFile::ListRemoveAt(std::string type, std::string key, int index){
 		bool removed = false;
 		s_dataLock.Enter();
 
 		boost::to_lower(key);
-		std::string type = List<T>();
 		if (HasKey(type, key) && root[type][key].isValidIndex(index)){
 			Value list = Value(Json::arrayValue);
 			Value::iterator itr = root[type][key].begin();
-			for (itr = root[type][key].begin(); itr != root[type][key].end(); itr++){
-				if (itr.key().asInt() == index)
-					removed = true;
-				else
-					list.append((*itr));
+			for (itr = root[type][key].begin(); itr != root[type][key].end(); ++itr){
+				if (itr.key().asInt() == index)	removed = true;
+				else list.append((*itr));
 			}
 			root[type][key] = list;
 			if (root[type][key].size() == 0){
@@ -398,25 +348,18 @@ namespace External {
 		s_dataLock.Leave();
 		return removed;
 	}
-	template bool ExternalFile::ListRemoveAt<SInt32>(std::string key, int index);
-	template bool ExternalFile::ListRemoveAt<float>(std::string key, int index);
-	template bool ExternalFile::ListRemoveAt<BSFixedString>(std::string key, int index);
-	template bool ExternalFile::ListRemoveAt<TESForm*>(std::string key, int index);
 
-	template <typename T>
-	bool ExternalFile::ListInsertAt(std::string key, int index, T value){
+	bool ExternalFile::ListInsertAt(std::string type, std::string key, int index, Value value){
 		bool inserted = false;
 		s_dataLock.Enter();
 
 		boost::to_lower(key);
-		std::string type = List<T>();
 		if (HasKey(type, key) && root[type][key].isValidIndex(index)){
-			Value find = MakeValue<T>(value);
 			Value list = Value(Json::arrayValue);
 			Value::iterator itr = root[type][key].begin();
-			for (itr = root[type][key].begin(); itr != root[type][key].end(); itr++){
+			for (itr = root[type][key].begin(); itr != root[type][key].end(); ++itr){
 				if (itr.key().asInt() == index){
-					list.append(MakeValue<T>(value));
+					list.append(value);
 					inserted = true;
 				}
 				list.append((*itr));
@@ -428,106 +371,107 @@ namespace External {
 		s_dataLock.Leave();
 		return inserted;
 	}
-	template bool ExternalFile::ListInsertAt<SInt32>(std::string key, int index, SInt32 value);
-	template bool ExternalFile::ListInsertAt<float>(std::string key, int index, float value);
-	template bool ExternalFile::ListInsertAt<BSFixedString>(std::string key, int index, BSFixedString value);
-	template bool ExternalFile::ListInsertAt<TESForm*>(std::string key, int index, TESForm* value);
 
-	template <typename T>
-	int ExternalFile::ListClear(std::string key){
+	int ExternalFile::ListClear(std::string type, std::string key){
 		int cleared = 0;
 		s_dataLock.Enter();
 
 		boost::to_lower(key);
-		std::string type = List<T>();
 		if (HasKey(type, key)){
-			cleared = root[type][key].size();
+			isModified = true;
+			cleared    = root[type][key].size();
 			root[type].removeMember(key);
 			if (root[type].size() == 0)
 				root.removeMember(type);
-			isModified = true;
 		}
 
 		s_dataLock.Leave();
 		return cleared;
 	}
-	template int ExternalFile::ListClear<SInt32>(std::string key);
-	template int ExternalFile::ListClear<float>(std::string key);
-	template int ExternalFile::ListClear<BSFixedString>(std::string key);
-	template int ExternalFile::ListClear<TESForm*>(std::string key);
 
-	template <typename T>
-	int ExternalFile::ListCount(std::string key){
+	int ExternalFile::ListCount(std::string type, std::string key){
 		int count = 0;
 		s_dataLock.Enter();
-
 		boost::to_lower(key);
-		std::string type = List<T>();
-		if (HasKey(type, key))
-			count = root[type][key].size();
-
+		if (HasKey(type, key)) count = root[type][key].size();
 		s_dataLock.Leave();
 		return count;
 	}
-	template int ExternalFile::ListCount<SInt32>(std::string key);
-	template int ExternalFile::ListCount<float>(std::string key);
-	template int ExternalFile::ListCount<BSFixedString>(std::string key);
-	template int ExternalFile::ListCount<TESForm*>(std::string key);
 
-	template <typename T>
-	int ExternalFile::ListFind(std::string key, T value){
+	int ExternalFile::ListFind(std::string type, std::string key, Value value){
 		int index = -1;
 		s_dataLock.Enter();
 
 		boost::to_lower(key);
-		std::string type = List<T>();
 		if (HasKey(type, key)){
-			Value::iterator itr = std::find(root[type][key].begin(), root[type][key].end(), MakeValue<T>(value));
-			if (itr != root[type][key].end())
-				index = itr.key().asInt();
+			Value::iterator itr = root[type][key].begin();
+			for (itr = root[type][key].begin(); itr != root[type][key].end(); ++itr) {
+				if (value == (*itr)) { index = itr.key().asInt(); break;	}
+			}
 		}
 
 		s_dataLock.Leave();
 		return index;
 	}
-	template int ExternalFile::ListFind<SInt32>(std::string key, SInt32 value);
-	template int ExternalFile::ListFind<float>(std::string key, float value);
-	template int ExternalFile::ListFind<TESForm*>(std::string key, TESForm* value);
 
-	template <typename T>
-	bool ExternalFile::ListHas(std::string key, T value){
-		bool has = false;
+	int ExternalFile::ListResize(std::string type, std::string key, int length, Value filler) {
+		if (length == 0) return ListClear(type, key) * -1;
 		s_dataLock.Enter();
 
+		int start = 0;
 		boost::to_lower(key);
-		std::string type = List<T>();
-		if (HasKey(type, key))
-			has = (std::find(root[type][key].begin(), root[type][key].end(), MakeValue<T>(value)) != root[type][key].end());
+		if (HasKey(type, key)){
+			start = root[type][key].size();
+			if (length < start)
+				root[type][key].resize(length);
+			else {
+				for (int i = 0; length > root[type][key].size() && i < 500; ++i)
+					root[type][key].append(filler);
+			}
+		}
+		else {
+			for (int i = 0; length > root[type][key].size() && i < 500; ++i)
+				root[type][key].append(filler);
+		}
+		isModified = true;
 
 		s_dataLock.Leave();
-		return has;
+		return root[type][key].size() - start;
 	}
-	template bool ExternalFile::ListHas<SInt32>(std::string key, SInt32 value);
-	template bool ExternalFile::ListHas<float>(std::string key, float value);
-	template bool ExternalFile::ListHas<TESForm*>(std::string key, TESForm* value);
+
+	template <typename T>
+	T ExternalFile::ListAdjust(std::string key, int index, T adjustBy){
+		s_dataLock.Enter();
+		boost::to_lower(key);
+		std::string type = List<T>();
+		if (HasKey(type, key) && root[type][key].isValidIndex(index)){
+			adjustBy = adjustBy + ParseValue<T>(root[type][key][index], T());
+			root[type][key][index] = MakeValue<T>(adjustBy);
+			isModified = true;
+		}
+		s_dataLock.Leave();
+		return adjustBy;
+	}
+	template SInt32 ExternalFile::ListAdjust<SInt32>(std::string key, int index, SInt32 adjustBy);
+	template float ExternalFile::ListAdjust<float>(std::string key, int index, float adjustBy);
+
 
 	template <typename T>
 	void ExternalFile::ListSlice(std::string key, VMArray<T> Output, int startIndex){
-		if (Output.Length() < 1)
-			return;
+		if (Output.Length() < 1) return;
 		s_dataLock.Enter();
 
 		boost::to_lower(key);
 		std::string type = List<T>();
-		if (HasKey(type, key) && startIndex < root[type][key].size()){
+		UInt32 length = Output.Length();
+		if (HasKey(type, key)){
 			Value::iterator itr = root[type][key].begin();
 			std::advance(itr, startIndex);
-			for (int index = 0; index < Output.Length() && itr != root[type][key].end(); ++itr, ++index){
+			for (int index = 0; index < length && itr != root[type][key].end(); ++itr, ++index){
 				T value = ParseValue<T>(root[type][key].get(itr.index(), Value::null));
 				Output.Set(&value, index);
 			}
 		}
-
 		s_dataLock.Leave();
 	}
 	template void ExternalFile::ListSlice<SInt32>(std::string key, VMArray<SInt32> Output, int startIndex);
@@ -536,50 +480,15 @@ namespace External {
 	template void ExternalFile::ListSlice<TESForm*>(std::string key, VMArray<TESForm*> Output, int startIndex);
 
 	template <typename T>
-	int ExternalFile::ListResize(std::string key, int length, T filler) {
-		if (length == 0)
-			return ListClear<T>(key) * -1;
-		s_dataLock.Enter();
-
-		int start = 0;
-		Value value = MakeValue<T>(filler);
-		std::string type = List<T>();
-		boost::to_lower(key);
-		if (HasKey(type, key)){
-			start = root[type][key].size();
-			if (length < start)
-				root[type][key].resize(length);
-			else {
-				for (int i = 0; length > root[type][key].size() && i < 500; ++i)
-					root[type][key].append(value);
-			}
-		}
-		else {
-			for (int i = 0; length > root[type][key].size() && i < 500; ++i)
-				root[type][key].append(value);
-		}
-		isModified = true;
-
-		s_dataLock.Leave();
-		return root[type][key].size() - start;
-	}
-	template int ExternalFile::ListResize<SInt32>(std::string key, int length, SInt32 filler);
-	template int ExternalFile::ListResize<float>(std::string key, int length, float filler);
-	template int ExternalFile::ListResize<BSFixedString>(std::string key, int length, BSFixedString filler);
-	template int ExternalFile::ListResize<TESForm*>(std::string key, int length, TESForm* filler);
-
-	template <typename T>
 	bool ExternalFile::ListCopy(std::string key, VMArray<T> Input) {
-		if (Input.Length() < 1)
-			return false;
+		if (Input.Length() < 1) return false;
 		s_dataLock.Enter();
 
-		std::string type = List<T>();
+		T var;
 		boost::to_lower(key);
-		if (HasKey(type, key))
-			root[type][key].clear();
+		std::string type = List<T>();
+		if (HasKey(type, key)) root[type][key].clear();
 		for (UInt32 i = 0; i < Input.Length(); ++i) {
-			T var;
 			Input.Get(&var, i);
 			root[type][key].append(MakeValue<T>(var));
 		}
@@ -592,78 +501,5 @@ namespace External {
 	template bool ExternalFile::ListCopy<float>(std::string key, VMArray<float> Input);
 	template bool ExternalFile::ListCopy<BSFixedString>(std::string key, VMArray<BSFixedString> Input);
 	template bool ExternalFile::ListCopy<TESForm*>(std::string key, VMArray<TESForm*> Input);
-
-	// special case for strings
-	int ExternalFile::ListFind(std::string key, BSFixedString value){
-		int index = -1;
-		s_dataLock.Enter();
-		boost::to_lower(key);
-		std::string type = "stringList";
-		if (HasKey(type, key)){
-			std::string var = value.data;
-			for (Value::iterator itr = root[type][key].begin(); itr != root[type][key].end(); ++itr){
-				std::string str = root[type][key].get(itr.index(), Value::null).asString();
-				if (boost::iequals(var, str)) {
-					index = itr.key().asInt();
-					break;
-				}
-			}
-		}
-		s_dataLock.Leave();
-		return index;
-	}
-
-	bool ExternalFile::ListHas(std::string key, BSFixedString value){
-		return ListFind(key, value) != -1;
-	}
-
-	/*int ExternalFile::ListAdd(std::string key, BSFixedString value, bool allowDuplicate){
-	if (!allowDuplicate && ListFind(key, value) != -1);
-	return -1;
-	s_dataLock.Enter();
-
-	boost::to_lower(key);
-	std::string type = "stringList";
-	int index = root[type][key].size();
-	Value &v = root[type][key].append(MakeValue<BSFixedString>(value));
-	isModified = true;
-
-	s_dataLock.Leave();
-	return index;
-	}*/
-
-	int ExternalFile::ListRemove(std::string key, BSFixedString value, bool allInstances){
-		int removed = 0;
-		s_dataLock.Enter();
-
-		boost::to_lower(key);
-		std::string type = "stringList";
-		if (HasKey(type, key)){
-			std::string var = value.data;
-			Value list = Value(Json::arrayValue);
-			Value removing = MakeValue<BSFixedString>(value);
-			Value::iterator itr = root[type][key].begin();
-			for (itr = root[type][key].begin(); itr != root[type][key].end(); ++itr){
-				std::string str = (*itr).asString();
-				if (!boost::iequals(var, str))
-					list.append((*itr));
-			}
-			removed = root[type][key].size() - list.size();
-			root[type][key] = list;
-			if (root[type][key].size() == 0){
-				root[type].removeMember(key);
-				if (root[type].size() == 0)
-					root.removeMember(type);
-			}
-			isModified = true;
-		}
-
-		s_dataLock.Leave();
-		return removed;
-	}
-	//template int ExternalFile::ListFind(std::string key, BSFixedString value);
-	//template bool ExternalFile::ListHas(std::string key, BSFixedString value);
-	//template int ExternalFile::ListRemove(std::string key, BSFixedString value, bool allInstances);
-	//template int ExternalFile::ListAdd(std::string key, BSFixedString value, bool allowDuplicate);
-
+	
 }
