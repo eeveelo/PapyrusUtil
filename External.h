@@ -1,6 +1,6 @@
 #pragma once
 
-#include "json/json.h"
+#include <json/json.h>
 //#define JSON_VALUE_USE_INTERNAL_MAP
 
 #include "common/ICriticalSection.h"
@@ -57,10 +57,11 @@ namespace External {
 		ICriticalSection s_dataLock;
 	public:
 		std::string name;
+		std::string docpath;
 		bool isModified;
 		bool minify;
 
-		ExternalFile(std::string doc) : isModified(false), minify(false) { name = doc; LoadFile(); } //reader = Json::Features::strictMode(); 
+		ExternalFile(std::string doc) : isModified(false), minify(false) { name = doc; docpath = "Data\\SKSE\\Plugins\\StorageUtilData\\" + doc; LoadFile(); } //reader = Json::Features::strictMode(); 
 
 		inline bool HasKey(std::string &type, std::string &key){ return root.isMember(type) && root[type].isMember(key); }
 	

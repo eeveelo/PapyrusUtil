@@ -4,6 +4,8 @@
 #include <sstream>
 #include <iostream>
 #include <fstream>
+#include <streambuf>
+
 //#include <direct.h>
 
 #include <boost/algorithm/string.hpp>
@@ -15,27 +17,35 @@
 
 namespace External {
 	namespace fs = boost::filesystem;
-	ICriticalSection* s_loadLock;
 
-	FileVector* s_Files;
+	static ICriticalSection* s_loadLock = NULL;
+	static FileVector* s_Files = NULL;
+	
 	ExternalFile* GetFile(std::string name) {
 		if (s_loadLock == NULL)
 			s_loadLock = new ICriticalSection();
+
 		s_loadLock->Enter();
 
 		if (s_Files == NULL)
 			s_Files = new FileVector();
-		
+
 		if (name.find(".json") == std::string::npos)
 			name += ".json";
-		
+
+		ExternalFile* File = NULL;
 		for (FileVector::iterator itr = s_Files->begin(); itr != s_Files->end(); ++itr){
-			if (boost::iequals(name, (*itr)->name)){ s_loadLock->Leave(); return (*itr); }
+			if (boost::iequals(name, (*itr)->name)){
+				File = (*itr);
+				break;
+			}
 		}
 
-		ExternalFile* File = new ExternalFile(name);
-		s_Files->push_back(File);
-
+		if (!File){
+			File = new ExternalFile(name);
+			s_Files->push_back(File);
+		}
+		
 		s_loadLock->Leave();
 		return File;
 	}
@@ -90,17 +100,12 @@ namespace External {
 	/*/
 
 	// read/write
-	inline fs::path GetPath(std::string &name){
-		std::string docpath = "Data\\SKSE\\Plugins\\StorageUtilData\\" + name;
-		return fs::path(docpath);
-	}
 
 	bool ExternalFile::LoadFile(){
+		Json::Reader reader;
 		setlocale(LC_NUMERIC, "POSIX");
-		_MESSAGE("Papyrus Loading File: %s", name.c_str());
-
 		// Path to file
-		fs::path Path = GetPath(name);
+		fs::path Path = fs::path(docpath);
 
 		// Check if file exists
 		if (!fs::exists(Path)) {
@@ -115,18 +120,25 @@ namespace External {
 		fs::ifstream doc;
 		try
 		{
-			doc.open(Path, fs::ifstream::in | std::ios_base::binary); //
-			if (!doc.fail()) parsed = reader.parse(doc, root, true);
+			doc.open(Path, std::ios::in | std::ios::binary);
+			if (!doc.fail()){
+				std::stringstream ss;
+				ss << doc.rdbuf();
+				std::string str = ss.str();
+				parsed = reader.parse(str, root, false);
+			}
 		}
 		catch (std::exception&)
 		{
 			_MESSAGE("Failed to load/read file...");
 			parsed = false;
 		}
-		if (doc.is_open()) doc.close();
+		if (doc.is_open())
+			doc.close();
 
 		// Failed to parse file properly, init empty root
-		if (!parsed || !root.isObject()) reader.parse("{}", root, false);
+		if (!parsed || !root.isObject())
+			reader.parse("{}", root, false);
 
 		s_dataLock.Leave();
 		return parsed;
@@ -137,7 +149,7 @@ namespace External {
 		// Check if anything even needs saving
 		if (!isModified || !root.isObject()) return false;
 		// Path to file
-		fs::path Path = GetPath(name);
+		fs::path Path = fs::path(docpath);
 		try
 		{
 			if (!fs::exists(Path.parent_path()))
@@ -151,7 +163,6 @@ namespace External {
 
 		// Attempt to read and load the file into root
 		s_dataLock.Enter();
-
 
 		fs::ofstream doc;
 		try
@@ -401,15 +412,16 @@ namespace External {
 	int ExternalFile::ListFind(std::string type, std::string key, Value value){
 		int index = -1;
 		s_dataLock.Enter();
-
 		boost::to_lower(key);
 		if (HasKey(type, key)){
-			Value::iterator itr = root[type][key].begin();
-			for (itr = root[type][key].begin(); itr != root[type][key].end(); ++itr) {
-				if (value == (*itr)) { index = itr.key().asInt(); break;	}
+			for (Value::iterator itr = root[type][key].begin(); itr != root[type][key].end(); ++itr) {
+				if (value == (*itr) || (value.isString() && boost::iequals((*itr).asString(), value.asString()))){
+					index = itr.key().asInt();
+					//_MESSAGE("\t[%d] %s == %s", index, (*itr).asCString(), value.asCString());
+					break;
+				}
 			}
 		}
-
 		s_dataLock.Leave();
 		return index;
 	}
