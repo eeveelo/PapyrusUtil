@@ -1,6 +1,5 @@
 #include "Data.h"
 #include "External.h"
-#include "Forms.h"
 
 #include "skse/GameForms.h"
 
@@ -9,16 +8,16 @@
 namespace Data {
 
 	// Flat obj=>key=>value storage
-	intv* intValues = NULL;
-	flov* floatValues = NULL;
+	intv* intValues    = NULL;
+	flov* floatValues  = NULL;
 	strv* stringValues = NULL;
-	forv* formValues = NULL;
+	forv* formValues   = NULL;
 
 	// Vector obj=>key=>vector[i] storage
-	intl* intLists = NULL;
-	flol* floatLists = NULL;
-	strl* stringLists = NULL;
-	forl* formLists = NULL;
+	intl* intLists     = NULL;
+	flol* floatLists   = NULL;
+	strl* stringLists  = NULL;
+	forl* formLists    = NULL;
 
 	template <> intv* GetValues<SInt32, SInt32>() { if (!intValues) intValues = new intv(); return intValues; }
 	template <> flov* GetValues<float, float>() { if (!floatValues) floatValues = new flov(); return floatValues; }
@@ -30,13 +29,6 @@ namespace Data {
 	template <> strl* GetLists<BSFixedString, std::string>() { if (!stringLists) stringLists = new strl(); return stringLists; }
 	template <> forl* GetLists<TESForm*, UInt32>() { if (!formLists) formLists = new forl(); return formLists; }
 
-	// Overrides
-	forl* packageLists = NULL;
-	forl* GetPackages(){ if (!packageLists) packageLists = new forl(); return packageLists; }
-
-	//aniv* animValues = NULL;
-	//aniv* GetAnimations(){ return animValues; }
-
 	void InitLists() {
 		intValues = new intv();
 		floatValues = new flov();
@@ -47,14 +39,10 @@ namespace Data {
 		floatLists = new flol();
 		stringLists = new strl();
 		formLists = new forl();
-
-		packageLists = new forl();
 	}
 
 	/*
-	*
 	* Define methods
-	*
 	*/
 
 	template <typename T, typename S>
@@ -432,19 +420,6 @@ namespace Data {
 		return ListFind(obj, key, value) != -1;
 	}
 
-	/*template <> int Lists<BSFixedString, std::string>::ListAdd(UInt64 obj, std::string key, BSFixedString value, bool allowDuplicate){
-		if (!allowDuplicate && ListFind(obj, key, value) != -1)
-			return -1;
-		s_dataLock.Enter();
-
-		boost::to_lower(key);
-		int index = Data[obj][key].size();
-		Data[obj][key].push_back(value.data);
-		
-		s_dataLock.Leave();
-		return index;
-	}*/
-
 	template <> int Lists<BSFixedString, std::string>::ListRemove(UInt64 obj, std::string key, BSFixedString value, bool allInstances){
 		int removed = 0;
 		s_dataLock.Enter();
@@ -477,9 +452,7 @@ namespace Data {
 	}
 
 	/*
-	*
 	* DEBUG methods
-	*
 	*/
 
 	template <typename T, typename S>
@@ -505,17 +478,14 @@ namespace Data {
 		int removed = 0;
 		s_dataLock.Enter();
 		for (Map::iterator itr = Data.begin(); itr != Data.end();){
-			if (itr->first == 0){
-				itr++;
-				continue;
+			if (itr->first != 0){
+				TESForm* ptr = (TESForm*)Forms::GameGetForm((UInt32)(itr->first & 0xFFFFFFFF));
+				if (!ptr || !Forms::IsValidObject(ptr, itr->first)) {
+					itr = Data.erase(itr);
+					removed++;
+				}
 			}
-			TESForm* ptr = (TESForm*)Forms::GameGetForm((UInt32)(itr->first & 0xFFFFFFFF));
-			if (!ptr || !Forms::IsValidObject(ptr, itr->first)) {
-				removed++;
-				itr = Data.erase(itr);
-			}
-			else
-				itr++;
+			itr++;
 		}
 		s_dataLock.Leave();
 		return removed;
@@ -526,17 +496,15 @@ namespace Data {
 		int removed = 0;
 		s_dataLock.Enter();
 		for (Map::iterator itr = Data.begin(); itr != Data.end();){
-			if (itr->first == 0){
-				itr++;
-				continue;
+			if (itr->first != 0){
+				TESForm* ptr = (TESForm*)Forms::GameGetForm((UInt32)(itr->first & 0xFFFFFFFF));
+				if (!ptr || !Forms::IsValidObject(ptr, itr->first)){
+					itr = Data.erase(itr);
+					removed++;
+					continue;
+				}
 			}
-			TESForm* ptr = (TESForm*)Forms::GameGetForm((UInt32)(itr->first & 0xFFFFFFFF));
-			if (!ptr || !Forms::IsValidObject(ptr, itr->first)) {
-				removed++;
-				itr = Data.erase(itr);
-			}
-			else
-				itr++;
+			itr++;
 		}
 		s_dataLock.Leave();
 		return removed;
@@ -579,24 +547,6 @@ namespace Data {
 	}
 
 
-	template <typename S>
-	void EncodeValue(S &v) {}
-	void EncodeValue(std::string &v){
-		if (v.empty())
-			v += (char)0x1B;
-		else
-			std::replace(v.begin(), v.end(), ' ', (char)0x7);
-	}
-
-	template <typename S>
-	void DecodeValue(S &v) {}
-	void DecodeValue(std::string &v){
-		if (v.size() == 1 && v[0] == (char)0x1B)
-			v.clear();
-		else
-			std::replace(v.begin(), v.end(), (char)0x7, ' ');
-	}
-	void DecodeValue(UInt32 &v){ v = Forms::GetNewId(v); }
 
 	// LEGACY style LOADING in single stream
 	template <typename T, typename S>
@@ -766,86 +716,6 @@ namespace Data {
 		Data.clear();
 		s_dataLock.Leave();
 	}
-
-
-	/*
-	// NEW style SAVING with individual streams
-	template <typename T, typename S>
-	void Values<T, S>::Save(SKSESerializationInterface *intfc, UInt32 type){
-		if (intfc->OpenRecord(type, kSerializationDataVersion)) {
-			s_dataLock.Enter();
-			std::stringstream ss;
-			ss << (int)Data.size();
-			for (Map::iterator i = Data.begin(); i != Data.end(); ++i) {
-				ss << ' ' << i->first;
-				ss << ' ' << (int)i->second.size();
-				for (Obj::iterator n = i->second.begin(); n != i->second.end(); ++n) {
-					// Key
-					std::string key = n->first;
-					EncodeValue(key);
-					ss << ' ' << key;
-					// Value
-					S val = n->second;
-					EncodeValue(val);
-					ss << ' ' << val;
-				}
-			}
-			std::string str = ss.str();
-			const char *cstr = str.c_str();
-			//_MESSAGE(cstr);
-			intfc->WriteRecordData(cstr, strlen(cstr));
-			s_dataLock.Leave();
-		}
-	}
-
-	template <typename T, typename S>
-	void Lists<T, S>::Save(SKSESerializationInterface *intfc, UInt32 type){
-		if (intfc->OpenRecord(type, kSerializationDataVersion)) {
-			s_dataLock.Enter();
-			std::stringstream ss;
-			
-			std::string str = ss.str();
-			const char *cstr = str.c_str();
-			//_MESSAGE(cstr);
-			intfc->WriteRecordData(cstr, strlen(cstr));
-			s_dataLock.Leave();
-		}
-	}
-
-
-	
-	// NEW style LOADING with individual streams
-	template <typename T, typename S>
-	void Values<T, S>::Load(SKSESerializationInterface *intfc, UInt32 &version, UInt32 &length){
-		if (version == kSerializationDataVersion) {
-			if (length) {
-				char *buf = new char[length + 1];
-				intfc->ReadRecordData(buf, length);
-				buf[length] = 0;
-				_MESSAGE("length: %d", strlen(buf));
-				std::stringstream ss(buf);
-				LoadStream(ss);
-				delete[] buf;
-			}
-		}
-	}
-
-	template <typename T, typename S>
-	void Lists<T, S>::Load(SKSESerializationInterface *intfc, UInt32 &version, UInt32 &length){
-		if (version == kSerializationDataVersion) {
-			if (length) {
-				char *buf = new char[length + 1];
-				intfc->ReadRecordData(buf, length);
-				buf[length] = 0;
-				_MESSAGE("length: %d", strlen(buf));
-				std::stringstream ss(buf);
-				LoadStream(ss);
-				delete[] buf;
-			}
-		}
-	}
-	*/
-
 
 	template class Values<SInt32, SInt32>;
 	template class Values<float, float>;

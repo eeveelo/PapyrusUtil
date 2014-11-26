@@ -12,6 +12,9 @@
 #include "skse/PapyrusVM.h"
 #include "skse/PapyrusArgs.h"
 
+#include "Forms.h"
+
+
 inline SInt32 cast(SInt32 &v) { return v; }
 inline float cast(float &v) { return v; }
 inline std::string cast(BSFixedString &v) { return v.data; }
@@ -22,6 +25,14 @@ inline TESForm* cast(UInt32 &v) { return v == 0 ? NULL : LookupFormByID(v); }
 namespace Data
 {
 	void InitLists();
+
+	template <typename S> inline void EncodeValue(S &v) {}
+	inline void EncodeValue(std::string &v){ if (v.empty()) v += (char)0x1B; else std::replace(v.begin(), v.end(), ' ', (char)0x7); }
+
+	template <typename S> inline void DecodeValue(S &v) {}
+	inline void DecodeValue(UInt32 &v){ v = Forms::ResolveFormID(v); }
+	inline void DecodeValue(std::string &v){ if (v.size() == 1 && v[0] == (char)0x1B) v.clear(); else std::replace(v.begin(), v.end(), (char)0x7, ' '); }
+
 
 	/*
 	* Decalare classes methods
