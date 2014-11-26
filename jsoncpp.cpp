@@ -541,8 +541,6 @@ Reader::addComment(Location begin, Location end, CommentPlacement placement) {
     assert(lastValue_ != 0);
     lastValue_->setComment(std::string(begin, end), placement);
   } else {
-    if (!commentsBefore_.empty())
-      commentsBefore_ += "\n";
     commentsBefore_ += std::string(begin, end);
   }
 }
@@ -1013,6 +1011,45 @@ std::vector<Reader::StructuredError> Reader::getStructuredErrors() const {
     allErrors.push_back(structured);
   }
   return allErrors;
+}
+
+bool Reader::pushError(const Value& value, const std::string& message) {
+  size_t length = end_ - begin_;
+  if(value.getOffsetStart() > length
+    || value.getOffsetLimit() > length)
+    return false;
+  Token token;
+  token.type_ = tokenError;
+  token.start_ = begin_ + value.getOffsetStart();
+  token.end_ = end_ + value.getOffsetLimit();
+  ErrorInfo info;
+  info.token_ = token;
+  info.message_ = message;
+  info.extra_ = 0;
+  errors_.push_back(info);
+  return true;
+}
+
+bool Reader::pushError(const Value& value, const std::string& message, const Value& extra) {
+  size_t length = end_ - begin_;
+  if(value.getOffsetStart() > length
+    || value.getOffsetLimit() > length
+    || extra.getOffsetLimit() > length)
+    return false;
+  Token token;
+  token.type_ = tokenError;
+  token.start_ = begin_ + value.getOffsetStart();
+  token.end_ = begin_ + value.getOffsetLimit();
+  ErrorInfo info;
+  info.token_ = token;
+  info.message_ = message;
+  info.extra_ = begin_ + extra.getOffsetStart();
+  errors_.push_back(info);
+  return true;
+}
+
+bool Reader::good() const {
+  return !errors_.size();
 }
 
 std::istream& operator>>(std::istream& sin, Value& root) {
@@ -1610,7 +1647,8 @@ Value::CZString::CZString(const CZString& other)
                 ? duplicateStringValue(other.cstr_)
                 : other.cstr_),
       index_(other.cstr_
-                 ? (other.index_ == noDuplication ? noDuplication : duplicate)
+                 ? static_cast<ArrayIndex>(other.index_ == noDuplication
+                     ? noDuplication : duplicate)
                  : other.index_) {}
 
 Value::CZString::~CZString() {
@@ -1660,14 +1698,8 @@ bool Value::CZString::isStaticString() const { return index_ == noDuplication; }
  * memset( this, 0, sizeof(Value) )
  * This optimization is used in ValueInternalMap fast allocator.
  */
-Value::Value(ValueType type)
-    : type_(type), allocated_(false)
-#ifdef JSON_VALUE_USE_INTERNAL_MAP
-      ,
-      itemIsUsed_(0)
-#endif
-      ,
-      comments_(0), start_(0), limit_(0) {
+Value::Value(ValueType type) {
+  initBasic(type);
   switch (type) {
   case nullValue:
     break;
@@ -1702,130 +1734,62 @@ Value::Value(ValueType type)
   }
 }
 
-Value::Value(UInt value)
-    : type_(uintValue), allocated_(false)
-#ifdef JSON_VALUE_USE_INTERNAL_MAP
-      ,
-      itemIsUsed_(0)
-#endif
-      ,
-      comments_(0), start_(0), limit_(0) {
+Value::Value(Int value) {
+  initBasic(intValue);
+  value_.int_ = value;
+}
+
+Value::Value(UInt value) {
+  initBasic(uintValue);
   value_.uint_ = value;
 }
-
-Value::Value(Int value)
-    : type_(intValue), allocated_(false)
-#ifdef JSON_VALUE_USE_INTERNAL_MAP
-      ,
-      itemIsUsed_(0)
-#endif
-      ,
-      comments_(0), start_(0), limit_(0) {
-  value_.int_ = value;
-}
-
 #if defined(JSON_HAS_INT64)
-Value::Value(Int64 value)
-    : type_(intValue), allocated_(false)
-#ifdef JSON_VALUE_USE_INTERNAL_MAP
-      ,
-      itemIsUsed_(0)
-#endif
-      ,
-      comments_(0), start_(0), limit_(0) {
+Value::Value(Int64 value) {
+  initBasic(intValue);
   value_.int_ = value;
 }
-
-Value::Value(UInt64 value)
-    : type_(uintValue), allocated_(false)
-#ifdef JSON_VALUE_USE_INTERNAL_MAP
-      ,
-      itemIsUsed_(0)
-#endif
-      ,
-      comments_(0), start_(0), limit_(0) {
+Value::Value(UInt64 value) {
+  initBasic(uintValue);
   value_.uint_ = value;
 }
 #endif // defined(JSON_HAS_INT64)
 
-Value::Value(double value)
-    : type_(realValue), allocated_(false)
-#ifdef JSON_VALUE_USE_INTERNAL_MAP
-      ,
-      itemIsUsed_(0)
-#endif
-      ,
-      comments_(0), start_(0), limit_(0) {
+Value::Value(double value) {
+  initBasic(realValue);
   value_.real_ = value;
 }
 
-Value::Value(const char* value)
-    : type_(stringValue), allocated_(true)
-#ifdef JSON_VALUE_USE_INTERNAL_MAP
-      ,
-      itemIsUsed_(0)
-#endif
-      ,
-      comments_(0), start_(0), limit_(0) {
+Value::Value(const char* value) {
+  initBasic(stringValue, true);
   value_.string_ = duplicateStringValue(value);
 }
 
-Value::Value(const char* beginValue, const char* endValue)
-    : type_(stringValue), allocated_(true)
-#ifdef JSON_VALUE_USE_INTERNAL_MAP
-      ,
-      itemIsUsed_(0)
-#endif
-      ,
-      comments_(0), start_(0), limit_(0) {
+Value::Value(const char* beginValue, const char* endValue) {
+  initBasic(stringValue, true);
   value_.string_ =
       duplicateStringValue(beginValue, (unsigned int)(endValue - beginValue));
 }
 
-Value::Value(const std::string& value)
-    : type_(stringValue), allocated_(true)
-#ifdef JSON_VALUE_USE_INTERNAL_MAP
-      ,
-      itemIsUsed_(0)
-#endif
-      ,
-      comments_(0), start_(0), limit_(0) {
+Value::Value(const std::string& value) {
+  initBasic(stringValue, true);
   value_.string_ =
       duplicateStringValue(value.c_str(), (unsigned int)value.length());
 }
 
-Value::Value(const StaticString& value)
-    : type_(stringValue), allocated_(false)
-#ifdef JSON_VALUE_USE_INTERNAL_MAP
-      ,
-      itemIsUsed_(0)
-#endif
-      ,
-      comments_(0), start_(0), limit_(0) {
+Value::Value(const StaticString& value) {
+  initBasic(stringValue);
   value_.string_ = const_cast<char*>(value.c_str());
 }
 
 #ifdef JSON_USE_CPPTL
-Value::Value(const CppTL::ConstString& value)
-    : type_(stringValue), allocated_(true)
-#ifdef JSON_VALUE_USE_INTERNAL_MAP
-      ,
-      itemIsUsed_(0)
-#endif
-      ,
-      comments_(0), start_(0), limit_(0) {
+Value::Value(const CppTL::ConstString& value) {
+  initBasic(stringValue, true);
   value_.string_ = duplicateStringValue(value, value.length());
 }
 #endif
 
-Value::Value(bool value)
-    : type_(booleanValue), allocated_(false)
-#ifdef JSON_VALUE_USE_INTERNAL_MAP
-      ,
-      itemIsUsed_(0)
-#endif
-      ,
-      comments_(0), start_(0), limit_(0) {
+Value::Value(bool value) {
+  initBasic(booleanValue);
   value_.bool_ = value;
 }
 
@@ -2399,6 +2363,17 @@ const Value& Value::operator[](int index) const {
 
 Value& Value::operator[](const char* key) {
   return resolveReference(key, false);
+}
+
+void Value::initBasic(ValueType type, bool allocated) {
+  type_ = type;
+  allocated_ = allocated;
+#ifdef JSON_VALUE_USE_INTERNAL_MAP
+  itemIsUsed_ = 0;
+#endif
+  comments_ = 0;
+  start_ = 0;
+  limit_ = 0;
 }
 
 Value& Value::resolveReference(const char* key, bool isStatic) {
@@ -3206,28 +3181,28 @@ void FastWriter::writeValue(const Value& value) {
     document_ += valueToString(value.asBool());
     break;
   case arrayValue: {
-    document_ += "[";
+    document_ += '[';
     int size = value.size();
     for (int index = 0; index < size; ++index) {
       if (index > 0)
-        document_ += ",";
+        document_ += ',';
       writeValue(value[index]);
     }
-    document_ += "]";
+    document_ += ']';
   } break;
   case objectValue: {
     Value::Members members(value.getMemberNames());
-    document_ += "{";
+    document_ += '{';
     for (Value::Members::iterator it = members.begin(); it != members.end();
          ++it) {
       const std::string& name = *it;
       if (it != members.begin())
-        document_ += ",";
+        document_ += ',';
       document_ += valueToQuotedString(name.c_str());
       document_ += yamlCompatiblityEnabled_ ? ": " : ":";
       writeValue(value[name]);
     }
-    document_ += "}";
+    document_ += '}';
   } break;
   }
 }
@@ -3236,7 +3211,7 @@ void FastWriter::writeValue(const Value& value) {
 // //////////////////////////////////////////////////////////////////
 
 StyledWriter::StyledWriter()
-    : rightMargin_(250), indentSize_(2), addChildValues_() {}
+    : rightMargin_(74), indentSize_(3), addChildValues_() {}
 
 std::string StyledWriter::write(const Value& root) {
   document_ = "";
@@ -3291,7 +3266,7 @@ void StyledWriter::writeValue(const Value& value) {
           writeCommentAfterValueOnSameLine(childValue);
           break;
         }
-        document_ += ",";
+        document_ += ',';
         writeCommentAfterValueOnSameLine(childValue);
       }
       unindent();
@@ -3325,7 +3300,7 @@ void StyledWriter::writeArrayValue(const Value& value) {
           writeCommentAfterValueOnSameLine(childValue);
           break;
         }
-        document_ += ",";
+        document_ += ',';
         writeCommentAfterValueOnSameLine(childValue);
       }
       unindent();
@@ -3458,7 +3433,7 @@ std::string StyledWriter::normalizeEOL(const std::string& text) {
 // //////////////////////////////////////////////////////////////////
 
 StyledStreamWriter::StyledStreamWriter(std::string indentation)
-    : document_(NULL), rightMargin_(250), indentation_(indentation),
+    : document_(NULL), rightMargin_(74), indentation_(indentation),
       addChildValues_() {}
 
 void StyledStreamWriter::write(std::ostream& out, const Value& root) {

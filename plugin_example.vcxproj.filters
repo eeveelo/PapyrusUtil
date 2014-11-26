@@ -287,9 +287,6 @@
     <ClInclude Include="Serialize.h">
       <Filter>lib</Filter>
     </ClInclude>
-    <ClInclude Include="Value.h">
-      <Filter>lib</Filter>
-    </ClInclude>
     <ClInclude Include="json\json.h">
       <Filter>jsoncpp</Filter>
     </ClInclude>

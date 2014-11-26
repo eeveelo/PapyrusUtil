@@ -212,7 +212,6 @@
     <ClInclude Include="External.h" />
     <ClInclude Include="Serialize.h" />
     <ClInclude Include="StorageUtil.h" />
-    <ClInclude Include="Value.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\skse\PapyrusNativeFunctionDef.inl">

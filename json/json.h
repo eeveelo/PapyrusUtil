@@ -88,9 +88,9 @@ license you like.
 #ifndef JSON_VERSION_H_INCLUDED
 # define JSON_VERSION_H_INCLUDED
 
-# define JSONCPP_VERSION_STRING "0.7.0"
-# define JSONCPP_VERSION_MAJOR 0
-# define JSONCPP_VERSION_MINOR 7
+# define JSONCPP_VERSION_STRING "1.0.0"
+# define JSONCPP_VERSION_MAJOR 1
+# define JSONCPP_VERSION_MINOR 0
 # define JSONCPP_VERSION_PATCH 0
 # define JSONCPP_VERSION_QUALIFIER
 # define JSONCPP_VERSION_HEXA ((JSONCPP_VERSION_MAJOR << 24) | (JSONCPP_VERSION_MINOR << 16) | (JSONCPP_VERSION_PATCH << 8))
@@ -806,6 +806,8 @@ Json::Value obj_value(Json::objectValue); // {}
   size_t getOffsetLimit() const;
 
 private:
+  void initBasic(ValueType type, bool allocated = false);
+
   Value& resolveReference(const char* key, bool isStatic);
 
 #ifdef JSON_VALUE_USE_INTERNAL_MAP
@@ -1595,6 +1597,29 @@ public:
    *         parse error and then encounters additional errors.
    */
   std::vector<StructuredError> getStructuredErrors() const;
+
+  /** \brief Add a semantic error message.
+   * \param value JSON Value location associated with the error
+   * \param message The error message.
+   * \return \c true if the error was successfully added, \c false if the
+   * Value offset exceeds the document size.
+   */
+  bool pushError(const Value& value, const std::string& message);
+
+  /** \brief Add a semantic error message with extra context.
+   * \param value JSON Value location associated with the error
+   * \param message The error message.
+   * \param extra Additional JSON Value location to contextualize the error
+   * \return \c true if the error was successfully added, \c false if either
+   * Value offset exceeds the document size.
+   */
+  bool pushError(const Value& value, const std::string& message, const Value& extra);
+
+  /** \brief Return whether there are any errors.
+   * \return \c true if there are no errors to report \c false if
+   * errors have occurred.
+   */
+  bool good() const;
 
 private:
   enum TokenType {
