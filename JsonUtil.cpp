@@ -136,7 +136,10 @@ namespace JsonUtil {
 	template <typename T>
 	SInt32 ListFind(StaticFunctionTag* base, BSFixedString name, BSFixedString key, T value) {
 		ExternalFile* File = GetFile(name.data);
-		if (!File || !IsValidKey(key)) return -1;
+		
+		if (!File) { _MESSAGE("Invalid File: %s", name.data); return -1; }
+		else if (!IsValidKey(key)) { _MESSAGE("Invalid Key: %s", key.data); return -1; }
+		//if (!File || !IsValidKey(key)) return -1;
 		else return File->ListFind(List<T>(), key.data, MakeValue<T>(value));
 	}
 

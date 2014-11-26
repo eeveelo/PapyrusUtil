@@ -38,7 +38,7 @@ namespace Plugin {
 		ObjectUtil::InitPlugin();
 	}
 
-	void RegisterFuncs(VMClassRegistry* registry) {
+	bool RegisterFuncs(VMClassRegistry* registry) {
 		registry->RegisterFunction(new NativeFunction0<StaticFunctionTag, UInt32>("GetVersion", "PapyrusUtil", GetVersion, registry));
 		registry->SetFunctionFlags("PapyrusUtil", "GetVersion", VMClassRegistry::kFunctionFlag_NoWait);
 
@@ -49,6 +49,7 @@ namespace Plugin {
 		ObjectUtil::RegisterFuncs(registry);
 		MiscUtil::RegisterFuncs(registry);
 
+		return true;
 	}
 
 }

@@ -1,9 +1,5 @@
 #include "MiscUtil.h"
 
-//#include <iostream>
-//#include <fstream>
-//#include <ctime>
-
 #include "skse/GameAPI.h"
 #include "skse/GameCamera.h"
 #include "skse/GameReferences.h"
@@ -11,15 +7,6 @@
 
 #include "SafeRead.h"
 
-//#include "skse/NiNodes.h"
-//#include "skse/NiGeometry.h"
-//#include "skse/GameData.h"
-//#include "skse/GameTypes.h"
-//#include "skse/GameForms.h"
-//#include "skse/GameRTTI.h"
-
-//#pragma warning(disable: 4996)
-//#pragma warning(disable: 4229)
 
 namespace MiscUtil {
 
@@ -112,9 +99,6 @@ void MiscUtil::RegisterFuncs(VMClassRegistry* registry) {
 	registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, void, BSFixedString>("PrintConsole", "MiscUtil", PrintConsole, registry));
 	registry->SetFunctionFlags("MiscUtil", "PrintConsole", VMClassRegistry::kFunctionFlag_NoWait);
 
-	registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, void, BSFixedString>("PrintConsole", "MiscUtil", PrintConsole, registry));
-	registry->SetFunctionFlags("MiscUtil", "PrintConsole", VMClassRegistry::kFunctionFlag_NoWait);
-
 	registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, void, bool>("SetMenus", "MiscUtil", SetMenus, registry));
 	registry->SetFunctionFlags("MiscUtil", "SetMenus", VMClassRegistry::kFunctionFlag_NoWait);
 
@@ -128,6 +112,21 @@ void MiscUtil::RegisterFuncs(VMClassRegistry* registry) {
 
 
 // These functions are mostly unused and serve little use beyond major security risks.
+
+//#include <iostream>
+//#include <fstream>
+//#include <ctime>
+
+//#include "skse/NiNodes.h"
+//#include "skse/NiGeometry.h"
+//#include "skse/GameData.h"
+//#include "skse/GameTypes.h"
+//#include "skse/GameForms.h"
+//#include "skse/GameRTTI.h"
+
+//#pragma warning(disable: 4996)
+//#pragma warning(disable: 4229)
+
 /*namespace MiscUtil{
 
 

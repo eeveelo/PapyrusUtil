@@ -9,6 +9,6 @@ struct StaticFunctionTag;
 
 namespace Plugin {
 	void InitPlugin();
-	void RegisterFuncs(VMClassRegistry* registry);
+	bool RegisterFuncs(VMClassRegistry* registry);
 	UInt32 GetVersion(StaticFunctionTag* base);
 }

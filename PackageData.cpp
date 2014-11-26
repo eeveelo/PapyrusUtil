@@ -26,7 +26,7 @@ namespace PackageData {
 			ss >> ActorID;
 			ss >> ActorCount;
 			// Validate actor
-			ActorID = Forms::GetNewId(ActorID);
+			ActorID = Forms::ResolveFormID(ActorID);
 			TESForm* ActorRef = LookupFormByID(ActorID);
 			for (int n = 0; n < ActorCount; ++n) {
 				// Unpack Package
@@ -35,7 +35,7 @@ namespace PackageData {
 				ss >> priority;
 				ss >> flag;
 				// Validate Package
-				PackID = Forms::GetNewId(PackID);
+				PackID = Forms::ResolveFormID(PackID);
 				TESForm* PackageRef = LookupFormByID(PackID);
 				if (ActorRef && PackageRef && PackageRef->formType == kFormType_Package){
 					// LOAD Package

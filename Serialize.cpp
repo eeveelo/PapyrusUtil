@@ -68,15 +68,20 @@ namespace Data {
 		UInt32	version;
 		UInt32	length;
 
-		if (!intValues)
-			InitLists();
+		if (!intValues) InitLists();
 
-		Forms::LoadCurrentMods();
+		//Forms::LoadCurrentMods();
+		//Forms::LoadModList(intfc);
 
 		_MESSAGE("Storage Loading...");
 
 		while (intfc->GetNextRecordInfo(&type, &version, &length)) {
 			switch (type) {
+			case 'MODS':
+				_MESSAGE("MODS Load");
+				Forms::LoadModList(intfc);
+				break;
+
 			case 'INTV':
 				_MESSAGE("INTV Load");
 				Load(intValues, intfc, version, length);
@@ -158,30 +163,33 @@ namespace Data {
 				break;
 			}
 		}
-		Forms::ClearPreviousMods();
+		//Forms::ClearPreviousMods();
 		_MESSAGE("Done!\n");
 	}
 
 	void Serialization_Save(SKSESerializationInterface *intfc) {
 		_MESSAGE("Storage Saving...");
 
-		if (!intValues)
-			InitLists();
 
-		Forms::LoadCurrentMods();
+		//Forms::LoadCurrentMods();
 		//Forms::ClearPreviousMods();
 
-		// Save load order
-		if (intfc->OpenRecord('DATA', kSerializationDataVersion)) {
+		// Init lists if for some weird reason unset
+		if (!intValues) InitLists();
+
+		/*if (intfc->OpenRecord('DATA', kSerializationDataVersion)) {
 			std::stringstream ss;
 			ss << (int)1;
 			Forms::SaveCurrentMods(ss);
 			std::string str = ss.str();
 			const char *cstr = str.c_str();
 			intfc->WriteRecordData(cstr, strlen(cstr));
-		}
+		}*/
+		// Save load order
+		Forms::SaveModList(intfc);
 
-		
+
+
 		// Cleanup removed forms
 		int cleaned = 0;
 		cleaned += intValues->Cleanup();
@@ -191,8 +199,6 @@ namespace Data {
 		cleaned += intLists->Cleanup();
 		cleaned += floatLists->Cleanup();
 		cleaned += stringLists->Cleanup();
-		cleaned += formLists->Cleanup();
-
 		cleaned += formLists->Cleanup();
 
 		if (cleaned > 0)
@@ -224,8 +230,8 @@ namespace Data {
 		if (!intValues)
 			InitLists();
 		else {
-			Forms::LoadCurrentMods();
-			Forms::ClearPreviousMods();
+			//Forms::LoadCurrentMods();
+			//Forms::ClearPreviousMods();
 
 			intValues->Revert();
 			floatValues->Revert();
