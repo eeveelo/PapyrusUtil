@@ -65,7 +65,7 @@ namespace External {
 
 		inline bool HasKey(std::string &type, std::string &key){ return root.isMember(type) && root[type].isMember(key); }
 	
-		Value SetValue(std::string type, std::string key, Value value);
+		void SetValue(std::string type, std::string key, Value value);
 		Value GetValue(std::string type, std::string key, Value value);
 		Value AdjustValue(std::string type, std::string key, Value value);
 		bool UnsetValue(std::string type, std::string key);
@@ -79,6 +79,7 @@ namespace External {
 		bool ListInsertAt(std::string type, std::string key, int index, Value value);
 		int ListClear(std::string type, std::string key);
 		int ListCount(std::string type, std::string key);
+		int ListCountValue(std::string type, std::string key, Value value, bool exclude);
 		int ListFind(std::string type, std::string key, Value value);
 		bool ListHas(std::string type, std::string key, Value value);
 		int ListResize(std::string type, std::string key, int length, Value filler);
@@ -86,6 +87,9 @@ namespace External {
 		template <typename T> T ListAdjust(std::string key, int index, T adjustBy);
 		template <typename T> void ListSlice(std::string key, VMArray<T> Output, int startIndex);
 		template <typename T> bool ListCopy(std::string key, VMArray<T> Input);
+		template <typename T> VMResultArray<T> ToArray(std::string key);
+
+		//bool ExternalFile::ImportOnForm(TESForm* FormRef);
 
 		// read/write
 		bool LoadFile();
@@ -95,18 +99,17 @@ namespace External {
 		void CopyFileTo(std::string copyTo);
 		void ClearAll();
 
-		//
-		bool ExternalFile::ImportOnForm(TESForm*);
-		
 	};
 
 	typedef std::vector<ExternalFile*> FileVector;
 	ExternalFile* GetFile(std::string name);
+	void SaveFiles();
+	void RevertFiles();
+
+#ifdef _GLOBAL_EXTERNAL
 	ExternalFile* GetSingleton();
 	bool LoadGlobalFile();
 	bool SaveGlobalFile();
-
-	void SaveFiles();
-	void RevertFiles();
+#endif
 
 }

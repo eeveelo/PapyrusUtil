@@ -7,10 +7,12 @@
 
 #include "SafeRead.h"
 
-
 namespace MiscUtil {
 
 	void ToggleFreeCamera(StaticFunctionTag* base, bool arg1) {
+		//PlayerCamera* pc = PlayerCamera::GetSingleton();
+		//bool WasInFreeCamera = pc ? pc->cameraState->stateId == pc->kCameraState_Free : false;
+		
 		int funcAddr = 0x83E4C0;
 		int thisPtr = Lib::SafeRead32(0x12E7288);
 		int stopTime = arg1 ? 1 : 0;
@@ -21,8 +23,9 @@ namespace MiscUtil {
 			push eax
 			call funcAddr
 		}
-		PlayerCamera* pc = PlayerCamera::GetSingleton();
-		if (pc) CALL_MEMBER_FN(pc, SetCameraState)(pc->cameraStates[pc->kCameraState_Free]);
+
+		//if (pc && !WasInFreeCamera)
+		//	CALL_MEMBER_FN(pc, SetCameraState)(pc->cameraStates[pc->kCameraState_Free]);
 	}
 
 	void SetFreeCameraSpeed(StaticFunctionTag* base, float speed) {
@@ -32,54 +35,45 @@ namespace MiscUtil {
 
 	void SetFreeCameraState(StaticFunctionTag* base, bool enable, float speed) {
 		PlayerCamera* pc = PlayerCamera::GetSingleton();
-		if (!pc) return;
-		bool InFreeCamera = pc->cameraState->stateId == pc->kCameraState_Free;
-		// Leave free camera
-		if (InFreeCamera && !enable)
-			ToggleFreeCamera(NULL, false);
-		// Enter free camera
-		else if (!InFreeCamera && enable){
-			SetFreeCameraSpeed(NULL, speed);
-			ToggleFreeCamera(NULL, false);
-			CALL_MEMBER_FN(pc, SetCameraState)(pc->cameraStates[pc->kCameraState_Free]);
+		if (pc) {
+			bool InFreeCamera = pc->cameraState->stateId == pc->kCameraState_Free;
+			// Leave free camera
+			if (InFreeCamera && !enable)
+				ToggleFreeCamera(NULL, false);
+			// Enter free camera
+			else if (!InFreeCamera && enable){
+				SetFreeCameraSpeed(NULL, speed);
+				ToggleFreeCamera(NULL, false);
+				//CALL_MEMBER_FN(pc, SetCameraState)(pc->cameraStates[pc->kCameraState_Free]);
+			}
 		}
 	}
 	
 	void PrintConsole(StaticFunctionTag* base, BSFixedString text) {
 		if (!text.data)
 			return;
-		else if (strlen(text.data) < 1000)
+		else if (strlen(text.data) < 1024)
 			Console_Print(text.data);
 		else { // Large strings printed to console crash the game - truncate it
 			std::string msg = text.data;
-			msg.resize(997);
+			msg.resize(1020);
 			msg.append("...");
 			Console_Print(msg.c_str());
 		}
 	}
 
-	BSFixedString GetRaceEditorID(StaticFunctionTag* base, TESRace* raceForm) {
-		if (!raceForm)
-			return NULL;
-		return BSFixedString(raceForm->editorId.data);
-	}
-
-	BSFixedString GetActorRaceEditorID(StaticFunctionTag* base, Actor* actorRef) {
-		if (!actorRef)
-			return NULL;
-		return BSFixedString(actorRef->race->editorId.data);
-	}
-	
 	void SetMenus(StaticFunctionTag* base, bool enabled){
 		UInt32 ptr = Lib::SafeRead32(0x12E3548);
-		if (ptr != 0) {
-			if (enabled)
-				SafeWrite8(ptr + 0x118, 1);
-			else
-				SafeWrite8(ptr + 0x118, 0);
-		}
+		if (ptr != 0) SafeWrite8(ptr + 0x118, (enabled ? 1 : 0));
 	}
 
+	BSFixedString GetRaceEditorID(StaticFunctionTag* base, TESRace* RaceRef) {
+		return RaceRef ? BSFixedString(RaceRef->editorId.data) : NULL;
+	}
+
+	BSFixedString GetActorRaceEditorID(StaticFunctionTag* base, Actor* ActorRef) {
+		return ActorRef ? BSFixedString(ActorRef->race->editorId.data) : NULL;
+	}
 
 } // MiscUtil
 

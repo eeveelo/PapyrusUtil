@@ -53,13 +53,24 @@ namespace Data {
 	}
 
 	template <class T> void Save(T *Data, SKSESerializationInterface* intfc, UInt32 type) {
-		std::stringstream ss;
-		Data->SaveStream(ss);
-		if (intfc->OpenRecord(type, kSerializationDataVersion)) {
-			std::string str = ss.str();
-			const char *cstr = str.c_str();
-			intfc->WriteRecordData(cstr, strlen(cstr));
-			if (strlen(cstr) < 200) _MESSAGE(cstr);
+		if (!Data || Data->Data.size() < 1)
+			_MESSAGE("\tSkipping!");
+		else{
+			std::stringstream ss;
+			Data->SaveStream(ss);
+			if (intfc->OpenRecord(type, kSerializationDataVersion)) {
+				std::string str = ss.str();
+				const char *cstr = str.c_str();
+				intfc->WriteRecordData(cstr, strlen(cstr));
+				if (strlen(cstr) < 200) _MESSAGE(cstr);
+			}
+		}
+	}
+
+	void FormDelete(UInt64 handle){
+		if (intValues){
+			//_MESSAGE("Form Delete Handle: %llu", handle);
+			intValues->RemoveForm(handle);
 		}
 	}
 
@@ -170,12 +181,12 @@ namespace Data {
 	void Serialization_Save(SKSESerializationInterface *intfc) {
 		_MESSAGE("Storage Saving...");
 
-
 		//Forms::LoadCurrentMods();
 		//Forms::ClearPreviousMods();
 
 		// Init lists if for some weird reason unset
-		if (!intValues) InitLists();
+		if (!intValues)
+			InitLists();
 
 		/*if (intfc->OpenRecord('DATA', kSerializationDataVersion)) {
 			std::stringstream ss;
@@ -187,11 +198,10 @@ namespace Data {
 		}*/
 		// Save load order
 		Forms::SaveModList(intfc);
-
-
+		_MESSAGE("\tMODS done!");
 
 		// Cleanup removed forms
-		int cleaned = 0;
+		/*int cleaned = 0;
 		cleaned += intValues->Cleanup();
 		cleaned += floatValues->Cleanup();
 		cleaned += stringValues->Cleanup();
@@ -202,27 +212,37 @@ namespace Data {
 		cleaned += formLists->Cleanup();
 
 		if (cleaned > 0)
-			_MESSAGE("- discarded: %d", cleaned);		
+			_MESSAGE("- discarded: %d", cleaned);*/
 
 		// Save value storage
 		Save(intValues, intfc, 'INTV');
+		_MESSAGE("\tINTV done!");
 		Save(floatValues, intfc, 'FLOV');
+		_MESSAGE("\tFLOV done!");
 		Save(stringValues, intfc, 'STRV');
+		_MESSAGE("\tSTRV done!");
 		Save(formValues, intfc, 'FORV');
+		_MESSAGE("\tFORV done!");
 
 		// Save list storage
 		Save(intLists, intfc, 'INTL');
+		_MESSAGE("\tINTL done!");
 		Save(floatLists, intfc, 'FLOL');
+		_MESSAGE("\tFLOL done!");
 		Save(stringLists, intfc, 'STRL');
+		_MESSAGE("\tSTRL done!");
 		Save(formLists, intfc, 'FORL');
+		_MESSAGE("\tFORL done!");
 
 		// Overrides
 		Save(PackageData::GetPackages(), intfc, 'PKGO');
+		_MESSAGE("\tPKGO done!");
 
 		// Save external files
 		External::SaveFiles();
+		_MESSAGE("\tExternal done!");
 
-		_MESSAGE("Done!\n");
+		_MESSAGE("Save Done!\n");
 	}
 
 	void Serialization_Revert(SKSESerializationInterface* intfc) {

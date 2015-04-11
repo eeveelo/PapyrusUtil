@@ -21,6 +21,7 @@ namespace Forms {
 
 	UInt8 ResolveModIndex(UInt8 modIndex);
 	UInt32 ResolveFormID(UInt32 formID);
+	TESForm* ResolveFormKey(UInt64 key);
 
 	// Form Keys
 	UInt64 GetNewKey(UInt64 key);

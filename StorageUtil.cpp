@@ -2,7 +2,6 @@
 
 #include "Data.h"
 #include "Forms.h"
-#include "External.h"
 
 #include "skse/GameTypes.h"
 #include "skse/GameForms.h"
@@ -11,9 +10,14 @@
 
 namespace StorageUtil {
 	using namespace Forms;
-	using namespace External;
 
-	bool IsValidKey(BSFixedString &key) { return !(key == NULL || !key.data || strlen(key.data) == 0); }
+	//bool IsValidKey(BSFixedString &key) { return !(key == NULL || !key.data || strlen(key.data) == 0); }
+	inline bool IsValidKey(BSFixedString &key) { return key.data && strlen(key.data) > 0; }
+
+	inline bool IsEmpty(SInt32 &value){ return value == 0; }
+	inline bool IsEmpty(float &value){ return value == 0.0f; }
+	inline bool IsEmpty(BSFixedString &value){ return !value.data || value.data[0] == '\0'; }
+	inline bool IsEmpty(TESForm* value){ return value == NULL; }
 
 	template <typename T> inline T Empty() { return T(); }
 	template <> inline SInt32 Empty<SInt32>() { return 0; }
@@ -26,7 +30,8 @@ namespace StorageUtil {
 	T SetValue(StaticFunctionTag* base, TESForm* obj, BSFixedString key, T value) {
 		Data::Values<T, S>* Data = Data::GetValues<T, S>();
 		if (!Data || !IsValidKey(key)) return Empty<T>();
-		else return Data->SetValue(GetFormKey(obj), key.data, value);
+		else Data->SetValue(GetFormKey(obj), key.data, value);
+		return value;
 	}
 
 	template <typename T, typename S>
@@ -122,6 +127,13 @@ namespace StorageUtil {
 	}
 
 	template <typename T, typename S>
+	UInt32 ListCountValue(StaticFunctionTag* base, TESForm* obj, BSFixedString key, T value, bool exclude) {
+		Data::Lists<T, S>* Data = Data::GetLists<T, S>();
+		if (!Data || !IsValidKey(key)) return 0;
+		else return Data->ListCountValue(GetFormKey(obj), key.data, value, exclude);
+	}
+
+	template <typename T, typename S>
 	SInt32 ListFind(StaticFunctionTag* base, TESForm* obj, BSFixedString key, T value) {
 		Data::Lists<T, S>* Data = Data::GetLists<T, S>();
 		if (!Data || !IsValidKey(key)) return -1;
@@ -163,6 +175,108 @@ namespace StorageUtil {
 		else return Data->ListCopy(GetFormKey(obj), key.data, Input);
 	}
 
+	template <typename T, typename S>
+	VMResultArray<T> ToArray(StaticFunctionTag* base, TESForm* obj, BSFixedString key) {
+		Data::Lists<T, S>* Data = Data::GetLists<T, S>();
+		VMResultArray<T> arr;
+		if (Data && IsValidKey(key))
+			arr = Data->ToArray(GetFormKey(obj), key.data);
+		return arr;
+	}
+
+	// Debug functions
+	UInt32 Cleanup(StaticFunctionTag* base) {
+		int removed = 0;
+		// Values
+		removed += Data::GetValues<SInt32, SInt32>()->Cleanup();
+		removed += Data::GetValues<float, float>()->Cleanup();
+		removed += Data::GetValues<BSFixedString, std::string>()->Cleanup();
+		removed += Data::GetValues<TESForm*, UInt32>()->Cleanup();
+		// Lists
+		removed += Data::GetLists<SInt32, SInt32>()->Cleanup();
+		removed += Data::GetLists<float, float>()->Cleanup();
+		removed += Data::GetLists<BSFixedString, std::string>()->Cleanup();
+		removed += Data::GetLists<TESForm*, UInt32>()->Cleanup();
+		return removed;
+	}
+
+	void DeleteValues(StaticFunctionTag* base, TESForm* obj) {
+		UInt64 key = GetFormKey(obj);
+		// Values
+		Data::GetValues<SInt32, SInt32>()->RemoveForm(key);
+		Data::GetValues<float, float>()->RemoveForm(key);
+		Data::GetValues<BSFixedString, std::string>()->RemoveForm(key);
+		Data::GetValues<TESForm*, UInt32>()->RemoveForm(key);
+		// Lists
+		Data::GetLists<SInt32, SInt32>()->RemoveForm(key);
+		Data::GetLists<float, float>()->RemoveForm(key);
+		Data::GetLists<BSFixedString, std::string>()->RemoveForm(key);
+		Data::GetLists<TESForm*, UInt32>()->RemoveForm(key);
+	}
+
+	void DeleteAllValues(StaticFunctionTag* base) {
+		// Values
+		Data::GetValues<SInt32, SInt32>()->Revert();
+		Data::GetValues<float, float>()->Revert();
+		Data::GetValues<BSFixedString, std::string>()->Revert();
+		Data::GetValues<TESForm*, UInt32>()->Revert();
+		// Lists
+		Data::GetLists<SInt32, SInt32>()->Revert();
+		Data::GetLists<float, float>()->Revert();
+		Data::GetLists<BSFixedString, std::string>()->Revert();
+		Data::GetLists<TESForm*, UInt32>()->Revert();
+	}
+
+
+	template <typename T, typename S>
+	UInt32 GetObjectCount(StaticFunctionTag* base) {
+		return Data::GetValues<T, S>()->GetObjCount();
+	}
+
+	template <typename T, typename S>
+	UInt32 GetListsObjectCount(StaticFunctionTag* base) {
+		return Data::GetLists<T, S>()->GetObjCount();
+	}
+
+	template <typename T, typename S>
+	UInt32 GetKeyCount(StaticFunctionTag* base, TESForm* obj) {
+		return Data::GetValues<T, S>()->GetKeyCount(GetFormKey(obj));
+	}
+
+	template <typename T, typename S>
+	UInt32 GetListsKeyCount(StaticFunctionTag* base, TESForm* obj) {
+		return Data::GetLists<T, S>()->GetKeyCount(GetFormKey(obj));
+	}
+
+	template <typename T, typename S>
+	TESForm* GetNthObj(StaticFunctionTag* base, UInt32 i) {
+		return Data::GetValues<T, S>()->GetNthObj(i);
+	}
+
+	template <typename T, typename S>
+	TESForm* GetListsNthObj(StaticFunctionTag* base, UInt32 i) {
+		return Data::GetLists<T, S>()->GetNthObj(i);
+	}
+
+	template <typename T, typename S>
+	BSFixedString GetNthKey(StaticFunctionTag* base, TESForm* obj, UInt32 i) {
+		std::string key = Data::GetValues<T, S>()->GetNthKey(GetFormKey(obj), i);
+		return BSFixedString(key.c_str());
+	}
+
+	template <typename T, typename S>
+	BSFixedString GetListsNthKey(StaticFunctionTag* base, TESForm* obj, UInt32 i) {
+		std::string key = Data::GetLists<T, S>()->GetNthKey(GetFormKey(obj), i);
+		return BSFixedString(key.c_str());
+	}
+
+} // StorageUtil
+
+#ifdef _GLOBAL_EXTERNAL
+#include "External.h"
+using namespace External;
+
+namespace StorageUtil {
 	// Global external StorageUtil.json file
 	template <typename T>
 	T FileSetValue(StaticFunctionTag* base, BSFixedString key, T value) {
@@ -298,99 +412,12 @@ namespace StorageUtil {
 	}
 
 
-	// Debug functions
 	void SaveExternalFile(StaticFunctionTag* base) {
 		External::ExternalFile* File = External::GetSingleton();
 		if (File) File->SaveFile(false);
 	}
-
-	UInt32 Cleanup(StaticFunctionTag* base) {
-		int removed = 0;
-		// Values
-		removed += Data::GetValues<SInt32, SInt32>()->Cleanup();
-		removed += Data::GetValues<float, float>()->Cleanup();
-		removed += Data::GetValues<BSFixedString, std::string>()->Cleanup();
-		removed += Data::GetValues<TESForm*, UInt32>()->Cleanup();
-		// Lists
-		removed += Data::GetLists<SInt32, SInt32>()->Cleanup();
-		removed += Data::GetLists<float, float>()->Cleanup();
-		removed += Data::GetLists<BSFixedString, std::string>()->Cleanup();
-		removed += Data::GetLists<TESForm*, UInt32>()->Cleanup();
-		return removed;
-	}
-
-	void DeleteValues(StaticFunctionTag* base, TESForm* obj) {
-		UInt64 key = GetFormKey(obj);
-		// Values
-		Data::GetValues<SInt32, SInt32>()->RemoveForm(key);
-		Data::GetValues<float, float>()->RemoveForm(key);
-		Data::GetValues<BSFixedString, std::string>()->RemoveForm(key);
-		Data::GetValues<TESForm*, UInt32>()->RemoveForm(key);
-		// Lists
-		Data::GetLists<SInt32, SInt32>()->RemoveForm(key);
-		Data::GetLists<float, float>()->RemoveForm(key);
-		Data::GetLists<BSFixedString, std::string>()->RemoveForm(key);
-		Data::GetLists<TESForm*, UInt32>()->RemoveForm(key);
-	}
-
-	void DeleteAllValues(StaticFunctionTag* base) {
-		// Values
-		Data::GetValues<SInt32, SInt32>()->Revert();
-		Data::GetValues<float, float>()->Revert();
-		Data::GetValues<BSFixedString, std::string>()->Revert();
-		Data::GetValues<TESForm*, UInt32>()->Revert();
-		// Lists
-		Data::GetLists<SInt32, SInt32>()->Revert();
-		Data::GetLists<float, float>()->Revert();
-		Data::GetLists<BSFixedString, std::string>()->Revert();
-		Data::GetLists<TESForm*, UInt32>()->Revert();
-	}
-
-
-	template <typename T, typename S>
-	UInt32 GetObjectCount(StaticFunctionTag* base) {
-		return Data::GetValues<T, S>()->GetObjCount();
-	}
-
-	template <typename T, typename S>
-	UInt32 GetListsObjectCount(StaticFunctionTag* base) {
-		return Data::GetLists<T, S>()->GetObjCount();
-	}
-
-	template <typename T, typename S>
-	UInt32 GetKeyCount(StaticFunctionTag* base, TESForm* obj) {
-		return Data::GetValues<T, S>()->GetKeyCount(GetFormKey(obj));
-	}
-
-	template <typename T, typename S>
-	UInt32 GetListsKeyCount(StaticFunctionTag* base, TESForm* obj) {
-		return Data::GetLists<T, S>()->GetKeyCount(GetFormKey(obj));
-	}
-
-	template <typename T, typename S>
-	TESForm* GetNthObj(StaticFunctionTag* base, UInt32 i) {
-		return Data::GetValues<T, S>()->GetNthObj(i);
-	}
-
-	template <typename T, typename S>
-	TESForm* GetListsNthObj(StaticFunctionTag* base, UInt32 i) {
-		return Data::GetLists<T, S>()->GetNthObj(i);
-	}
-
-	template <typename T, typename S>
-	BSFixedString GetNthKey(StaticFunctionTag* base, TESForm* obj, UInt32 i) {
-		std::string key = Data::GetValues<T, S>()->GetNthKey(GetFormKey(obj), i);
-		return BSFixedString(key.c_str());
-	}
-
-	template <typename T, typename S>
-	BSFixedString GetListsNthKey(StaticFunctionTag* base, TESForm* obj, UInt32 i) {
-		std::string key = Data::GetLists<T, S>()->GetNthKey(GetFormKey(obj), i);
-		return BSFixedString(key.c_str());
-	}
-
 } // StorageUtil
-
+#endif
 
 
 #include "skse/PapyrusNativeFunctions.h"
@@ -514,6 +541,15 @@ void StorageUtil::RegisterFuncs(VMClassRegistry* registry) {
 	registry->SetFunctionFlags("StorageUtil", "StringListCount", VMClassRegistry::kFunctionFlag_NoWait);
 	registry->SetFunctionFlags("StorageUtil", "FormListCount", VMClassRegistry::kFunctionFlag_NoWait);
 
+	registry->RegisterFunction(new NativeFunction4 <StaticFunctionTag, UInt32, TESForm*, BSFixedString, SInt32, bool>("IntListCountValue", "StorageUtil", ListCountValue<SInt32, SInt32>, registry));
+	registry->RegisterFunction(new NativeFunction4 <StaticFunctionTag, UInt32, TESForm*, BSFixedString, float, bool>("FloatListCountValue", "StorageUtil", ListCountValue<float, float>, registry));
+	registry->RegisterFunction(new NativeFunction4 <StaticFunctionTag, UInt32, TESForm*, BSFixedString, BSFixedString, bool>("StringListCountValue", "StorageUtil", ListCountValue<BSFixedString, std::string>, registry));
+	registry->RegisterFunction(new NativeFunction4 <StaticFunctionTag, UInt32, TESForm*, BSFixedString, TESForm*, bool>("FormListCountValue", "StorageUtil", ListCountValue<TESForm*, UInt32>, registry));
+	registry->SetFunctionFlags("StorageUtil", "IntListCountValue", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "FloatListCountValue", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "StringListCountValue", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "FormListCountValue", VMClassRegistry::kFunctionFlag_NoWait);
+
 	registry->RegisterFunction(new NativeFunction3 <StaticFunctionTag, SInt32, TESForm*, BSFixedString, SInt32>("IntListFind", "StorageUtil", ListFind<SInt32, SInt32>, registry));
 	registry->RegisterFunction(new NativeFunction3 <StaticFunctionTag, SInt32, TESForm*, BSFixedString, float>("FloatListFind", "StorageUtil", ListFind<float, float>, registry));
 	registry->RegisterFunction(new NativeFunction3 <StaticFunctionTag, SInt32, TESForm*, BSFixedString, BSFixedString>("StringListFind", "StorageUtil", ListFind<BSFixedString, std::string>, registry));
@@ -568,6 +604,99 @@ void StorageUtil::RegisterFuncs(VMClassRegistry* registry) {
 	registry->SetFunctionFlags("StorageUtil", "StringListCopy", VMClassRegistry::kFunctionFlag_NoWait);
 	registry->SetFunctionFlags("StorageUtil", "FormListCopy", VMClassRegistry::kFunctionFlag_NoWait);
 
+	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, VMResultArray<SInt32>, TESForm*, BSFixedString>("IntListToArray", "StorageUtil", ToArray<SInt32, SInt32>, registry));
+	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, VMResultArray<float>, TESForm*, BSFixedString>("FloatListToArray", "StorageUtil", ToArray<float, float>, registry));
+	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, VMResultArray<BSFixedString>, TESForm*, BSFixedString>("StringListToArray", "StorageUtil", ToArray<BSFixedString, std::string>, registry));
+	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, VMResultArray<TESForm*>, TESForm*, BSFixedString>("FormListToArray", "StorageUtil", ToArray<TESForm*, UInt32>, registry));
+	registry->SetFunctionFlags("StorageUtil", "IntListToArray", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "FloatListToArray", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "StringListToArray", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "FormListToArray", VMClassRegistry::kFunctionFlag_NoWait);
+
+	// Debug Functions
+	registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, void, TESForm*>("debug_DeleteValues", "StorageUtil", DeleteValues, registry));
+	registry->SetFunctionFlags("StorageUtil", "debug_DeleteValues", VMClassRegistry::kFunctionFlag_NoWait);
+
+	registry->RegisterFunction(new NativeFunction0<StaticFunctionTag, void>("debug_DeleteAllValues", "StorageUtil", DeleteAllValues, registry));
+	registry->SetFunctionFlags("StorageUtil", "debug_DeleteAllValues", VMClassRegistry::kFunctionFlag_NoWait);
+
+	registry->RegisterFunction(new NativeFunction0<StaticFunctionTag, UInt32>("debug_Cleanup", "StorageUtil", Cleanup, registry));
+	registry->SetFunctionFlags("StorageUtil", "debug_Cleanup", VMClassRegistry::kFunctionFlag_NoWait);
+
+	registry->RegisterFunction(new NativeFunction0 <StaticFunctionTag, UInt32>("debug_GetIntObjectCount", "StorageUtil", GetObjectCount<SInt32, SInt32>, registry));
+	registry->RegisterFunction(new NativeFunction0 <StaticFunctionTag, UInt32>("debug_GetFloatObjectCount", "StorageUtil", GetObjectCount<float, float>, registry));
+	registry->RegisterFunction(new NativeFunction0 <StaticFunctionTag, UInt32>("debug_GetStringObjectCount", "StorageUtil", GetObjectCount<BSFixedString, std::string>, registry));
+	registry->RegisterFunction(new NativeFunction0 <StaticFunctionTag, UInt32>("debug_GetFormObjectCount", "StorageUtil", GetObjectCount<TESForm*, UInt32>, registry));
+	registry->SetFunctionFlags("StorageUtil", "debug_GetIntObjectCount", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "debug_GetFloatObjectCount", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "debug_GetStringObjectCount", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "debug_GetFormObjectCount", VMClassRegistry::kFunctionFlag_NoWait);
+
+	registry->RegisterFunction(new NativeFunction0 <StaticFunctionTag, UInt32>("debug_GetIntListObjectCount", "StorageUtil", GetListsObjectCount<SInt32, SInt32>, registry));
+	registry->RegisterFunction(new NativeFunction0 <StaticFunctionTag, UInt32>("debug_GetFloatListObjectCount", "StorageUtil", GetListsObjectCount<float, float>, registry));
+	registry->RegisterFunction(new NativeFunction0 <StaticFunctionTag, UInt32>("debug_GetStringListObjectCount", "StorageUtil", GetListsObjectCount<BSFixedString, std::string>, registry));
+	registry->RegisterFunction(new NativeFunction0 <StaticFunctionTag, UInt32>("debug_GetFormListObjectCount", "StorageUtil", GetListsObjectCount<TESForm*, UInt32>, registry));
+	registry->SetFunctionFlags("StorageUtil", "debug_GetIntListObjectCount", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "debug_GetFloatListObjectCount", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "debug_GetStringListObjectCount", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "debug_GetFormListObjectCount", VMClassRegistry::kFunctionFlag_NoWait);
+
+	registry->RegisterFunction(new NativeFunction1 <StaticFunctionTag, UInt32, TESForm*>("debug_GetIntKeysCount", "StorageUtil", GetKeyCount<SInt32, SInt32>, registry));
+	registry->RegisterFunction(new NativeFunction1 <StaticFunctionTag, UInt32, TESForm*>("debug_GetFloatKeysCount", "StorageUtil", GetKeyCount<float, float>, registry));
+	registry->RegisterFunction(new NativeFunction1 <StaticFunctionTag, UInt32, TESForm*>("debug_GetStringKeysCount", "StorageUtil", GetKeyCount<BSFixedString, std::string>, registry));
+	registry->RegisterFunction(new NativeFunction1 <StaticFunctionTag, UInt32, TESForm*>("debug_GetFormKeysCount", "StorageUtil", GetKeyCount<TESForm*, UInt32>, registry));
+	registry->SetFunctionFlags("StorageUtil", "debug_GetIntKeysCount", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "debug_GetFloatKeysCount", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "debug_GetStringKeysCount", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "debug_GetFormKeysCount", VMClassRegistry::kFunctionFlag_NoWait);
+
+	registry->RegisterFunction(new NativeFunction1 <StaticFunctionTag, UInt32, TESForm*>("debug_GetIntListKeysCount", "StorageUtil", GetListsKeyCount<SInt32, SInt32>, registry));
+	registry->RegisterFunction(new NativeFunction1 <StaticFunctionTag, UInt32, TESForm*>("debug_GetFloatListKeysCount", "StorageUtil", GetListsKeyCount<float, float>, registry));
+	registry->RegisterFunction(new NativeFunction1 <StaticFunctionTag, UInt32, TESForm*>("debug_GetStringListKeysCount", "StorageUtil", GetListsKeyCount<BSFixedString, std::string>, registry));
+	registry->RegisterFunction(new NativeFunction1 <StaticFunctionTag, UInt32, TESForm*>("debug_GetFormListKeysCount", "StorageUtil", GetListsKeyCount<TESForm*, UInt32>, registry));
+	registry->SetFunctionFlags("StorageUtil", "debug_GetIntListKeysCount", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "debug_GetFloatListKeysCount", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "debug_GetStringListKeysCount", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "debug_GetFormListKeysCount", VMClassRegistry::kFunctionFlag_NoWait);
+
+	registry->RegisterFunction(new NativeFunction1 <StaticFunctionTag, TESForm*, UInt32>("debug_GetIntObject", "StorageUtil", GetNthObj<SInt32, SInt32>, registry));
+	registry->RegisterFunction(new NativeFunction1 <StaticFunctionTag, TESForm*, UInt32>("debug_GetFloatObject", "StorageUtil", GetNthObj<float, float>, registry));
+	registry->RegisterFunction(new NativeFunction1 <StaticFunctionTag, TESForm*, UInt32>("debug_GetStringObject", "StorageUtil", GetNthObj<BSFixedString, std::string>, registry));
+	registry->RegisterFunction(new NativeFunction1 <StaticFunctionTag, TESForm*, UInt32>("debug_GetFormObject", "StorageUtil", GetNthObj<TESForm*, UInt32>, registry));
+	registry->SetFunctionFlags("StorageUtil", "debug_GetIntObject", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "debug_GetFloatObject", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "debug_GetStringObject", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "debug_GetFormObject", VMClassRegistry::kFunctionFlag_NoWait);
+
+	registry->RegisterFunction(new NativeFunction1 <StaticFunctionTag, TESForm*, UInt32>("debug_GetIntListObject", "StorageUtil", GetListsNthObj<SInt32, SInt32>, registry));
+	registry->RegisterFunction(new NativeFunction1 <StaticFunctionTag, TESForm*, UInt32>("debug_GetFloatListObject", "StorageUtil", GetListsNthObj<float, float>, registry));
+	registry->RegisterFunction(new NativeFunction1 <StaticFunctionTag, TESForm*, UInt32>("debug_GetStringListObject", "StorageUtil", GetListsNthObj<BSFixedString, std::string>, registry));
+	registry->RegisterFunction(new NativeFunction1 <StaticFunctionTag, TESForm*, UInt32>("debug_GetFormListObject", "StorageUtil", GetListsNthObj<TESForm*, UInt32>, registry));
+	registry->SetFunctionFlags("StorageUtil", "debug_GetIntListObject", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "debug_GetFloatListObject", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "debug_GetStringListObject", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "debug_GetFormListObject", VMClassRegistry::kFunctionFlag_NoWait);
+
+	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, BSFixedString, TESForm*, UInt32>("debug_GetIntKey", "StorageUtil", GetNthKey<SInt32, SInt32>, registry));
+	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, BSFixedString, TESForm*, UInt32>("debug_GetFloatKey", "StorageUtil", GetNthKey<float, float>, registry));
+	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, BSFixedString, TESForm*, UInt32>("debug_GetStringKey", "StorageUtil", GetNthKey<BSFixedString, std::string>, registry));
+	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, BSFixedString, TESForm*, UInt32>("debug_GetFormKey", "StorageUtil", GetNthKey<TESForm*, UInt32>, registry));
+	registry->SetFunctionFlags("StorageUtil", "debug_GetIntKey", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "debug_GetFloatKey", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "debug_GetStringKey", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "debug_GetFormKey", VMClassRegistry::kFunctionFlag_NoWait);
+
+	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, BSFixedString, TESForm*, UInt32>("debug_GetIntListKey", "StorageUtil", GetListsNthKey<SInt32, SInt32>, registry));
+	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, BSFixedString, TESForm*, UInt32>("debug_GetFloatListKey", "StorageUtil", GetListsNthKey<float, float>, registry));
+	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, BSFixedString, TESForm*, UInt32>("debug_GetStringListKey", "StorageUtil", GetListsNthKey<BSFixedString, std::string>, registry));
+	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, BSFixedString, TESForm*, UInt32>("debug_GetFormListKey", "StorageUtil", GetListsNthKey<TESForm*, UInt32>, registry));
+	registry->SetFunctionFlags("StorageUtil", "debug_GetIntListKey", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "debug_GetFloatListKey", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "debug_GetStringListKey", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "debug_GetFormListKey", VMClassRegistry::kFunctionFlag_NoWait);
+
+
+#ifdef _GLOBAL_EXTERNAL
 	// Global file values
 	registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, SInt32, BSFixedString, SInt32>("FileSetIntValue", "StorageUtil", FileSetValue<SInt32>, registry));
 	registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, float, BSFixedString, float>("FileSetFloatValue", "StorageUtil", FileSetValue<float>, registry));
@@ -733,89 +862,7 @@ void StorageUtil::RegisterFuncs(VMClassRegistry* registry) {
 	registry->SetFunctionFlags("StorageUtil", "FileStringListCopy", VMClassRegistry::kFunctionFlag_NoWait);
 	registry->SetFunctionFlags("StorageUtil", "FileFormListCopy", VMClassRegistry::kFunctionFlag_NoWait);
 
-	// Debug Functions
 	registry->RegisterFunction(new NativeFunction0<StaticFunctionTag, void>("debug_SaveFile", "StorageUtil", SaveExternalFile, registry));
 	registry->SetFunctionFlags("StorageUtil", "debug_SaveFile", VMClassRegistry::kFunctionFlag_NoWait);
-
-	registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, void, TESForm*>("debug_DeleteValues", "StorageUtil", DeleteValues, registry));
-	registry->SetFunctionFlags("StorageUtil", "debug_DeleteValues", VMClassRegistry::kFunctionFlag_NoWait);
-
-	registry->RegisterFunction(new NativeFunction0<StaticFunctionTag, void>("debug_DeleteAllValues", "StorageUtil", DeleteAllValues, registry));
-	registry->SetFunctionFlags("StorageUtil", "debug_DeleteAllValues", VMClassRegistry::kFunctionFlag_NoWait);
-
-	registry->RegisterFunction(new NativeFunction0<StaticFunctionTag, UInt32>("debug_Cleanup", "StorageUtil", Cleanup, registry));
-	registry->SetFunctionFlags("StorageUtil", "debug_Cleanup", VMClassRegistry::kFunctionFlag_NoWait);
-
-	registry->RegisterFunction(new NativeFunction0 <StaticFunctionTag, UInt32>("debug_GetIntObjectCount", "StorageUtil", GetObjectCount<SInt32, SInt32>, registry));
-	registry->RegisterFunction(new NativeFunction0 <StaticFunctionTag, UInt32>("debug_GetFloatObjectCount", "StorageUtil", GetObjectCount<float, float>, registry));
-	registry->RegisterFunction(new NativeFunction0 <StaticFunctionTag, UInt32>("debug_GetStringObjectCount", "StorageUtil", GetObjectCount<BSFixedString, std::string>, registry));
-	registry->RegisterFunction(new NativeFunction0 <StaticFunctionTag, UInt32>("debug_GetFormObjectCount", "StorageUtil", GetObjectCount<TESForm*, UInt32>, registry));
-	registry->SetFunctionFlags("StorageUtil", "debug_GetIntObjectCount", VMClassRegistry::kFunctionFlag_NoWait);
-	registry->SetFunctionFlags("StorageUtil", "debug_GetFloatObjectCount", VMClassRegistry::kFunctionFlag_NoWait);
-	registry->SetFunctionFlags("StorageUtil", "debug_GetStringObjectCount", VMClassRegistry::kFunctionFlag_NoWait);
-	registry->SetFunctionFlags("StorageUtil", "debug_GetFormObjectCount", VMClassRegistry::kFunctionFlag_NoWait);
-
-	registry->RegisterFunction(new NativeFunction0 <StaticFunctionTag, UInt32>("debug_GetIntListObjectCount", "StorageUtil", GetListsObjectCount<SInt32, SInt32>, registry));
-	registry->RegisterFunction(new NativeFunction0 <StaticFunctionTag, UInt32>("debug_GetFloatListObjectCount", "StorageUtil", GetListsObjectCount<float, float>, registry));
-	registry->RegisterFunction(new NativeFunction0 <StaticFunctionTag, UInt32>("debug_GetStringListObjectCount", "StorageUtil", GetListsObjectCount<BSFixedString, std::string>, registry));
-	registry->RegisterFunction(new NativeFunction0 <StaticFunctionTag, UInt32>("debug_GetFormListObjectCount", "StorageUtil", GetListsObjectCount<TESForm*, UInt32>, registry));
-	registry->SetFunctionFlags("StorageUtil", "debug_GetIntListObjectCount", VMClassRegistry::kFunctionFlag_NoWait);
-	registry->SetFunctionFlags("StorageUtil", "debug_GetFloatListObjectCount", VMClassRegistry::kFunctionFlag_NoWait);
-	registry->SetFunctionFlags("StorageUtil", "debug_GetStringListObjectCount", VMClassRegistry::kFunctionFlag_NoWait);
-	registry->SetFunctionFlags("StorageUtil", "debug_GetFormListObjectCount", VMClassRegistry::kFunctionFlag_NoWait);
-
-	registry->RegisterFunction(new NativeFunction1 <StaticFunctionTag, UInt32, TESForm*>("debug_GetIntKeysCount", "StorageUtil", GetKeyCount<SInt32, SInt32>, registry));
-	registry->RegisterFunction(new NativeFunction1 <StaticFunctionTag, UInt32, TESForm*>("debug_GetFloatKeysCount", "StorageUtil", GetKeyCount<float, float>, registry));
-	registry->RegisterFunction(new NativeFunction1 <StaticFunctionTag, UInt32, TESForm*>("debug_GetStringKeysCount", "StorageUtil", GetKeyCount<BSFixedString, std::string>, registry));
-	registry->RegisterFunction(new NativeFunction1 <StaticFunctionTag, UInt32, TESForm*>("debug_GetFormKeysCount", "StorageUtil", GetKeyCount<TESForm*, UInt32>, registry));
-	registry->SetFunctionFlags("StorageUtil", "debug_GetIntKeysCount", VMClassRegistry::kFunctionFlag_NoWait);
-	registry->SetFunctionFlags("StorageUtil", "debug_GetFloatKeysCount", VMClassRegistry::kFunctionFlag_NoWait);
-	registry->SetFunctionFlags("StorageUtil", "debug_GetStringKeysCount", VMClassRegistry::kFunctionFlag_NoWait);
-	registry->SetFunctionFlags("StorageUtil", "debug_GetFormKeysCount", VMClassRegistry::kFunctionFlag_NoWait);
-
-	registry->RegisterFunction(new NativeFunction1 <StaticFunctionTag, UInt32, TESForm*>("debug_GetIntListKeysCount", "StorageUtil", GetListsKeyCount<SInt32, SInt32>, registry));
-	registry->RegisterFunction(new NativeFunction1 <StaticFunctionTag, UInt32, TESForm*>("debug_GetFloatListKeysCount", "StorageUtil", GetListsKeyCount<float, float>, registry));
-	registry->RegisterFunction(new NativeFunction1 <StaticFunctionTag, UInt32, TESForm*>("debug_GetStringListKeysCount", "StorageUtil", GetListsKeyCount<BSFixedString, std::string>, registry));
-	registry->RegisterFunction(new NativeFunction1 <StaticFunctionTag, UInt32, TESForm*>("debug_GetFormListKeysCount", "StorageUtil", GetListsKeyCount<TESForm*, UInt32>, registry));
-	registry->SetFunctionFlags("StorageUtil", "debug_GetIntListKeysCount", VMClassRegistry::kFunctionFlag_NoWait);
-	registry->SetFunctionFlags("StorageUtil", "debug_GetFloatListKeysCount", VMClassRegistry::kFunctionFlag_NoWait);
-	registry->SetFunctionFlags("StorageUtil", "debug_GetStringListKeysCount", VMClassRegistry::kFunctionFlag_NoWait);
-	registry->SetFunctionFlags("StorageUtil", "debug_GetFormListKeysCount", VMClassRegistry::kFunctionFlag_NoWait);
-
-	registry->RegisterFunction(new NativeFunction1 <StaticFunctionTag, TESForm*, UInt32>("debug_GetIntObject", "StorageUtil", GetNthObj<SInt32, SInt32>, registry));
-	registry->RegisterFunction(new NativeFunction1 <StaticFunctionTag, TESForm*, UInt32>("debug_GetFloatObject", "StorageUtil", GetNthObj<float, float>, registry));
-	registry->RegisterFunction(new NativeFunction1 <StaticFunctionTag, TESForm*, UInt32>("debug_GetStringObject", "StorageUtil", GetNthObj<BSFixedString, std::string>, registry));
-	registry->RegisterFunction(new NativeFunction1 <StaticFunctionTag, TESForm*, UInt32>("debug_GetFormObject", "StorageUtil", GetNthObj<TESForm*, UInt32>, registry));
-	registry->SetFunctionFlags("StorageUtil", "debug_GetIntObject", VMClassRegistry::kFunctionFlag_NoWait);
-	registry->SetFunctionFlags("StorageUtil", "debug_GetFloatObject", VMClassRegistry::kFunctionFlag_NoWait);
-	registry->SetFunctionFlags("StorageUtil", "debug_GetStringObject", VMClassRegistry::kFunctionFlag_NoWait);
-	registry->SetFunctionFlags("StorageUtil", "debug_GetFormObject", VMClassRegistry::kFunctionFlag_NoWait);
-
-	registry->RegisterFunction(new NativeFunction1 <StaticFunctionTag, TESForm*, UInt32>("debug_GetIntListObject", "StorageUtil", GetListsNthObj<SInt32, SInt32>, registry));
-	registry->RegisterFunction(new NativeFunction1 <StaticFunctionTag, TESForm*, UInt32>("debug_GetFloatListObject", "StorageUtil", GetListsNthObj<float, float>, registry));
-	registry->RegisterFunction(new NativeFunction1 <StaticFunctionTag, TESForm*, UInt32>("debug_GetStringListObject", "StorageUtil", GetListsNthObj<BSFixedString, std::string>, registry));
-	registry->RegisterFunction(new NativeFunction1 <StaticFunctionTag, TESForm*, UInt32>("debug_GetFormListObject", "StorageUtil", GetListsNthObj<TESForm*, UInt32>, registry));
-	registry->SetFunctionFlags("StorageUtil", "debug_GetIntListObject", VMClassRegistry::kFunctionFlag_NoWait);
-	registry->SetFunctionFlags("StorageUtil", "debug_GetFloatListObject", VMClassRegistry::kFunctionFlag_NoWait);
-	registry->SetFunctionFlags("StorageUtil", "debug_GetStringListObject", VMClassRegistry::kFunctionFlag_NoWait);
-	registry->SetFunctionFlags("StorageUtil", "debug_GetFormListObject", VMClassRegistry::kFunctionFlag_NoWait);
-
-	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, BSFixedString, TESForm*, UInt32>("debug_GetIntKey", "StorageUtil", GetNthKey<SInt32, SInt32>, registry));
-	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, BSFixedString, TESForm*, UInt32>("debug_GetFloatKey", "StorageUtil", GetNthKey<float, float>, registry));
-	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, BSFixedString, TESForm*, UInt32>("debug_GetStringKey", "StorageUtil", GetNthKey<BSFixedString, std::string>, registry));
-	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, BSFixedString, TESForm*, UInt32>("debug_GetFormKey", "StorageUtil", GetNthKey<TESForm*, UInt32>, registry));
-	registry->SetFunctionFlags("StorageUtil", "debug_GetIntKey", VMClassRegistry::kFunctionFlag_NoWait);
-	registry->SetFunctionFlags("StorageUtil", "debug_GetFloatKey", VMClassRegistry::kFunctionFlag_NoWait);
-	registry->SetFunctionFlags("StorageUtil", "debug_GetStringKey", VMClassRegistry::kFunctionFlag_NoWait);
-	registry->SetFunctionFlags("StorageUtil", "debug_GetFormKey", VMClassRegistry::kFunctionFlag_NoWait);
-
-	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, BSFixedString, TESForm*, UInt32>("debug_GetIntListKey", "StorageUtil", GetListsNthKey<SInt32, SInt32>, registry));
-	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, BSFixedString, TESForm*, UInt32>("debug_GetFloatListKey", "StorageUtil", GetListsNthKey<float, float>, registry));
-	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, BSFixedString, TESForm*, UInt32>("debug_GetStringListKey", "StorageUtil", GetListsNthKey<BSFixedString, std::string>, registry));
-	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, BSFixedString, TESForm*, UInt32>("debug_GetFormListKey", "StorageUtil", GetListsNthKey<TESForm*, UInt32>, registry));
-	registry->SetFunctionFlags("StorageUtil", "debug_GetIntListKey", VMClassRegistry::kFunctionFlag_NoWait);
-	registry->SetFunctionFlags("StorageUtil", "debug_GetFloatListKey", VMClassRegistry::kFunctionFlag_NoWait);
-	registry->SetFunctionFlags("StorageUtil", "debug_GetStringListKey", VMClassRegistry::kFunctionFlag_NoWait);
-	registry->SetFunctionFlags("StorageUtil", "debug_GetFormListKey", VMClassRegistry::kFunctionFlag_NoWait);
-
+#endif
 }

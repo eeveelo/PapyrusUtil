@@ -4,7 +4,7 @@
 #include "skse/PapyrusArgs.h"
 #include "skse/PapyrusNativeFunctions.h"
 #include "skse/GameData.h"
-
+/*
 template <> void UnpackValue(VMArray<TESForm*> * dst, VMValue * src){
 	UnpackArray(dst, src, GetTypeIDFromFormTypeID(TESForm::kTypeID, (*g_skyrimVM)->GetClassRegistry()) | VMValue::kType_Identifier);
 }
@@ -15,7 +15,7 @@ template <> void UnpackValue(VMArray<Actor*> * dst, VMValue * src){
 
 template <> void UnpackValue(VMArray<TESObjectREFR*> * dst, VMValue * src){
 	UnpackArray(dst, src, GetTypeIDFromFormTypeID(TESObjectREFR::kTypeID, (*g_skyrimVM)->GetClassRegistry()) | VMValue::kType_Identifier);
-}
+}*/
 
 #include "PackageData.h"
 

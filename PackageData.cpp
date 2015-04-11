@@ -10,7 +10,6 @@ namespace PackageData {
 	static Packages* s_PackageData;
 	Packages* GetPackages(){ if (!s_PackageData) { s_PackageData = new Packages(); } return s_PackageData; }
 
-
 	/*
 	*  Package override serialize
 	*/
@@ -20,6 +19,7 @@ namespace PackageData {
 		ss >> count;
 		if (count < 1) return;
 		s_dataLock.Enter();
+		Data.reserve(count);
 		for (int i = 0; i < count; ++i) {
 			// Unpack actor
 			UInt32 ActorID, ActorCount;
@@ -28,6 +28,8 @@ namespace PackageData {
 			// Validate actor
 			ActorID = Forms::ResolveFormID(ActorID);
 			TESForm* ActorRef = LookupFormByID(ActorID);
+			// TODO: Validate ActorRef before assuming they are still valid
+			Data[ActorRef->formID].reserve(ActorCount);
 			for (int n = 0; n < ActorCount; ++n) {
 				// Unpack Package
 				UInt32 PackID, priority, flag;
@@ -45,6 +47,7 @@ namespace PackageData {
 				}
 			}
 		}
+		Data.shrink_to_fit();
 		s_dataLock.Leave();
 	}
 	void Packages::SaveStream(std::stringstream &ss){
@@ -177,14 +180,14 @@ namespace PackageData {
 				if (itr->second.first >= pickedFlags.first){
 					pickedPack  = itr->first;
 					pickedFlags = itr->second;
-					_MESSAGE("Package[%lu] Priority[%lu] Flag[%lu]", pickedPack, pickedFlags.first, pickedFlags.second);
+					//_MESSAGE("Package[%lu] Priority[%lu] Flag[%lu]", pickedPack, pickedFlags.first, pickedFlags.second);
 				}
 			}
 			int pid = Forms::GameGetForm(pickedPack);
 			TESForm* FormRef = pid == 0 ? NULL : (TESForm*)pid;
 			if (FormRef && FormRef->formType == kFormType_Package){
 				if (pickedFlags.second == 1 || IsValidPackage(pid, ActorID)){
-					_MESSAGE("Override Picked -- Package[%lu] Priority[%lu] Flag[%lu]", pid, pickedFlags.first, pickedFlags.second);
+					//_MESSAGE("Override Picked -- Package[%lu] Priority[%lu] Flag[%lu]", pid, pickedFlags.first, pickedFlags.second);
 					PackageID = pid;
 				}
 			}

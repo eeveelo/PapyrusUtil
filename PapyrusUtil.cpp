@@ -1,74 +1,137 @@
 #include "PapyrusUtil.h"
 
+#include <sstream>
 #include <vector>
-#include <boost/algorithm/string.hpp>
+
+//#include <boost/algorithm/string.hpp>
+#include <boost/algorithm/string/compare.hpp>
+#include <boost/algorithm/string/replace.hpp>
+#include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string/trim.hpp>
 
 //#include "skse/GameAPI.h"
 //#include "skse/GameTypes.h"
 //#include "skse/GameForms.h"
 
 namespace PapyrusUtil {
-	
-	UInt32 ArgStringCount(StaticFunctionTag*, BSFixedString argstring, BSFixedString delimiter){
-		if (!argstring.data || !delimiter.data || boost::iequals(argstring.data, delimiter.data)) return 0;
-		std::vector<std::string> args;
-		std::string delim = delimiter.data;
-		std::string range  = argstring.data;
-		boost::to_lower(delim);
-		boost::ireplace_all(range, delim, delim);
-		boost::iter_split(args, range, boost::first_finder(delim));
-		return args.size();
+
+	template <typename T>
+	VMResultArray<T> CreateArray(StaticFunctionTag*, UInt32 size, T filler) {
+		VMResultArray<T> arr;
+		arr.resize(size, filler);
+		return arr;
 	}
 
-	BSFixedString ArgStringNth(StaticFunctionTag*, UInt32 nth, BSFixedString argstring, BSFixedString delimiter){
-		if (!argstring.data || !delimiter.data || boost::iequals(argstring.data, delimiter.data)) return 0;
-		std::vector<std::string> args;
-		std::string delim = delimiter.data;
-		std::string range = argstring.data;
-		boost::to_lower(delim);
-		boost::ireplace_all(range, delim, delim);
-		boost::iter_split(args, range, boost::first_finder(delim));
-		if (args.empty() || nth >= args.size()) return BSFixedString("");
-		else return BSFixedString(args.at(nth).c_str());
+	template <typename T>
+	VMResultArray<T> ResizeArray(StaticFunctionTag*, VMArray<T> arr, UInt32 size, T filler) {
+		VMResultArray<T> Output;
+		Output.resize(size, filler);
+		VMResultArray<T>::iterator itr = Output.begin();
+		for (UInt32 idx = 0; itr != Output.end() && idx < arr.Length(); ++itr, ++idx)
+			arr.Get(&(*itr), idx);
+		return Output;
 	}
 
-	void ArgStringLoad(StaticFunctionTag*, VMArray<BSFixedString> Output, BSFixedString argstring, BSFixedString delimiter){
-		if (!Output.arr || !argstring.data || !delimiter.data || boost::iequals(argstring.data, delimiter.data)) return;
-		std::vector<std::string> args;
-		std::string delim = delimiter.data;
-		std::string range = argstring.data;
-		boost::to_lower(delim);
-		boost::ireplace_all(range, delim, delim);
-		boost::iter_split(args, range, boost::first_finder(delim));
-		std::vector<std::string>::iterator itr = args.begin();
-		for (UInt32 index = 0; index < Output.Length() && itr != args.end(); ++itr, ++index){
-			BSFixedString val = BSFixedString((*itr).c_str());
-			Output.Set(&val, index);
+	/*template <> VMResultArray<bool>ResizeArray<bool>(StaticFunctionTag*, VMArray<bool> arr, UInt32 size, bool filler) {
+		VMResultArray<bool> Output;
+		VMResultArray<bool>::iterator itr = Output.begin();
+		for (UInt32 idx = 0; itr != Output.end() && idx < arr.Length(); ++itr, ++idx){
+			bool var = false;
+			arr.Get(&var, idx);
+			if (var) Output.push_back(true);
+			else Output.push_back(false);
 		}
+		if (size > Output.size()) Output.resize(size, filler);
+		return Output;
+	}*/
+
+	template <typename T>
+	VMResultArray<T> PushArray(StaticFunctionTag*, VMArray<T> arr, T push) {
+		return ResizeArray(NULL, arr, (arr.Length() + 1), push);
+	}
+
+	template<typename T>
+	UInt32 CountValues(StaticFunctionTag*, VMArray<T> arr, T find){
+		UInt32 count = 0;
+		if (arr.arr && arr.Length() > 0){
+			for (UInt32 idx = 0; idx < arr.Length(); ++idx){
+				T var;
+				arr.Get(&var, idx);
+				if (var == find) count += 1;
+			}
+		}
+		return count;
+	}
+
+	template <typename T>
+	VMResultArray<T> ClearArray(StaticFunctionTag*, VMArray<T> arr, T remove){
+		VMResultArray<T> Output;
+		if (!arr.arr || arr.Length() == 0)
+			return Output;
+		UInt32 length(arr.Length());
+		UInt32 count = CountValues(NULL, arr, remove);
+		if (count != length){
+			Output.reserve((length - count));
+			for (UInt32 idx = 0; idx < arr.Length(); ++idx){
+				T var;
+				arr.Get(&var, idx);
+				if (!(var == remove)) // BSFixedString has no != operator
+					Output.push_back(var);
+			}
+		}		
+		return Output;
+	}
+	
+	template <typename T>
+	VMResultArray<T> MergeArray(StaticFunctionTag*, VMArray<T> arr1, VMArray<T> arr2, bool removeDupe) {
+		VMResultArray<T> Output;
+		Output.reserve((arr1.Length() + arr2.Length()));
+		for (UInt32 idx = 0; idx < arr1.Length(); ++idx){
+			T var;
+			arr1.Get(&var, idx);
+			if (!removeDupe || std::find(Output.begin(), Output.end(), var) == Output.end())
+				Output.push_back(var);
+		}
+		for (UInt32 idx = 0; idx < arr2.Length(); ++idx){
+			T var;
+			arr2.Get(&var, idx);
+			if (!removeDupe || std::find(Output.begin(), Output.end(), var) == Output.end())
+				Output.push_back(var);
+		}
+		Output.shrink_to_fit();
+		return Output;
+	}
+
+	template <typename T>
+	VMResultArray<T> SliceArray(StaticFunctionTag*, VMArray<T> Input, UInt32 idx, SInt32 end_idx){
+		VMResultArray<T> Output;
+		if (end_idx < 0 || end_idx >= Input.Length())
+			end_idx = Input.Length() - 1;
+		if (!Input.arr || idx >= Input.Length())
+			return Output;
+
+		Output.reserve(((end_idx - idx) + 1));
+		for (; idx <= end_idx; ++idx){
+			T var;
+			Input.Get(&var, idx);
+			Output.push_back(var);
+		}
+
+		return Output;
 	}
 
 	template<typename T>
 	T AddValues(StaticFunctionTag*, VMArray<T> Values){
 		T out = 0;
-		for (int i = 0; i < Values.Length(); ++i){
+		for (int idx = 0; idx < Values.Length(); ++idx){
 			T var;
-			Values.Get(&var, i);
+			Values.Get(&var, idx);
 			out += var;
 		}
 		return out;
 	}
-
-	template<typename T>
-	UInt32 CountValues(StaticFunctionTag*, VMArray<T> Values, T find){
-		UInt32 out = 0;
-		for (int i = 0; i < Values.Length(); ++i){
-			T var;
-			Values.Get(&var, i);
-			if (var == find) out += 1;
-		}
-		return out;
-	}
+	
 
 	template<typename T>
 	T ClampValue(StaticFunctionTag*, T var, T min, T max){
@@ -90,43 +153,45 @@ namespace PapyrusUtil {
 	}
 
 
-	template<typename T> inline bool IsSet(T var){ return var != T(); }
-	template <> inline bool IsSet<BSFixedString>(BSFixedString var){ return var.data && var.data[0] != 0; }
-	template <> inline bool IsSet<TESForm*>(TESForm* var){ return var != NULL; }
+	//trim whitespace
+	/*static inline std::string &trim(std::string &s) {
+		s.erase(std::find_if(s.rbegin(), s.rend(), std::not1(std::ptr_fun<int, int>(std::isspace))).base(), s.end());
+		s.erase(s.begin(), std::find_if(s.begin(), s.end(), std::not1(std::ptr_fun<int, int>(std::isspace))));
+		return s;
+	}*/
 
-	template<typename T>
-	void ArrayCopyTo(StaticFunctionTag*, VMArray<T> Append, VMArray<T> Output, SInt32 OutputIndex, SInt32 AppendEnd, bool SkipEmpty){
-		if (!Output.arr || !Append.arr)
-			return;
-
-		int OutputEnd = Output.Length();
-		if (OutputIndex < 0 || OutputIndex >= OutputEnd)
-			OutputIndex = 0;
-
-		if (AppendEnd < 0 || AppendEnd >= (Append.Length() - 1))
-			AppendEnd = Append.Length();
-
-		//if (end < 0 || (OutputEnd - idx) < end) end = OutputEnd;
-		//else if () end += 1
-
-		UInt32 i(0), n(OutputIndex);
-		if (SkipEmpty){
-			for (; i < AppendEnd && n < OutputEnd; ++i){
-				T var;
-				Append.Get(&var, i);
-				if (IsSet(var)){
-					Output.Set(&var, n);
-					++n;
-				}
-			}
+	VMResultArray<BSFixedString> StringSplit(StaticFunctionTag*, BSFixedString argstring, BSFixedString delimiter){
+		VMResultArray<BSFixedString> Output;
+		if (!argstring.data || !delimiter.data || boost::iequals(argstring.data, delimiter.data))
+			return Output;
+		// Get non BS string vector
+		std::vector<std::string> args;
+		std::string delim = delimiter.data;
+		std::string range = argstring.data;
+		boost::ireplace_all(range, delim, delim);
+		boost::iter_split(args, range, boost::first_finder(delim));
+		// Init to size
+		Output.reserve(args.size());
+		// Fill BSFixedString array
+		for (std::vector<std::string>::iterator itr = args.begin(); itr != args.end(); ++itr){
+			boost::trim((*itr));
+			BSFixedString str((*itr).c_str());
+			Output.push_back(str);
 		}
-		else {
-			for (; i < AppendEnd && n < OutputEnd; ++i, ++n){
-				T var;
-				Append.Get(&var, i);
-				Output.Set(&var, n);
-			}
+		return Output;
+	}
+
+	BSFixedString StringJoin(StaticFunctionTag*, VMArray<BSFixedString> args, BSFixedString delimiter){
+		std::stringstream ss;
+		for (UInt32 idx = 0; idx < args.Length();){
+			BSFixedString arg;
+			args.Get(&arg, idx);
+			ss << arg.data;
+			++idx;
+			if (idx < args.Length())
+				ss << delimiter.data;
 		}
+		return BSFixedString(ss.str().c_str());
 	}
 
 }
@@ -136,13 +201,66 @@ namespace PapyrusUtil {
 #include "skse/PapyrusNativeFunctions.h"
 
 void PapyrusUtil::RegisterFuncs(VMClassRegistry* registry) {
-	// Argstrings
-	registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, UInt32, BSFixedString, BSFixedString>("ArgStringCount", "PapyrusUtil", ArgStringCount, registry));
-	registry->SetFunctionFlags("PapyrusUtil", "ArgStringCount", VMClassRegistry::kFunctionFlag_NoWait);
-	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, BSFixedString, UInt32, BSFixedString, BSFixedString>("ArgStringNth", "PapyrusUtil", ArgStringNth, registry));
-	registry->SetFunctionFlags("PapyrusUtil", "ArgStringNth", VMClassRegistry::kFunctionFlag_NoWait);
-	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, void, VMArray<BSFixedString>, BSFixedString, BSFixedString>("ArgStringLoad", "PapyrusUtil", ArgStringLoad, registry));
-	registry->SetFunctionFlags("PapyrusUtil", "ArgStringLoad", VMClassRegistry::kFunctionFlag_NoWait);
+	/*registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, void, VMArray<TESForm*>, UInt32, TESForm*>("_SetFormValue", "PapyrusUtil", SetArrayValue<TESForm*>, registry));
+	registry->SetFunctionFlags("PapyrusUtil", "_SetFormValue", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, void, VMArray<BGSBaseAlias*>, UInt32, BGSBaseAlias*>("_SetAliasValue", "PapyrusUtil", SetArrayValue<BGSBaseAlias*>, registry));
+	registry->SetFunctionFlags("PapyrusUtil", "_SetAliasValue", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, void, VMArray<SInt32>, UInt32, SInt32>("_SetIntValue", "PapyrusUtil", SetArrayValue<SInt32>, registry));
+	registry->SetFunctionFlags("PapyrusUtil", "_SetIntValue", VMClassRegistry::kFunctionFlag_NoWait);*/
+
+	// CreateArray
+	/*registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, VMResultArray<float>, UInt32, float>("FloatArray", "PapyrusUtil", CreateArray<float>, registry));
+	registry->SetFunctionFlags("PapyrusUtil", "FloatArray", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, VMResultArray<SInt32>, UInt32, SInt32>("IntArray", "PapyrusUtil", CreateArray<SInt32>, registry));
+	registry->SetFunctionFlags("PapyrusUtil", "IntArray", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, VMResultArray<bool>, UInt32, bool>("BoolArray", "PapyrusUtil", CreateArray<bool>, registry));
+	registry->SetFunctionFlags("PapyrusUtil", "BoolArray", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, VMResultArray<BSFixedString>, UInt32, BSFixedString>("StringArray", "PapyrusUtil", CreateArray<BSFixedString>, registry));
+	registry->SetFunctionFlags("PapyrusUtil", "StringArray", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, VMResultArray<TESForm*>, UInt32, TESForm*>("FormArray", "PapyrusUtil", CreateArray<TESForm*>, registry));
+	registry->SetFunctionFlags("PapyrusUtil", "FormArray", VMClassRegistry::kFunctionFlag_NoWait);
+	// registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, VMResultArray<TESObjectREFR*>, UInt32, TESObjectREFR*>("ObjectRefArray", "PapyrusUtil", CreateArray<TESObjectREFR*>, registry));
+	// registry->SetFunctionFlags("PapyrusUtil", "ObjectRefArray", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, VMResultArray<BGSBaseAlias*>, UInt32, BGSBaseAlias*>("AliasArray", "PapyrusUtil", CreateArray<BGSBaseAlias*>, registry));
+	registry->SetFunctionFlags("PapyrusUtil", "AliasArray", VMClassRegistry::kFunctionFlag_NoWait);*/
+	registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, VMResultArray<Actor*>, UInt32, Actor*>("ActorArray", "PapyrusUtil", CreateArray<Actor*>, registry));
+	registry->SetFunctionFlags("PapyrusUtil", "ActorArray", VMClassRegistry::kFunctionFlag_NoWait);
+
+	// ResizeArray
+	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, VMResultArray<float>, VMArray<float>, UInt32, float>("ResizeFloatArray", "PapyrusUtil", ResizeArray<float>, registry));
+	registry->SetFunctionFlags("PapyrusUtil", "ResizeFloatArray", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, VMResultArray<SInt32>, VMArray<SInt32>, UInt32, SInt32>("ResizeIntArray", "PapyrusUtil", ResizeArray<SInt32>, registry));
+	registry->SetFunctionFlags("PapyrusUtil", "ResizeIntArray", VMClassRegistry::kFunctionFlag_NoWait);
+	//registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, VMResultArray<bool>, VMArray<bool>, UInt32, bool>("ResizeBoolArray", "PapyrusUtil", ResizeArray<bool>, registry));
+	//registry->SetFunctionFlags("PapyrusUtil", "ResizeBoolArray", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, VMResultArray<BSFixedString>, VMArray<BSFixedString>, UInt32, BSFixedString>("ResizeStringArray", "PapyrusUtil", ResizeArray<BSFixedString>, registry));
+	registry->SetFunctionFlags("PapyrusUtil", "ResizeStringArray", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, VMResultArray<TESForm*>, VMArray<TESForm*>, UInt32, TESForm*>("ResizeFormArray", "PapyrusUtil", ResizeArray<TESForm*>, registry));
+	registry->SetFunctionFlags("PapyrusUtil", "ResizeFormArray", VMClassRegistry::kFunctionFlag_NoWait);
+	// registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, VMResultArray<TESObjectREFR*>, VMArray<TESObjectREFR*>, UInt32, TESObjectREFR*>("ResizeObjectRefArray", "PapyrusUtil", ResizeArray<TESObjectREFR*>, registry));
+	// registry->SetFunctionFlags("PapyrusUtil", "ResizeObjectRefArray", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, VMResultArray<Actor*>, VMArray<Actor*>, UInt32, Actor*>("ResizeActorArray", "PapyrusUtil", ResizeArray<Actor*>, registry));
+	registry->SetFunctionFlags("PapyrusUtil", "ResizeActorArray", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, VMResultArray<BGSBaseAlias*>, VMArray<BGSBaseAlias*>, UInt32, BGSBaseAlias*>("ResizeAliasArray", "PapyrusUtil", ResizeArray<BGSBaseAlias*>, registry));
+	registry->SetFunctionFlags("PapyrusUtil", "ResizeAliasArray", VMClassRegistry::kFunctionFlag_NoWait);
+
+	// PushArray
+	registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, VMResultArray<float>, VMArray<float>, float>("PushFloat", "PapyrusUtil", PushArray<float>, registry));
+	registry->SetFunctionFlags("PapyrusUtil", "PushFloat", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, VMResultArray<SInt32>, VMArray<SInt32>, SInt32>("PushInt", "PapyrusUtil", PushArray<SInt32>, registry));
+	registry->SetFunctionFlags("PapyrusUtil", "PushInt", VMClassRegistry::kFunctionFlag_NoWait);
+	//registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, VMResultArray<bool>, VMArray<bool>, bool>("PushBool", "PapyrusUtil", PushArray<bool>, registry));
+	//registry->SetFunctionFlags("PapyrusUtil", "PushBool", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, VMResultArray<BSFixedString>, VMArray<BSFixedString>, BSFixedString>("PushString", "PapyrusUtil", PushArray<BSFixedString>, registry));
+	registry->SetFunctionFlags("PapyrusUtil", "PushString", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, VMResultArray<TESForm*>, VMArray<TESForm*>, TESForm*>("PushForm", "PapyrusUtil", PushArray<TESForm*>, registry));
+	registry->SetFunctionFlags("PapyrusUtil", "PushForm", VMClassRegistry::kFunctionFlag_NoWait);
+	// registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, VMResultArray<TESObjectREFR*>, VMArray<TESObjectREFR*>, TESObjectREFR*>("PushObjectRef", "PapyrusUtil", PushArray<TESObjectREFR*>, registry));
+	// registry->SetFunctionFlags("PapyrusUtil", "PushObjectRef", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, VMResultArray<Actor*>, VMArray<Actor*>, Actor*>("PushActor", "PapyrusUtil", PushArray<Actor*>, registry));
+	registry->SetFunctionFlags("PapyrusUtil", "PushActor", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, VMResultArray<BGSBaseAlias*>, VMArray<BGSBaseAlias*>, BGSBaseAlias*>("PushAlias", "PapyrusUtil", PushArray<BGSBaseAlias*>, registry));
+	registry->SetFunctionFlags("PapyrusUtil", "PushAlias", VMClassRegistry::kFunctionFlag_NoWait);
 
 	// Count value
 	registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, UInt32, VMArray<bool>, bool>("CountBool", "PapyrusUtil", CountValues<bool>, registry));
@@ -157,11 +275,86 @@ void PapyrusUtil::RegisterFuncs(VMClassRegistry* registry) {
 	registry->SetFunctionFlags("PapyrusUtil", "CountForm", VMClassRegistry::kFunctionFlag_NoWait);
 	registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, UInt32, VMArray<Actor*>, Actor*>("CountActor", "PapyrusUtil", CountValues<Actor*>, registry));
 	registry->SetFunctionFlags("PapyrusUtil", "CountActor", VMClassRegistry::kFunctionFlag_NoWait);
-	registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, UInt32, VMArray<TESObjectREFR*>, TESObjectREFR*>("CountObjectReference", "PapyrusUtil", CountValues<TESObjectREFR*>, registry));
-	registry->SetFunctionFlags("PapyrusUtil", "CountObjectReference", VMClassRegistry::kFunctionFlag_NoWait);
+	// registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, UInt32, VMArray<TESObjectREFR*>, TESObjectREFR*>("CountObjectRef", "PapyrusUtil", CountValues<TESObjectREFR*>, registry));
+	// registry->SetFunctionFlags("PapyrusUtil", "CountObjectRef", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, UInt32, VMArray<BGSBaseAlias*>, BGSBaseAlias*>("CountAlias", "PapyrusUtil", CountValues<BGSBaseAlias*>, registry));
+	registry->SetFunctionFlags("PapyrusUtil", "CountAlias", VMClassRegistry::kFunctionFlag_NoWait);
+
+
+	// ClearArray
+	registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, VMResultArray<float>, VMArray<float>, float>("RemoveFloat", "PapyrusUtil", ClearArray<float>, registry));
+	registry->SetFunctionFlags("PapyrusUtil", "RemoveFloat", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, VMResultArray<SInt32>, VMArray<SInt32>, SInt32>("RemoveInt", "PapyrusUtil", ClearArray<SInt32>, registry));
+	registry->SetFunctionFlags("PapyrusUtil", "RemoveInt", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, VMResultArray<bool>, VMArray<bool>, bool>("RemoveBool", "PapyrusUtil", ClearArray<bool>, registry));
+	registry->SetFunctionFlags("PapyrusUtil", "RemoveBool", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, VMResultArray<BSFixedString>, VMArray<BSFixedString>, BSFixedString>("RemoveString", "PapyrusUtil", ClearArray<BSFixedString>, registry));
+	registry->SetFunctionFlags("PapyrusUtil", "RemoveString", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, VMResultArray<TESForm*>, VMArray<TESForm*>, TESForm*>("RemoveForm", "PapyrusUtil", ClearArray<TESForm*>, registry));
+	registry->SetFunctionFlags("PapyrusUtil", "RemoveForm", VMClassRegistry::kFunctionFlag_NoWait);
+	// registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, VMResultArray<TESObjectREFR*>, VMArray<TESObjectREFR*>, TESObjectREFR*>("RemoveObjectRef", "PapyrusUtil", ClearArray<TESObjectREFR*>, registry));
+	// registry->SetFunctionFlags("PapyrusUtil", "RemoveObjectRef", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, VMResultArray<Actor*>, VMArray<Actor*>, Actor*>("RemoveActor", "PapyrusUtil", ClearArray<Actor*>, registry));
+	registry->SetFunctionFlags("PapyrusUtil", "RemoveActor", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, VMResultArray<BGSBaseAlias*>, VMArray<BGSBaseAlias*>, BGSBaseAlias*>("RemoveAlias", "PapyrusUtil", ClearArray<BGSBaseAlias*>, registry));
+	registry->SetFunctionFlags("PapyrusUtil", "RemoveAlias", VMClassRegistry::kFunctionFlag_NoWait);
+
+
+	// MergeArray
+	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, VMResultArray<float>, VMArray<float>, VMArray<float>, bool>("MergeFloatArray", "PapyrusUtil", MergeArray<float>, registry));
+	registry->SetFunctionFlags("PapyrusUtil", "MergeFloatArray", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, VMResultArray<SInt32>, VMArray<SInt32>, VMArray<SInt32>, bool>("MergeIntArray", "PapyrusUtil", MergeArray<SInt32>, registry));
+	registry->SetFunctionFlags("PapyrusUtil", "MergeIntArray", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, VMResultArray<bool>, VMArray<bool>, VMArray<bool>, bool>("MergeBoolArray", "PapyrusUtil", MergeArray<bool>, registry));
+	registry->SetFunctionFlags("PapyrusUtil", "MergeBoolArray", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, VMResultArray<BSFixedString>, VMArray<BSFixedString>, VMArray<BSFixedString>, bool>("MergeStringArray", "PapyrusUtil", MergeArray<BSFixedString>, registry));
+	registry->SetFunctionFlags("PapyrusUtil", "MergeStringArray", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, VMResultArray<TESForm*>, VMArray<TESForm*>, VMArray<TESForm*>, bool>("MergeFormArray", "PapyrusUtil", MergeArray<TESForm*>, registry));
+	registry->SetFunctionFlags("PapyrusUtil", "MergeFormArray", VMClassRegistry::kFunctionFlag_NoWait);
+	// registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, VMResultArray<TESObjectREFR*>, VMArray<TESObjectREFR*>, VMArray<TESObjectREFR*>, bool>("MergeObjectRefArray", "PapyrusUtil", MergeArray<TESObjectREFR*>, registry));
+	// registry->SetFunctionFlags("PapyrusUtil", "MergeObjectRefArray", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, VMResultArray<Actor*>, VMArray<Actor*>, VMArray<Actor*>, bool>("MergeActorArray", "PapyrusUtil", MergeArray<Actor*>, registry));
+	registry->SetFunctionFlags("PapyrusUtil", "MergeActorArray", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, VMResultArray<BGSBaseAlias*>, VMArray<BGSBaseAlias*>, VMArray<BGSBaseAlias*>, bool>("MergeAliasArray", "PapyrusUtil", MergeArray<BGSBaseAlias*>, registry));
+	registry->SetFunctionFlags("PapyrusUtil", "MergeAliasArray", VMClassRegistry::kFunctionFlag_NoWait);
+
+	// SliceArray
+	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, VMResultArray<float>, VMArray<float>, UInt32, SInt32>("SliceFloatArray", "PapyrusUtil", SliceArray<float>, registry));
+	registry->SetFunctionFlags("PapyrusUtil", "SliceFloatArray", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, VMResultArray<SInt32>, VMArray<SInt32>, UInt32, SInt32>("SliceIntArray", "PapyrusUtil", SliceArray<SInt32>, registry));
+	registry->SetFunctionFlags("PapyrusUtil", "SliceIntArray", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, VMResultArray<bool>, VMArray<bool>, UInt32, SInt32>("SliceBoolArray", "PapyrusUtil", SliceArray<bool>, registry));
+	registry->SetFunctionFlags("PapyrusUtil", "SliceBoolArray", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, VMResultArray<BSFixedString>, VMArray<BSFixedString>, UInt32, SInt32>("SliceStringArray", "PapyrusUtil", SliceArray<BSFixedString>, registry));
+	registry->SetFunctionFlags("PapyrusUtil", "SliceStringArray", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, VMResultArray<TESForm*>, VMArray<TESForm*>, UInt32, SInt32>("SliceFormArray", "PapyrusUtil", SliceArray<TESForm*>, registry));
+	registry->SetFunctionFlags("PapyrusUtil", "SliceFormArray", VMClassRegistry::kFunctionFlag_NoWait);
+	// registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, VMResultArray<TESObjectREFR*>, VMArray<TESObjectREFR*>, UInt32, SInt32>("SliceObjectRefArray", "PapyrusUtil", SliceArray<TESObjectREFR*>, registry));
+	// registry->SetFunctionFlags("PapyrusUtil", "SliceObjectRefArray", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, VMResultArray<Actor*>, VMArray<Actor*>, UInt32, SInt32>("SliceActorArray", "PapyrusUtil", SliceArray<Actor*>, registry));
+	registry->SetFunctionFlags("PapyrusUtil", "SliceActorArray", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, VMResultArray<BGSBaseAlias*>, VMArray<BGSBaseAlias*>, UInt32, SInt32>("SliceAliasArray", "PapyrusUtil", SliceArray<BGSBaseAlias*>, registry));
+	registry->SetFunctionFlags("PapyrusUtil", "SliceAliasArray", VMClassRegistry::kFunctionFlag_NoWait);
+
+
+	// Argstrings
+	registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, VMResultArray<BSFixedString>, BSFixedString, BSFixedString>("StringSplit", "PapyrusUtil", StringSplit, registry));
+	registry->SetFunctionFlags("PapyrusUtil", "StringSplit", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, BSFixedString, VMArray<BSFixedString>, BSFixedString>("StringJoin", "PapyrusUtil", StringJoin, registry));
+	registry->SetFunctionFlags("PapyrusUtil", "StringJoin", VMClassRegistry::kFunctionFlag_NoWait);
+
+	// PRE SKSE Array
+	/*registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, UInt32, BSFixedString, BSFixedString>("ArgStringCount", "PapyrusUtil", ArgStringCount, registry));
+	registry->SetFunctionFlags("PapyrusUtil", "ArgStringCount", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, BSFixedString, UInt32, BSFixedString, BSFixedString>("ArgStringNth", "PapyrusUtil", ArgStringNth, registry));
+	registry->SetFunctionFlags("PapyrusUtil", "ArgStringNth", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, void, VMArray<BSFixedString>, BSFixedString, BSFixedString>("ArgStringLoad", "PapyrusUtil", ArgStringLoad, registry));
+	registry->SetFunctionFlags("PapyrusUtil", "ArgStringLoad", VMClassRegistry::kFunctionFlag_NoWait);*/
+
+
 
 	// Array Copy To
-	registry->RegisterFunction(new NativeFunction5<StaticFunctionTag, void, VMArray<bool>, VMArray<bool>, SInt32, SInt32, bool>("BoolCopyTo", "PapyrusUtil", ArrayCopyTo<bool>, registry));
+	/*registry->RegisterFunction(new NativeFunction5<StaticFunctionTag, void, VMArray<bool>, VMArray<bool>, SInt32, SInt32, bool>("BoolCopyTo", "PapyrusUtil", ArrayCopyTo<bool>, registry));
 	registry->SetFunctionFlags("PapyrusUtil", "BoolCopyTo", VMClassRegistry::kFunctionFlag_NoWait);
 	registry->RegisterFunction(new NativeFunction5<StaticFunctionTag, void, VMArray<float>, VMArray<float>, SInt32, SInt32, bool>("FloatCopyTo", "PapyrusUtil", ArrayCopyTo<float>, registry));
 	registry->SetFunctionFlags("PapyrusUtil", "FloatCopyTo", VMClassRegistry::kFunctionFlag_NoWait);
@@ -173,8 +366,8 @@ void PapyrusUtil::RegisterFuncs(VMClassRegistry* registry) {
 	registry->SetFunctionFlags("PapyrusUtil", "FormCopyTo", VMClassRegistry::kFunctionFlag_NoWait);
 	registry->RegisterFunction(new NativeFunction5<StaticFunctionTag, void, VMArray<Actor*>, VMArray<Actor*>, SInt32, SInt32, bool>("ActorCopyTo", "PapyrusUtil", ArrayCopyTo<Actor*>, registry));
 	registry->SetFunctionFlags("PapyrusUtil", "ActorCopyTo", VMClassRegistry::kFunctionFlag_NoWait);
-	registry->RegisterFunction(new NativeFunction5<StaticFunctionTag, void, VMArray<TESObjectREFR*>, VMArray<TESObjectREFR*>, SInt32, SInt32, bool>("ObjectReferenceCopyTo", "PapyrusUtil", ArrayCopyTo<TESObjectREFR*>, registry));
-	registry->SetFunctionFlags("PapyrusUtil", "ObjectReferenceCopyTo", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->RegisterFunction(new NativeFunction5<StaticFunctionTag, void, VMArray<TESObjectREFR*>, VMArray<TESObjectREFR*>, SInt32, SInt32, bool>("ObjectRefCopyTo", "PapyrusUtil", ArrayCopyTo<TESObjectREFR*>, registry));
+	registry->SetFunctionFlags("PapyrusUtil", "ObjectRefCopyTo", VMClassRegistry::kFunctionFlag_NoWait);*/
 
 
 	// Misc float/int 
@@ -193,6 +386,7 @@ void PapyrusUtil::RegisterFuncs(VMClassRegistry* registry) {
 	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, SInt32, SInt32, SInt32, SInt32>("WrapInt", "PapyrusUtil", WrapValue<SInt32>, registry));
 	registry->SetFunctionFlags("PapyrusUtil", "WrapInt", VMClassRegistry::kFunctionFlag_NoWait);
 
+	// Overkill
 	registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, float, bool, float>("SignFloat", "PapyrusUtil", SignValue<float>, registry));
 	registry->SetFunctionFlags("PapyrusUtil", "SignFloat", VMClassRegistry::kFunctionFlag_NoWait);
 	registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, SInt32, bool, SInt32>("SignInt", "PapyrusUtil", SignValue<SInt32>, registry));

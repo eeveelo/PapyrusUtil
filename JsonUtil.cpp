@@ -11,7 +11,13 @@
 namespace JsonUtil {
 	using namespace External;
 
-	bool IsValidKey(BSFixedString &key) { return !(key == NULL || !key.data || strlen(key.data) == 0); }
+	//bool IsValidKey(BSFixedString &key) { return !(key == NULL || !key.data || strlen(key.data) == 0); }
+	inline bool IsValidKey(BSFixedString &key) { return key.data && strlen(key.data) > 0; }
+
+	inline bool IsEmpty(SInt32 &value){ return value == 0; }
+	inline bool IsEmpty(float &value){ return value == 0.0f; }
+	inline bool IsEmpty(BSFixedString &value){ return !value.data || value.data[0] == '\0'; }
+	inline bool IsEmpty(TESForm* value){ return value == NULL; }
 
 	template <typename T> inline T Empty() { return T(); }
 	template <> inline SInt32 Empty<SInt32>() { return 0; }
@@ -35,11 +41,15 @@ namespace JsonUtil {
 		if (File) File->ClearAll();
 	}
 
+
+
+
 	template <typename T>
 	T SetValue(StaticFunctionTag* base, BSFixedString name, BSFixedString key, T value) {
 		ExternalFile* File = GetFile(name.data);
 		if (!File || !IsValidKey(key)) return Empty<T>();
-		else return ParseValue<T>(File->SetValue(Type<T>(), key.data, MakeValue<T>(value)));
+		else File->SetValue(Type<T>(), key.data, MakeValue<T>(value));
+		return value;
 	}
 
 	template <typename T>
@@ -134,6 +144,13 @@ namespace JsonUtil {
 	}
 
 	template <typename T>
+	UInt32 ListCountValue(StaticFunctionTag* base, BSFixedString name, BSFixedString key, T value, bool exclude) {
+		ExternalFile* File = GetFile(name.data);
+		if (!File || !IsValidKey(key)) return 0;
+		return File->ListCountValue(List<T>(), key.data, MakeValue<T>(value), exclude);
+	}
+
+	template <typename T>
 	SInt32 ListFind(StaticFunctionTag* base, BSFixedString name, BSFixedString key, T value) {
 		ExternalFile* File = GetFile(name.data);
 		
@@ -170,6 +187,15 @@ namespace JsonUtil {
 		if (!File || !IsValidKey(key) || !Input.arr || Input.Length() < 1) return false;
 		else return File->ListCopy<T>(key.data, Input);
 	}
+	template <typename T>
+	VMResultArray<T> ToArray(StaticFunctionTag* base, BSFixedString name, BSFixedString key){
+		ExternalFile* File = GetFile(name.data);
+		VMResultArray<T> arr;
+		if (File && IsValidKey(key))
+			arr = File->ToArray<T>(key.data);
+		return arr;
+	}
+
 
 } // JsonUtil
 
@@ -309,6 +335,15 @@ void JsonUtil::RegisterFuncs(VMClassRegistry* registry){
 	registry->SetFunctionFlags("JsonUtil", "StringListCount", VMClassRegistry::kFunctionFlag_NoWait);
 	registry->SetFunctionFlags("JsonUtil", "FormListCount", VMClassRegistry::kFunctionFlag_NoWait);
 
+	registry->RegisterFunction(new NativeFunction4<StaticFunctionTag, UInt32, BSFixedString, BSFixedString, SInt32, bool>("IntListCountValue", "JsonUtil", ListCountValue<SInt32>, registry));
+	registry->RegisterFunction(new NativeFunction4<StaticFunctionTag, UInt32, BSFixedString, BSFixedString, float, bool>("FloatListCountValue", "JsonUtil", ListCountValue<float>, registry));
+	registry->RegisterFunction(new NativeFunction4<StaticFunctionTag, UInt32, BSFixedString, BSFixedString, BSFixedString, bool>("StringListCountValue", "JsonUtil", ListCountValue<BSFixedString>, registry));
+	registry->RegisterFunction(new NativeFunction4<StaticFunctionTag, UInt32, BSFixedString, BSFixedString, TESForm*, bool>("FormListCountValue", "JsonUtil", ListCountValue<TESForm*>, registry));
+	registry->SetFunctionFlags("JsonUtil", "IntListCountValue", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("JsonUtil", "FloatListCountValue", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("JsonUtil", "StringListCountValue", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("JsonUtil", "FormListCountValue", VMClassRegistry::kFunctionFlag_NoWait);
+
 	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, SInt32, BSFixedString, BSFixedString, SInt32>("IntListFind", "JsonUtil", ListFind<SInt32>, registry));
 	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, SInt32, BSFixedString, BSFixedString, float>("FloatListFind", "JsonUtil", ListFind<float>, registry));
 	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, SInt32, BSFixedString, BSFixedString, BSFixedString>("StringListFind", "JsonUtil", ListFind<BSFixedString>, registry));
@@ -353,4 +388,13 @@ void JsonUtil::RegisterFuncs(VMClassRegistry* registry){
 	registry->SetFunctionFlags("JsonUtil", "FloatListCopy", VMClassRegistry::kFunctionFlag_NoWait);
 	registry->SetFunctionFlags("JsonUtil", "StringListCopy", VMClassRegistry::kFunctionFlag_NoWait);
 	registry->SetFunctionFlags("JsonUtil", "FormListCopy", VMClassRegistry::kFunctionFlag_NoWait);
+
+	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, VMResultArray<SInt32>, BSFixedString, BSFixedString>("IntListToArray", "JsonUtil", ToArray<SInt32>, registry));
+	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, VMResultArray<float>, BSFixedString, BSFixedString>("FloatListToArray", "JsonUtil", ToArray<float>, registry));
+	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, VMResultArray<BSFixedString>, BSFixedString, BSFixedString>("StringListToArray", "JsonUtil", ToArray<BSFixedString>, registry));
+	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, VMResultArray<TESForm*>, BSFixedString, BSFixedString>("FormListToArray", "JsonUtil", ToArray<TESForm*>, registry));
+	registry->SetFunctionFlags("JsonUtil", "IntListToArray", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("JsonUtil", "FloatListToArray", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("JsonUtil", "StringListToArray", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("JsonUtil", "FormListToArray", VMClassRegistry::kFunctionFlag_NoWait);
 }

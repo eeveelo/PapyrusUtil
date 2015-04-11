@@ -8,9 +8,9 @@
 
 //#include <direct.h>
 
-#include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
+#include <boost/algorithm/string.hpp>
 
 #include "skse/PapyrusVM.h"
 #include "skse/PapyrusNativeFunctions.h"
@@ -20,7 +20,7 @@ namespace External {
 
 	static ICriticalSection* s_loadLock = NULL;
 	static FileVector* s_Files = NULL;
-	
+
 	ExternalFile* GetFile(std::string name) {
 		if (s_loadLock == NULL)
 			s_loadLock = new ICriticalSection();
@@ -45,11 +45,12 @@ namespace External {
 			File = new ExternalFile(name);
 			s_Files->push_back(File);
 		}
-		
+
 		s_loadLock->Leave();
 		return File;
 	}
 
+#ifdef _GLOBAL_EXTERNAL
 	ExternalFile* s_Global;
 	ExternalFile* GetSingleton(){
 		if (s_Global == NULL)
@@ -68,10 +69,13 @@ namespace External {
 			return false;
 		return s_Global->SaveFile();
 	}
+#endif
 
 	void SaveFiles() {
+#ifdef _GLOBAL_EXTERNAL
 		if (s_Global != NULL && s_Global->isModified)
 			s_Global->SaveFile(false);
+#endif
 		if (s_Files != NULL && !s_Files->empty()){
 			for (FileVector::iterator itr = s_Files->begin(); itr != s_Files->end(); ++itr) {
 				if ((*itr)->isModified)
@@ -81,8 +85,10 @@ namespace External {
 	}
 
 	void RevertFiles() {
+#ifdef _GLOBAL_EXTERNAL
 		if (s_Global != NULL && s_Global->isModified)
 			s_Global->RevertFile();
+#endif
 		if (s_Files != NULL && !s_Files->empty()){
 			for (FileVector::iterator itr = s_Files->begin(); itr != s_Files->end(); ++itr) {
 				if ((*itr)->isModified)
@@ -91,9 +97,9 @@ namespace External {
 		}
 	}
 
-	bool ExternalFile::ImportOnForm(TESForm* FormRef) {
+	/*bool ExternalFile::ImportOnForm(TESForm* FormRef) {
 		return false;
-	}
+	}*/
 
 	/*/
 	/// Class: ExternalFile
@@ -103,7 +109,7 @@ namespace External {
 
 	bool ExternalFile::LoadFile(){
 		Json::Reader reader;
-		setlocale(LC_NUMERIC, "POSIX");
+		//setlocale(LC_NUMERIC, "POSIX");
 		// Path to file
 		fs::path Path = fs::path(docpath);
 
@@ -147,7 +153,8 @@ namespace External {
 	bool ExternalFile::SaveFile(){
 		_MESSAGE("Papyrus Saving File: %s", name.c_str());
 		// Check if anything even needs saving
-		if (!isModified || !root.isObject()) return false;
+		if (!isModified || !root.isObject())
+			return false;
 		// Path to file
 		fs::path Path = fs::path(docpath);
 		try
@@ -219,14 +226,12 @@ namespace External {
 	}
 
 	// Global key=>value
-
-	Value ExternalFile::SetValue(std::string type, std::string key, Value value) {
+	void ExternalFile::SetValue(std::string type, std::string key, Value value) {
 		s_dataLock.Enter();
 		boost::to_lower(key);
 		root[type][key] = value;
 		isModified = true;
 		s_dataLock.Leave();
-		return value;
 	}
 
 	Value ExternalFile::GetValue(std::string type, std::string key, Value value) {
@@ -260,8 +265,8 @@ namespace External {
 			isModified = true;
 			removed = true;
 			root[type].removeMember(key);
-			if (root[type].empty())
-				root.removeMember(type);
+			//if (root[type].empty())
+			//	root.removeMember(type);
 		}
 
 		s_dataLock.Leave();
@@ -324,18 +329,18 @@ namespace External {
 				else removed += 1;
 			}
 			root[type][key] = list;
-			if (root[type][key].size() == 0){
+			/*if (root[type][key].size() == 0){
 				root[type].removeMember(key);
 				if (root[type].size() == 0)
 					root.removeMember(type);
-			}
+			}*/
 			isModified = true;
 		}
 
 		s_dataLock.Leave();
 		return removed;
 	}
-	
+
 	bool ExternalFile::ListRemoveAt(std::string type, std::string key, int index){
 		bool removed = false;
 		s_dataLock.Enter();
@@ -349,11 +354,11 @@ namespace External {
 				else list.append((*itr));
 			}
 			root[type][key] = list;
-			if (root[type][key].size() == 0){
+			/*if (root[type][key].size() == 0){
 				root[type].removeMember(key);
 				if (root[type].size() == 0)
 					root.removeMember(type);
-			}
+			}*/
 			isModified = true;
 		}
 		s_dataLock.Leave();
@@ -392,8 +397,8 @@ namespace External {
 			isModified = true;
 			cleared    = root[type][key].size();
 			root[type].removeMember(key);
-			if (root[type].size() == 0)
-				root.removeMember(type);
+			//if (root[type].size() == 0)
+			//	root.removeMember(type);
 		}
 
 		s_dataLock.Leave();
@@ -405,6 +410,21 @@ namespace External {
 		s_dataLock.Enter();
 		boost::to_lower(key);
 		if (HasKey(type, key)) count = root[type][key].size();
+		s_dataLock.Leave();
+		return count;
+	}
+
+	int ExternalFile::ListCountValue(std::string type, std::string key, Value value, bool exclude){
+		int count = 0;
+		s_dataLock.Enter();
+		boost::to_lower(key);
+		if (HasKey(type, key)){
+			for (Value::iterator itr = root[type][key].begin(); itr != root[type][key].end(); ++itr) {
+				if (value == (*itr) || (value.isString() && boost::iequals((*itr).asString(), value.asString())))
+					count += 1;
+			}
+			if (exclude) count = (root[type][key].size() - count);
+		}
 		s_dataLock.Leave();
 		return count;
 	}
@@ -513,5 +533,29 @@ namespace External {
 	template bool ExternalFile::ListCopy<float>(std::string key, VMArray<float> Input);
 	template bool ExternalFile::ListCopy<BSFixedString>(std::string key, VMArray<BSFixedString> Input);
 	template bool ExternalFile::ListCopy<TESForm*>(std::string key, VMArray<TESForm*> Input);
-	
+
+
+	template <typename T>
+	VMResultArray<T> ExternalFile::ToArray(std::string key) {
+		VMResultArray<T> arr;
+		s_dataLock.Enter();
+
+		boost::to_lower(key);
+		std::string type = List<T>();
+		if (HasKey(type, key)){
+			arr.reserve(root[type][key].size());
+			for (Value::iterator itr = root[type][key].begin(); itr != root[type][key].end(); ++itr){
+				T var = ParseValue<T>(*itr);
+				arr.push_back(var);
+			}
+		}
+
+		s_dataLock.Leave();
+		return arr;
+	}
+	template VMResultArray<SInt32> ExternalFile::ToArray<SInt32>(std::string key);
+	template VMResultArray<float> ExternalFile::ToArray<float>(std::string key);
+	template VMResultArray<BSFixedString> ExternalFile::ToArray<BSFixedString>(std::string key);
+	template VMResultArray<TESForm*> ExternalFile::ToArray<TESForm*>(std::string key);
+
 }

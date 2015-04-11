@@ -13,6 +13,6 @@ namespace MiscUtil {
 	void SetFreeCameraState(StaticFunctionTag* base, bool enable, float speed);
 	void PrintConsole(StaticFunctionTag* base, BSFixedString text);
 	void SetMenus(StaticFunctionTag* base, bool enabled);
-	BSFixedString GetRaceEditorID(StaticFunctionTag* base, TESRace* raceForm);
-	BSFixedString GetActorRaceEditorID(StaticFunctionTag* base, Actor* actorRef);
+	BSFixedString GetRaceEditorID(StaticFunctionTag* base, TESRace* RaceRef);
+	BSFixedString GetActorRaceEditorID(StaticFunctionTag* base, Actor* ActorRef);
 }

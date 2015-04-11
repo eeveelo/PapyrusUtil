@@ -26,9 +26,12 @@ namespace JsonUtil {
 	template <typename T> bool ListInsertAt(StaticFunctionTag* base, BSFixedString name, BSFixedString key, UInt32 index, T value);
 	template <typename T> UInt32 ListClear(StaticFunctionTag* base, BSFixedString name, BSFixedString key);
 	template <typename T> UInt32 ListCount(StaticFunctionTag* base, BSFixedString name, BSFixedString key);
+	template <typename T> UInt32 ListCountValue(StaticFunctionTag* base, BSFixedString name, BSFixedString key, T value, bool exclude);
 	template <typename T> SInt32 ListFind(StaticFunctionTag* base, BSFixedString name, BSFixedString key, T value);
 	template <typename T> bool ListHas(StaticFunctionTag* base, BSFixedString name, BSFixedString key, T value);
 	template <typename T> SInt32 ListResize(StaticFunctionTag* base, BSFixedString name, BSFixedString key, UInt32 length, T filler);
 	template <typename T> void ListSlice(StaticFunctionTag* base, BSFixedString name, BSFixedString key, VMArray<T> Output, UInt32 startIndex);
 	template <typename T> bool ListCopy(StaticFunctionTag* base, BSFixedString name, BSFixedString key, VMArray<T> Input);
+	template <typename T> VMResultArray<T> ToArray(StaticFunctionTag* base, BSFixedString name, BSFixedString key);
+
 }

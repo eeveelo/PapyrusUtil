@@ -30,15 +30,15 @@ namespace Data {
 	template <> forl* GetLists<TESForm*, UInt32>() { if (!formLists) formLists = new forl(); return formLists; }
 
 	void InitLists() {
-		intValues = new intv();
-		floatValues = new flov();
+		intValues    = new intv();
+		floatValues  = new flov();
 		stringValues = new strv();
-		formValues = new forv();
+		formValues   = new forv();
 
-		intLists = new intl();
-		floatLists = new flol();
-		stringLists = new strl();
-		formLists = new forl();
+		intLists     = new intl();
+		floatLists   = new flol();
+		stringLists  = new strl();
+		formLists    = new forl();
 	}
 
 	/*
@@ -46,12 +46,11 @@ namespace Data {
 	*/
 
 	template <typename T, typename S>
-	T Values<T, S>::SetValue(UInt64 obj, std::string key, T value){
+	void Values<T, S>::SetValue(UInt64 obj, std::string key, T value){
 		s_dataLock.Enter();
 		boost::to_lower(key);
 		Data[obj][key] = cast(value);
 		s_dataLock.Leave();
-		return value;
 	}
 
 	template <typename T, typename S>
@@ -96,8 +95,8 @@ namespace Data {
 			if (itr2 != itr->second.end()){
 				unset = true;
 				itr->second.erase(itr2);
-				if (itr->second.size() == 0)
-					Data.erase(itr);
+				//if (itr->second.size() == 0)
+				//	Data.erase(itr);
 			}
 		}
 		s_dataLock.Leave();
@@ -187,7 +186,7 @@ namespace Data {
 	}
 	template <> BSFixedString Lists<BSFixedString, std::string>::ListAdjust(UInt64 obj, std::string key, UInt32 index, BSFixedString value){ return value; }
 	template <> TESForm* Lists<TESForm*, UInt32>::ListAdjust(UInt64 obj, std::string key, UInt32 index, TESForm* value){ return value; }
-	
+
 	template <typename T, typename S>
 	int Lists<T, S>::ListRemove(UInt64 obj, std::string key, T value, bool allInstances){
 		int removed = 0;
@@ -207,11 +206,11 @@ namespace Data {
 			}
 			removed = count - vector->size();
 			// Cleanup
-			if (vector->size() == 0) {
+			/*if (vector->size() == 0) {
 				Data[obj].erase(key);
 				if (Data[obj].size() == 0)
 					Data.erase(obj);
-			}
+			}*/
 		}
 
 		s_dataLock.Leave();
@@ -254,11 +253,11 @@ namespace Data {
 			vector->erase(vector->begin() + index);
 			removed = true;
 			// Cleanup
-			if (vector->size() == 0) {
+			/*if (vector->size() == 0) {
 				Data[obj].erase(key);
 				if (Data[obj].size() == 0)
 					Data.erase(obj);
-			}
+			}*/
 		}
 		s_dataLock.Leave();
 		return removed;
@@ -277,8 +276,8 @@ namespace Data {
 				removed = itr2->second.size();
 				itr->second.erase(itr2);
 				// Cleanup
-				if (itr->second.size() == 0)
-					Data.erase(itr);
+				//if (itr->second.size() == 0)
+				//	Data.erase(itr);
 			}
 		}
 		s_dataLock.Leave();
@@ -293,6 +292,24 @@ namespace Data {
 		List* vector = GetVector(obj, key);
 		if (vector != NULL)
 			count = vector->size();
+		s_dataLock.Leave();
+		return count;
+	}
+
+	template <typename T, typename S>
+	int Lists<T, S>::ListCountValue(UInt64 obj, std::string key, T value, bool exclude){
+		int count = 0;
+		s_dataLock.Enter();
+		boost::to_lower(key);
+		List* vector = GetVector(obj, key);
+		if (vector != NULL){
+			S var = cast(value);
+			for (List::iterator itr = vector->begin(); itr != vector->end(); ++itr){
+				if (var == *itr)
+					count += 1;
+			}
+			if (exclude) count = (vector->size() - count);
+		}
 		s_dataLock.Leave();
 		return count;
 	}
@@ -321,7 +338,7 @@ namespace Data {
 		s_dataLock.Leave();
 		return found;
 	}
-	
+
 
 	template <typename T, typename S>
 	void Lists<T, S>::ListSort(UInt64 obj, std::string key) {
@@ -332,7 +349,7 @@ namespace Data {
 			std::sort(vector->begin(), vector->end());
 		s_dataLock.Leave();
 	}
-	
+
 	template <typename T, typename S>
 	void Lists<T, S>::ListSlice(UInt64 obj, std::string key, VMArray<T> Output, UInt32 startIndex){
 		s_dataLock.Enter();
@@ -355,25 +372,9 @@ namespace Data {
 		if (length == 0)
 			return ListClear(obj, key) * -1;
 		s_dataLock.Enter();
-
-		int start = 0;
-		S value = cast(filler);
 		boost::to_lower(key);
-		List* vector = GetVector(obj, key);
-		if (vector != NULL) {
-			start = vector->size();
-			if (length < vector->size())
-				vector->resize(length);
-			else {
-				for (UInt32 i = 0; length > vector->size() && i < 500; ++i)
-					vector->push_back(value);
-			}
-		}
-		else {
-			for (UInt32 i = 0; length > Data[obj][key].size() && i < 500; ++i)
-				Data[obj][key].push_back(value);				
-		}
-
+		int start = Data[obj][key].size();
+		Data[obj][key].resize(length, cast(filler));
 		s_dataLock.Leave();
 		return Data[obj][key].size() - start;
 	}
@@ -387,6 +388,7 @@ namespace Data {
 		List* vector = GetVector(obj, key);
 		if (vector != NULL)
 			vector->clear();
+		Data[obj][key].reserve(Input.Length());
 		for (UInt32 i = 0; i < Input.Length(); ++i) {
 			T var;
 			Input.Get(&var, i);
@@ -395,6 +397,23 @@ namespace Data {
 		}
 		s_dataLock.Leave();
 		return true;
+	}
+
+	template <typename T, typename S>
+	VMResultArray<T> Lists<T, S>::ToArray(UInt64 obj, std::string key){
+		VMResultArray<T> arr;
+		s_dataLock.Enter();
+		boost::to_lower(key);
+		List* vector = GetVector(obj, key);
+		if (vector != NULL){
+			arr.reserve(vector->size());
+			for (List::iterator itr = vector->begin(); itr != vector->end(); ++itr){
+				T var = cast(*itr);
+				arr.push_back(var);
+			}
+		}
+		s_dataLock.Leave();
+		return arr;
 	}
 
 	// Special case for strings
@@ -440,15 +459,32 @@ namespace Data {
 			}
 			removed = count - vector->size();
 			// Cleanup
-			if (vector->size() == 0) {
+			/*if (vector->size() == 0) {
 				Data[obj].erase(key);
 				if (Data[obj].size() == 0)
 					Data.erase(obj);
-			}
+			}*/
 		}
 
 		s_dataLock.Leave();
 		return removed;
+	}
+
+	template <> int Lists<BSFixedString, std::string>::ListCountValue(UInt64 obj, std::string key, BSFixedString value, bool exclude){
+		int count = 0;
+		s_dataLock.Enter();
+		boost::to_lower(key);
+		List* vector = GetVector(obj, key);
+		if (vector != NULL){
+			std::string var = value.data;
+			for (List::iterator itr = vector->begin(); itr != vector->end(); ++itr){
+				if (boost::iequals(var, *itr))
+					count += 1;
+			}
+			if (exclude) count = (vector->size() - count);
+		}
+		s_dataLock.Leave();
+		return count;
 	}
 
 	/*
@@ -459,13 +495,17 @@ namespace Data {
 	void Values<T, S>::RemoveForm(UInt64 &obj) {
 		s_dataLock.Enter();
 		Map::iterator itr = Data.find(obj);
-		if (itr != Data.end())
+		if (itr != Data.end()){
+			UInt32 type = (UInt32)(obj >> 32);
+			UInt32 id = (UInt32)(obj);
+			_MESSAGE("Found handle[%llu] with id: %lu", obj, id);
 			Data.erase(itr);
+		}
 		s_dataLock.Leave();
 	}
 
 	template <typename T, typename S>
-	void Lists<T, S>::RemoveForm(UInt64 &obj) {
+	void Lists<T, S>::RemoveForm(UInt64 obj) {
 		s_dataLock.Enter();
 		Map::iterator itr = Data.find(obj);
 		if (itr != Data.end())
@@ -490,7 +530,7 @@ namespace Data {
 		s_dataLock.Leave();
 		return removed;
 	}
-	
+
 	template <typename T, typename S>
 	int Lists<T, S>::Cleanup() {
 		int removed = 0;
@@ -556,6 +596,7 @@ namespace Data {
 		if (count < 1)
 			return;
 		s_dataLock.Enter();
+		Data.reserve(count);
 
 		for (int i = 0; i < count; i++) {
 			UInt64 objKey;
@@ -565,11 +606,11 @@ namespace Data {
 
 			// Check if objKey still exists and prevent it falling into global 0 key
 			if (objKey != 0) {
-				objKey = Forms::GetNewKey(objKey);
-				TESForm *ObjRef = Forms::GetFormKey(objKey);
-				if (ObjRef == NULL) {
+				TESForm *ObjRef = Forms::ResolveFormKey(objKey);
+				objKey = Forms::GetFormKey(ObjRef);
+				if (ObjRef == NULL || objKey == 0) {
 					// Object no longer exists - don't load it's content
-					_MESSAGE("-- Discarding Empty Form");
+					_MESSAGE("\tDiscarding Empty Form");
 					for (int n = 0; n < count2; n++) {
 						std::string key;
 						S value;
@@ -582,12 +623,13 @@ namespace Data {
 			}
 
 			// Valid object or global key
+			Data[objKey].reserve(count2);
 			for (int n = 0; n < count2; n++) {
 				// Key
 				std::string key;
 				ss >> key;
 				DecodeValue(key);
-				boost::to_lower(key);
+				//boost::to_lower(key);
 				// Value
 				S value;
 				ss >> value;
@@ -595,6 +637,11 @@ namespace Data {
 				// Save to data store
 				Data[objKey][key] = value;
 			}
+		}
+		Data.shrink_to_fit();
+		if (count != Data.size()){
+			int size = Data.size();
+			_MESSAGE("\tData Shrink: %d -> %d", count, size);
 		}
 		s_dataLock.Leave();
 	}
@@ -606,6 +653,7 @@ namespace Data {
 		if (count < 1)
 			return;
 		s_dataLock.Enter();
+		Data.reserve(count);
 		for (int i = 0; i < count; ++i) {
 			UInt64 objKey;
 			ss >> objKey;
@@ -614,18 +662,16 @@ namespace Data {
 
 			// Check if objKey still exists and prevent it falling into global 0 key
 			if (objKey != 0) {
-				objKey = Forms::GetNewKey(objKey);
-				TESForm *ObjRef = Forms::GetFormKey(objKey);
-
-				if (ObjRef == NULL) {
+				TESForm *ObjRef = Forms::ResolveFormKey(objKey);
+				objKey = Forms::GetFormKey(ObjRef);
+				if (ObjRef == NULL || objKey == 0) {
 					// Object no longer exists - don't load it's content
-					_MESSAGE("-- Discarding Empty Form");
+					_MESSAGE("\tDiscarding Empty Form");
 					for (int n = 0; n < count2; ++n) {
 						std::string key;
 						int count3;
 						ss >> key;
 						ss >> count3;
-						_MESSAGE("---- Key: %s", key.c_str());
 						for (int k = 0; k < count3; ++k){
 							S value;
 							ss >> value;
@@ -636,6 +682,7 @@ namespace Data {
 			}
 
 			// Valid object or global key
+			Data[objKey].reserve(count2);
 			for (int n = 0; n < count2; ++n) {
 				// Key
 				std::string key;
@@ -645,6 +692,7 @@ namespace Data {
 				// Vector
 				int count3;
 				ss >> count3;
+				Data[objKey][key].reserve(count3);
 				for (int k = 0; k < count3; ++k){
 					S value;
 					ss >> value;
@@ -654,11 +702,17 @@ namespace Data {
 
 			}
 		}
+		Data.shrink_to_fit();
+		if (count != Data.size()){
+			int size = Data.size();
+			_MESSAGE("\t--Data Shrink: %d -> %d", count, size);
+		}
 		s_dataLock.Leave();
 	}
 
 	template <typename T, typename S>
 	void Values<T, S>::SaveStream(std::stringstream &ss) {
+		if (Data.size() == 0) return;
 		s_dataLock.Enter();
 		ss << (int)Data.size();
 		for (Map::iterator i = Data.begin(); i != Data.end(); ++i) {
@@ -680,6 +734,7 @@ namespace Data {
 
 	template <typename T, typename S>
 	void Lists<T, S>::SaveStream(std::stringstream &ss) {
+		if (Data.size() == 0) return;
 		s_dataLock.Enter();
 		ss << (int)Data.size();
 			for (Map::iterator i = Data.begin(); i != Data.end(); ++i) {
@@ -702,7 +757,7 @@ namespace Data {
 		s_dataLock.Leave();
 	}
 
-	
+
 	template <typename T, typename S>
 	void Values<T, S>::Revert(){
 		s_dataLock.Enter();

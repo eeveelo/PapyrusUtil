@@ -1,6 +1,7 @@
 #pragma once
 
 #include <sstream>
+#include <string>
 #include <vector>
 #include <boost/container/flat_map.hpp>
 
@@ -47,7 +48,7 @@ namespace Data
 		typedef boost::container::flat_map<UInt64, Obj> Map;
 		Map Data;
 
-		T SetValue(UInt64 obj, std::string key, T value);
+		void SetValue(UInt64 obj, std::string key, T value);
 		T GetValue(UInt64 obj, std::string key, T value);
 		T AdjustValue(UInt64 obj, std::string key, T value);
 		bool UnsetValue(UInt64 obj, std::string key);
@@ -86,12 +87,14 @@ namespace Data
 		bool ListRemoveAt(UInt64 obj, std::string key, UInt32 index);
 		int ListClear(UInt64 obj, std::string key);
 		int ListCount(UInt64 obj, std::string key);
+		int ListCountValue(UInt64 obj, std::string key, T value, bool exclude);
 		int ListFind(UInt64 obj, std::string key, T value);
 		bool ListHas(UInt64 obj, std::string key, T value);
 		void ListSort(UInt64 obj, std::string key);
 		void ListSlice(UInt64 obj, std::string key, VMArray<T> Output, UInt32 startIndex);
 		int ListResize(UInt64 obj, std::string key, UInt32 length, T filler);
 		bool ListCopy(UInt64 obj, std::string key, VMArray<T> Input);
+		VMResultArray<T> ToArray(UInt64 obj, std::string key);
 
 		List* GetVector(UInt64 &obj, std::string &key){
 			Map::iterator itr = Data.find(obj);
@@ -113,7 +116,7 @@ namespace Data
 		inline int GetKeyCount(UInt64 obj) { return Data.find(obj) != Data.end() ? Data[obj].size() : 0; }
 		TESForm* GetNthObj(UInt32 i);
 		std::string GetNthKey(UInt64 obj, UInt32 i);
-		void RemoveForm(UInt64 &obj);
+		void RemoveForm(UInt64 obj);
 		int Cleanup();
 	};
 

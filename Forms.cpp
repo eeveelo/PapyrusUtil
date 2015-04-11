@@ -11,7 +11,7 @@ namespace Forms {
 	static UInt8 s_numSavefileMods = 0;
 
 	void LoadModList(SKSESerializationInterface * intfc) {
-		_MESSAGE("Loading mod list:");
+		_MESSAGE("Loading mod list...");
 
 		DataHandler *Data = DataHandler::GetSingleton();
 		char name[0x104] = { 0 };
@@ -27,39 +27,26 @@ namespace Forms {
 			UInt8 newIndex = Data->GetModIndex(name);
 			s_savefileIndexMap[i] = newIndex;
 
-			_MESSAGE("\t(%d -> %d)\t%s", i, newIndex, &name);
+			if (i != newIndex)
+				_MESSAGE("\t(%d -> %d)\t%s", i, newIndex, &name);
 		}
-
 	}
 
 	void SaveModList(SKSESerializationInterface * intfc) {
+		_MESSAGE("Saving mod list...");
+
 		DataHandler *Data = DataHandler::GetSingleton();
 		UInt8 modCount = Data->modList.loadedModCount;
 
 		intfc->OpenRecord('MODS', 0);
 		intfc->WriteRecordData(&modCount, sizeof(modCount));
-
-		_MESSAGE("Saving mod list:");
-
 		for (UInt32 i = 0; i < modCount; i++) {
 			ModInfo * modInfo = Data->modList.loadedMods[i];
 			UInt16 nameLen = strlen(modInfo->name);
 			intfc->WriteRecordData(&nameLen, sizeof(nameLen));
 			intfc->WriteRecordData(modInfo->name, nameLen);
-			_MESSAGE("\t(%d)\t%s", i, &modInfo->name);
+			//_MESSAGE("\t(%d)\t%s", i, &modInfo->name);
 		}
-	}
-
-	inline UInt8 ResolveModIndex(UInt8 modIndex) { return (modIndex < s_numSavefileMods) ? s_savefileIndexMap[modIndex] : 0xFF; }
-	//inline UInt8 ResolveModIndex(UInt32 formID) { return ResolveModIndex((UInt8)(formID >> 24)); }
-	
-	UInt32 ResolveFormID(UInt32 formID) {
-		if (formID == 0) return 0;
-		UInt32 baseID = formID & 0x00FFFFFF;
-		UInt8 oldMod = (UInt8)(formID >> 24);
-		UInt8 newMod = ResolveModIndex(oldMod);
-		if (newMod < 0 || newMod > 0xFF || (oldMod != 0xFF && newMod == 0xFF)) return 0;
-		else return (((UInt32)newMod) << 24) | baseID;
 	}
 
 	void LoadPreviousMods(std::stringstream &ss) {
@@ -81,6 +68,27 @@ namespace Forms {
 		}
 	}
 
+
+	inline UInt8 ResolveModIndex(UInt8 modIndex) { return (modIndex < s_numSavefileMods) ? s_savefileIndexMap[modIndex] : 0xFF; }
+	//inline UInt8 ResolveModIndex(UInt32 formID) { return ResolveModIndex((UInt8)(formID >> 24)); }
+	
+	UInt32 ResolveFormID(UInt32 formID) {
+		if (formID == 0) return 0;
+		UInt32 baseID = formID & 0x00FFFFFF;
+		UInt8 oldMod = (UInt8)(formID >> 24);
+		UInt8 newMod = ResolveModIndex(oldMod);
+		if (newMod < 0 || newMod > 0xFF || (oldMod != 0xFF && newMod == 0xFF)) return 0;
+		else return (((UInt32)newMod) << 24) | baseID;
+	}
+
+	TESForm* ResolveFormKey(UInt64 key){
+		if (key < 1) return NULL;
+		UInt32 type = (UInt32)(key >> 32);
+		UInt32 id = ResolveFormID((UInt32)(key));
+		TESForm* form = id <= 0 ? NULL : LookupFormByID(id);
+		return form ? (type == form->formType ? form : NULL) : NULL;
+	}
+	
 	// Other
 	int GameGetForm(int formId) {
 		if (formId == 0) return formId;

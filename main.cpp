@@ -37,7 +37,7 @@ extern "C" {
 			return false;
 		}
 
-		// get the serialization interface and query its version
+		// Get the serialization interface and query its version
 		g_serialization = (SKSESerializationInterface *)skse->QueryInterface(kInterface_Serialization);
 		if(!g_serialization) {
 			_MESSAGE("couldn't get serialization interface");
@@ -71,6 +71,7 @@ extern "C" {
 		g_serialization->SetSaveCallback(g_pluginHandle, Data::Serialization_Save);
 		g_serialization->SetLoadCallback(g_pluginHandle, Data::Serialization_Load);
 		g_serialization->SetRevertCallback(g_pluginHandle, Data::Serialization_Revert);
+		//g_serialization->SetFormDeleteCallback(g_pluginHandle, Data::FormDelete);
 
 		g_papyrus->Register(Plugin::RegisterFuncs);
 
