@@ -144,6 +144,9 @@
     <ClCompile Include="PackageData.cpp">
       <Filter>lib</Filter>
     </ClCompile>
+    <ClCompile Include="..\skse\GameBSExtraData.cpp">
+      <Filter>skse\api</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\skse\NiExtraData.h">

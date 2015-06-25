@@ -1,9 +1,11 @@
 #pragma once
 
 #include <sstream>
+#include <algorithm>
 #include <string>
 #include <vector>
 #include <boost/container/flat_map.hpp>
+//#include <boost/algorithm/string/replace.hpp>
 
 #include "common/ICriticalSection.h"
 
@@ -28,11 +30,29 @@ namespace Data
 	void InitLists();
 
 	template <typename S> inline void EncodeValue(S &v) {}
-	inline void EncodeValue(std::string &v){ if (v.empty()) v += (char)0x1B; else std::replace(v.begin(), v.end(), ' ', (char)0x7); }
+	inline void EncodeValue(std::string &v) {
+		if (v.empty()) v += (char)0x1B;
+		else std::replace(
+			v.begin(),
+			v.end(),
+			(char)' ',
+			(char)0x7
+		);
+	}
+	//inline void EncodeValue(std::string &v) { if (v.empty()) v = (char)0x1B; else boost::replace_all(v, ' ', (char)0x7); }
 
 	template <typename S> inline void DecodeValue(S &v) {}
 	inline void DecodeValue(UInt32 &v){ v = Forms::ResolveFormID(v); }
-	inline void DecodeValue(std::string &v){ if (v.size() == 1 && v[0] == (char)0x1B) v.clear(); else std::replace(v.begin(), v.end(), (char)0x7, ' '); }
+	inline void DecodeValue(std::string &v) {
+		if (v.size() == 1 && v[0] == (char)0x1B) v.clear();
+		else std::replace(
+			v.begin(),
+			v.end(),
+			(char)0x7,
+			(char)' '
+		);
+	}
+	//inline void DecodeValue(std::string &v) { if (v.size() == 1 && v[0] == (char)0x1B) v.clear(); else boost::replace_all(v, (char)0x7, ' '); }
 
 
 	/*

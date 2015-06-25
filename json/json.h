@@ -88,10 +88,10 @@ license you like.
 #ifndef JSON_VERSION_H_INCLUDED
 # define JSON_VERSION_H_INCLUDED
 
-# define JSONCPP_VERSION_STRING "1.10.0"
+# define JSONCPP_VERSION_STRING "1.6.2"
 # define JSONCPP_VERSION_MAJOR 1
-# define JSONCPP_VERSION_MINOR 10
-# define JSONCPP_VERSION_PATCH 0
+# define JSONCPP_VERSION_MINOR 6
+# define JSONCPP_VERSION_PATCH 2
 # define JSONCPP_VERSION_QUALIFIER
 # define JSONCPP_VERSION_HEXA ((JSONCPP_VERSION_MAJOR << 24) | (JSONCPP_VERSION_MINOR << 16) | (JSONCPP_VERSION_PATCH << 8))
 
@@ -330,6 +330,12 @@ public:
   /// \c true if root must be either an array or an object value. Default: \c
   /// false.
   bool strictRoot_;
+
+  /// \c true if dropped null placeholders are allowed. Default: \c false.
+  bool allowDroppedNullPlaceholders_;
+
+  /// \c true if numeric object key are allowed. Default: \c false.
+  bool allowNumericKeys_;
 };
 
 } // namespace Json
@@ -511,11 +517,8 @@ public:
   typedef Json::LargestUInt LargestUInt;
   typedef Json::ArrayIndex ArrayIndex;
 
-  static const Value& nullRef;
-#if !defined(__ARMEL__)
-  /// \deprecated This exists for binary compatibility only. Use nullRef.
-  static const Value null;
-#endif
+  static const Value& null;  ///< We regret this reference to a global instance; prefer the simpler Value().
+  static const Value& nullRef;  ///< just a kludge for binary-compatibility; same as null
   /// Minimum signed integer value that can be stored in a Json::Value.
   static const LargestInt minLargestInt;
   /// Maximum signed integer value that can be stored in a Json::Value.
@@ -637,7 +640,7 @@ Json::Value obj_value(Json::objectValue); // {}
 
   /// Deep copy, then swap(other).
   /// \note Over-write existing comments. To preserve comments, use #swapPayload().
-  Value &operator=(const Value &other);
+  Value& operator=(Value other);
   /// Swap everything.
   void swap(Value& other);
   /// Swap values but leave comments and source offsets in place.
@@ -884,6 +887,13 @@ Json::Value obj_value(Json::objectValue); // {}
   iterator begin();
   iterator end();
 
+  // Accessors for the [start, limit) range of bytes within the JSON text from
+  // which this value was parsed, if any.
+  void setOffsetStart(size_t start);
+  void setOffsetLimit(size_t limit);
+  size_t getOffsetStart() const;
+  size_t getOffsetLimit() const;
+
 private:
   void initBasic(ValueType type, bool allocated = false);
 
@@ -920,6 +930,11 @@ private:
   unsigned int allocated_ : 1; // Notes: if declared as bool, bitfield is useless.
                                // If not allocated_, string_ must be null-terminated.
   CommentInfo* comments_;
+
+  // [start, limit) byte offsets in the source JSON text from which this Value
+  // was extracted.
+  size_t start_;
+  size_t limit_;
 };
 
 /** \brief Experimental and untested: represents an element of the "path" to
@@ -1214,6 +1229,18 @@ public:
   typedef char Char;
   typedef const Char* Location;
 
+  /** \brief An error tagged with where in the JSON text it was encountered.
+   *
+   * The offsets give the [start, limit) range of bytes within the text. Note
+   * that this is bytes, not codepoints.
+   *
+   */
+  struct StructuredError {
+    size_t offset_start;
+    size_t offset_limit;
+    std::string message;
+  };
+
   /** \brief Constructs a Reader allowing all features
    * for parsing.
    */
@@ -1289,6 +1316,38 @@ public:
    *         during parsing.
    */
   std::string getFormattedErrorMessages() const;
+
+  /** \brief Returns a vector of structured erros encounted while parsing.
+   * \return A (possibly empty) vector of StructuredError objects. Currently
+   *         only one error can be returned, but the caller should tolerate
+   * multiple
+   *         errors.  This can occur if the parser recovers from a non-fatal
+   *         parse error and then encounters additional errors.
+   */
+  std::vector<StructuredError> getStructuredErrors() const;
+
+  /** \brief Add a semantic error message.
+   * \param value JSON Value location associated with the error
+   * \param message The error message.
+   * \return \c true if the error was successfully added, \c false if the
+   * Value offset exceeds the document size.
+   */
+  bool pushError(const Value& value, const std::string& message);
+
+  /** \brief Add a semantic error message with extra context.
+   * \param value JSON Value location associated with the error
+   * \param message The error message.
+   * \param extra Additional JSON Value location to contextualize the error
+   * \return \c true if the error was successfully added, \c false if either
+   * Value offset exceeds the document size.
+   */
+  bool pushError(const Value& value, const std::string& message, const Value& extra);
+
+  /** \brief Return whether there are any errors.
+   * \return \c true if there are no errors to report \c false if
+   * errors have occurred.
+   */
+  bool good() const;
 
 private:
   enum TokenType {
@@ -1405,6 +1464,7 @@ public:
 
   class Factory {
   public:
+    virtual ~Factory() {}
     /** \brief Allocate a CharReader via operator new().
      * \throw std::exception if something goes wrong (e.g. invalid settings)
      */
@@ -1707,6 +1767,15 @@ public:
 
   void enableYAMLCompatibility();
 
+  /** \brief Drop the "null" string from the writer's output for nullValues.
+   * Strictly speaking, this is not valid JSON. But when the output is being
+   * fed to a browser's Javascript, it makes for smaller output and the
+   * browser can handle the output just fine.
+   */
+  void dropNullPlaceholders();
+
+  void omitEndingLineFeed();
+
 public: // overridden from Writer
   virtual std::string write(const Value& root);
 
@@ -1715,6 +1784,8 @@ private:
 
   std::string document_;
   bool yamlCompatiblityEnabled_;
+  bool dropNullPlaceholders_;
+  bool omitEndingLineFeed_;
 };
 
 /** \brief Writes a Value in <a HREF="http://www.json.org">JSON</a> format in a

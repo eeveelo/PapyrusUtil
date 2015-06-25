@@ -4,6 +4,7 @@
 #include "skse/GameForms.h"
 
 #include <boost/algorithm/string.hpp>
+#include <string>
 
 namespace Data {
 
