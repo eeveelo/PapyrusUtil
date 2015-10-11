@@ -28,7 +28,6 @@ namespace ActorUtil {
 		PackageData::Packages* Overrides = PackageData::GetPackages();
 		return Overrides ? Overrides->ClearPackage(PackageRef) : 0;
 	}
-
 }
 
 #include "skse/PapyrusNativeFunctions.h"
@@ -48,4 +47,6 @@ void ActorUtil::RegisterFuncs(VMClassRegistry* registry) {
 
 	registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, UInt32, TESPackage*>("RemoveAllPackageOverride", "ActorUtil", ClearPackage, registry));
 	registry->SetFunctionFlags("ActorUtil", "RemoveAllPackageOverride", VMClassRegistry::kFunctionFlag_NoWait);
+
+
 }

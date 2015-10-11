@@ -1,6 +1,7 @@
 #include "JsonUtil.h"
 
 #include <string>
+#include <boost/filesystem.hpp>
 
 #include "skse/GameAPI.h"
 #include "skse/GameTypes.h"
@@ -198,6 +199,83 @@ namespace JsonUtil {
 		return arr;
 	}
 
+
+	template <typename T>
+	UInt32 CountValuePrefix(StaticFunctionTag* base, BSFixedString name, BSFixedString prefix) {
+		ExternalFile* File = GetFile(name.data);
+		if (!File || !IsValidKey(prefix)) return 0;
+		else return File->CountPrefix(Type<T>(), prefix.data);
+	}
+
+	template <typename T>
+	UInt32 CountListPrefix(StaticFunctionTag* base, BSFixedString name, BSFixedString prefix) {
+		ExternalFile* File = GetFile(name.data);
+		if (!File || !IsValidKey(prefix)) return 0;
+		else return File->CountPrefix(List<T>(), prefix.data);
+	}
+
+	UInt32 CountAllPrefix(StaticFunctionTag* base, BSFixedString name, BSFixedString prefix) {
+		ExternalFile* File = GetFile(name.data);
+		if (!File || !IsValidKey(prefix)) return 0;
+		int count = 0;
+		count += File->CountPrefix(Type<SInt32>(), prefix.data);
+		count += File->CountPrefix(Type<float>(), prefix.data);
+		count += File->CountPrefix(Type<BSFixedString>(), prefix.data);
+		count += File->CountPrefix(Type<TESForm*>(), prefix.data);
+		count += File->CountPrefix(List<SInt32>(), prefix.data);
+		count += File->CountPrefix(List<float>(), prefix.data);
+		count += File->CountPrefix(List<BSFixedString>(), prefix.data);
+		count += File->CountPrefix(List<TESForm*>(), prefix.data);
+		return count;
+	}
+
+	/*template <typename T>
+	UInt32 ClearValuePrefix(StaticFunctionTag* base, BSFixedString name, BSFixedString prefix) {
+		ExternalFile* File = GetFile(name.data);
+		if (!File || !IsValidKey(prefix)) return 0;
+		else return File->ClearPrefix(Type<T>(), prefix.data);
+	}
+
+	template <typename T>
+	UInt32 ClearListPrefix(StaticFunctionTag* base, BSFixedString name, BSFixedString prefix) {
+		ExternalFile* File = GetFile(name.data);
+		if (!File || !IsValidKey(prefix)) return 0;
+		else return File->ClearPrefix(List<T>(), prefix.data);
+	}
+
+	UInt32 ClearAllPrefix(StaticFunctionTag* base, BSFixedString name, BSFixedString prefix) {
+		ExternalFile* File = GetFile(name.data);
+		if (!File || !IsValidKey(prefix)) return 0;
+		int count = 0;
+		count += File->ClearPrefix(Type<SInt32>(), prefix.data);
+		count += File->ClearPrefix(Type<float>(), prefix.data);
+		count += File->ClearPrefix(Type<BSFixedString>(), prefix.data);
+		count += File->ClearPrefix(Type<TESForm*>(), prefix.data);
+		count += File->ClearPrefix(List<SInt32>(), prefix.data);
+		count += File->ClearPrefix(List<float>(), prefix.data);
+		count += File->ClearPrefix(List<BSFixedString>(), prefix.data);
+		count += File->ClearPrefix(List<TESForm*>(), prefix.data);
+		return count;
+	}*/
+
+	namespace fs = boost::filesystem;
+
+	VMResultArray<BSFixedString> JsonFilesInFolder(StaticFunctionTag* base, BSFixedString dirpath) {
+		VMResultArray<BSFixedString> arr;
+		if (dirpath.data && dirpath.data[0] != '\0') {
+			fs::path someDir(dirpath.data);
+			fs::directory_iterator end_iter;
+			if (fs::exists(someDir) && fs::is_directory(someDir)){
+				for (fs::directory_iterator dir_iter(someDir); dir_iter != end_iter; ++dir_iter){
+					if (fs::is_regular_file(dir_iter->status())) {
+						std::string file = dir_iter->path().generic_string();
+						arr.push_back(BSFixedString(file.c_str()));
+					}
+				}
+			}
+		}
+		return arr;
+	}
 
 } // JsonUtil
 
@@ -399,4 +477,38 @@ void JsonUtil::RegisterFuncs(VMClassRegistry* registry){
 	registry->SetFunctionFlags("JsonUtil", "FloatListToArray", VMClassRegistry::kFunctionFlag_NoWait);
 	registry->SetFunctionFlags("JsonUtil", "StringListToArray", VMClassRegistry::kFunctionFlag_NoWait);
 	registry->SetFunctionFlags("JsonUtil", "FormListToArray", VMClassRegistry::kFunctionFlag_NoWait);
+
+	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, UInt32, BSFixedString, BSFixedString>("CountIntValuePrefix", "JsonUtil", CountValuePrefix<SInt32>, registry));
+	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, UInt32, BSFixedString, BSFixedString>("CountFloatValuePrefix", "JsonUtil", CountValuePrefix<float>, registry));
+	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, UInt32, BSFixedString, BSFixedString>("CountStringValuePrefix", "JsonUtil", CountValuePrefix<BSFixedString>, registry));
+	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, UInt32, BSFixedString, BSFixedString>("CountFormValuePrefix", "JsonUtil", CountValuePrefix<TESForm*>, registry));
+	registry->SetFunctionFlags("JsonUtil", "CountIntValuePrefix", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("JsonUtil", "CountFloatValuePrefix", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("JsonUtil", "CountStringValuePrefix", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("JsonUtil", "CountFormValuePrefix", VMClassRegistry::kFunctionFlag_NoWait);
+
+	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, UInt32, BSFixedString, BSFixedString>("CountIntListPrefix", "JsonUtil", CountListPrefix<SInt32>, registry));
+	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, UInt32, BSFixedString, BSFixedString>("CountFloatListPrefix", "JsonUtil", CountListPrefix<float>, registry));
+	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, UInt32, BSFixedString, BSFixedString>("CountStringListPrefix", "JsonUtil", CountListPrefix<BSFixedString>, registry));
+	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, UInt32, BSFixedString, BSFixedString>("CountFormListPrefix", "JsonUtil", CountListPrefix<TESForm*>, registry));
+	registry->SetFunctionFlags("JsonUtil", "CountIntListPrefix", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("JsonUtil", "CountFloatListPrefix", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("JsonUtil", "CountStringListPrefix", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("JsonUtil", "CountFormListPrefix", VMClassRegistry::kFunctionFlag_NoWait);
+
+	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, UInt32, BSFixedString, BSFixedString>("CountAllPrefix", "JsonUtil", CountAllPrefix, registry));
+	registry->RegisterFunction(new NativeFunction1 <StaticFunctionTag, VMResultArray<BSFixedString>, BSFixedString>("JsonInFolder", "JsonUtil", JsonFilesInFolder, registry));
+
+	/*registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, UInt32, BSFixedString, BSFixedString>("ClearIntValuePrefix", "JsonUtil", ClearValuePrefix<SInt32>, registry));
+	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, UInt32, BSFixedString, BSFixedString>("ClearFloatValuePrefix", "JsonUtil", ClearValuePrefix<float>, registry));
+	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, UInt32, BSFixedString, BSFixedString>("ClearStringValuePrefix", "JsonUtil", ClearValuePrefix<BSFixedString>, registry));
+	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, UInt32, BSFixedString, BSFixedString>("ClearFormValuePrefix", "JsonUtil", ClearValuePrefix<TESForm*>, registry));
+
+	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, UInt32, BSFixedString, BSFixedString>("ClearIntListPrefix", "JsonUtil", ClearListPrefix<SInt32>, registry));
+	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, UInt32, BSFixedString, BSFixedString>("ClearFloatListPrefix", "JsonUtil", ClearListPrefix<float>, registry));
+	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, UInt32, BSFixedString, BSFixedString>("ClearStringListPrefix", "JsonUtil", ClearListPrefix<BSFixedString>, registry));
+	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, UInt32, BSFixedString, BSFixedString>("ClearFormListPrefix", "JsonUtil", ClearListPrefix<TESForm*>, registry));
+
+	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, UInt32, BSFixedString, BSFixedString>("ClearAllPrefix", "JsonUtil", ClearAllPrefix, registry));*/
+
 }

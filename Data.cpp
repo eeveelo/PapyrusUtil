@@ -9,16 +9,16 @@
 namespace Data {
 
 	// Flat obj=>key=>value storage
-	intv* intValues    = NULL;
-	flov* floatValues  = NULL;
+	intv* intValues = NULL;
+	flov* floatValues = NULL;
 	strv* stringValues = NULL;
-	forv* formValues   = NULL;
+	forv* formValues = NULL;
 
 	// Vector obj=>key=>vector[i] storage
-	intl* intLists     = NULL;
-	flol* floatLists   = NULL;
-	strl* stringLists  = NULL;
-	forl* formLists    = NULL;
+	intl* intLists = NULL;
+	flol* floatLists = NULL;
+	strl* stringLists = NULL;
+	forl* formLists = NULL;
 
 	template <> intv* GetValues<SInt32, SInt32>() { if (!intValues) intValues = new intv(); return intValues; }
 	template <> flov* GetValues<float, float>() { if (!floatValues) floatValues = new flov(); return floatValues; }
@@ -31,15 +31,15 @@ namespace Data {
 	template <> forl* GetLists<TESForm*, UInt32>() { if (!formLists) formLists = new forl(); return formLists; }
 
 	void InitLists() {
-		intValues    = new intv();
-		floatValues  = new flov();
-		stringValues = new strv();
-		formValues   = new forv();
+		if (intValues == NULL) intValues = new intv();
+		if (floatValues == NULL) floatValues = new flov();
+		if (stringValues == NULL) stringValues = new strv();
+		if (formValues == NULL) formValues = new forv();
 
-		intLists     = new intl();
-		floatLists   = new flol();
-		stringLists  = new strl();
-		formLists    = new forl();
+		if (intLists == NULL) intLists = new intl();
+		if (floatLists == NULL) floatLists = new flol();
+		if (stringLists == NULL) stringLists = new strl();
+		if (formLists == NULL) formLists = new forl();
 	}
 
 	/*
@@ -47,7 +47,7 @@ namespace Data {
 	*/
 
 	template <typename T, typename S>
-	void Values<T, S>::SetValue(UInt64 obj, std::string key, T value){
+	void Values<T, S>::SetValue(UInt64 obj, std::string key, T value) {
 		s_dataLock.Enter();
 		boost::to_lower(key);
 		Data[obj][key] = cast(value);
@@ -55,10 +55,10 @@ namespace Data {
 	}
 
 	template <typename T, typename S>
-	T Values<T, S>::GetValue(UInt64 obj, std::string key, T value){
+	T Values<T, S>::GetValue(UInt64 obj, std::string key, T value) {
 		s_dataLock.Enter();
 		Map::iterator itr = Data.find(obj);
-		if (itr != Data.end()){
+		if (itr != Data.end()) {
 			boost::to_lower(key);
 			Obj::iterator itr2 = itr->second.find(key);
 			if (itr2 != itr->second.end())
@@ -69,11 +69,11 @@ namespace Data {
 	}
 
 	template <typename T, typename S>
-	T Values<T, S>::AdjustValue(UInt64 obj, std::string key, T value){
+	T Values<T, S>::AdjustValue(UInt64 obj, std::string key, T value) {
 		s_dataLock.Enter();
 		boost::to_lower(key);
 		Map::iterator itr = Data.find(obj);
-		if (itr != Data.end()){
+		if (itr != Data.end()) {
 			Obj::iterator itr2 = itr->second.find(key);
 			if (itr2 != itr->second.end())
 				value = (value + cast(itr2->second));
@@ -82,22 +82,22 @@ namespace Data {
 		s_dataLock.Leave();
 		return value;
 	}
-	template <> BSFixedString Values<BSFixedString, std::string>::AdjustValue(UInt64 obj, std::string key, BSFixedString value){ return value; }
-	template <> TESForm* Values<TESForm*, UInt32>::AdjustValue(UInt64 obj, std::string key, TESForm* value){ return value; }
+	template <> BSFixedString Values<BSFixedString, std::string>::AdjustValue(UInt64 obj, std::string key, BSFixedString value) { return value; }
+	template <> TESForm* Values<TESForm*, UInt32>::AdjustValue(UInt64 obj, std::string key, TESForm* value) { return value; }
 
 	template <typename T, typename S>
-	bool Values<T, S>::UnsetValue(UInt64 obj, std::string key){
+	bool Values<T, S>::UnsetValue(UInt64 obj, std::string key) {
 		bool unset = false;
 		s_dataLock.Enter();
 		Map::iterator itr = Data.find(obj);
-		if (itr != Data.end()){
+		if (itr != Data.end()) {
 			boost::to_lower(key);
 			Obj::iterator itr2 = itr->second.find(key);
-			if (itr2 != itr->second.end()){
+			if (itr2 != itr->second.end()) {
 				unset = true;
 				itr->second.erase(itr2);
-				//if (itr->second.size() == 0)
-				//	Data.erase(itr);
+				if (itr->second.size() == 0)
+					Data.erase(itr);
 			}
 		}
 		s_dataLock.Leave();
@@ -105,12 +105,30 @@ namespace Data {
 	}
 
 	template <typename T, typename S>
-	bool Values<T, S>::HasValue(UInt64 obj, std::string key){
+	T Values<T, S>::PluckValue(UInt64 obj, std::string key, T value) {
+		s_dataLock.Enter();
+		Map::iterator itr = Data.find(obj);
+		if (itr != Data.end()) {
+			boost::to_lower(key);
+			Obj::iterator itr2 = itr->second.find(key);
+			if (itr2 != itr->second.end()) {
+				value = cast(itr2->second);
+				itr->second.erase(itr2);
+				if (itr->second.size() == 0)
+					Data.erase(itr);
+			}
+		}
+		s_dataLock.Leave();
+		return value;
+	}
+
+	template <typename T, typename S>
+	bool Values<T, S>::HasValue(UInt64 obj, std::string key) {
 		bool found = false;
 		s_dataLock.Enter();
 
 		Map::iterator itr = Data.find(obj);
-		if (itr != Data.end()){
+		if (itr != Data.end()) {
 			boost::to_lower(key);
 			found = itr->second.find(key) != itr->second.end();
 		}
@@ -120,7 +138,7 @@ namespace Data {
 	}
 
 	template <typename T, typename S>
-	int Lists<T, S>::ListAdd(UInt64 obj, std::string key, T value, bool allowDuplicate){
+	int Lists<T, S>::ListAdd(UInt64 obj, std::string key, T value, bool allowDuplicate) {
 		if (!allowDuplicate && ListHas(obj, key, value))
 			return -1;
 		s_dataLock.Enter();
@@ -149,16 +167,16 @@ namespace Data {
 
 
 	template <typename T, typename S>
-	T Lists<T, S>::ListSet(UInt64 obj, std::string key, UInt32 index, T value){
+	T Lists<T, S>::ListSet(UInt64 obj, std::string key, UInt32 index, T value) {
 		s_dataLock.Enter();
 
 		boost::to_lower(key);
 		List* vector = GetVector(obj, key);
 		if (vector != NULL && index >= 0 && index < vector->size())
 			vector->at(index) = cast(value);
-		else if (index == 0 && (vector == NULL || vector->size() == 0))
+		else if (index == 0 && (vector == NULL || vector->empty()))
 			Data[obj][key].push_back(cast(value));
-		else{
+		else {
 			S var = S();
 			value = cast(var);
 		}
@@ -168,16 +186,16 @@ namespace Data {
 	}
 
 	template <typename T, typename S>
-	T Lists<T, S>::ListAdjust(UInt64 obj, std::string key, UInt32 index, T value){
+	T Lists<T, S>::ListAdjust(UInt64 obj, std::string key, UInt32 index, T value) {
 		s_dataLock.Enter();
 
 		boost::to_lower(key);
 		List* vector = GetVector(obj, key);
-		if (vector != NULL && index >= 0 && index < vector->size()){
+		if (vector != NULL && index >= 0 && index < vector->size()) {
 			vector->at(index) += cast(value);
 			value = cast(vector->at(index));
 		}
-		else{
+		else {
 			S var = S();
 			value = cast(var);
 		}
@@ -185,17 +203,17 @@ namespace Data {
 		s_dataLock.Leave();
 		return value;
 	}
-	template <> BSFixedString Lists<BSFixedString, std::string>::ListAdjust(UInt64 obj, std::string key, UInt32 index, BSFixedString value){ return value; }
-	template <> TESForm* Lists<TESForm*, UInt32>::ListAdjust(UInt64 obj, std::string key, UInt32 index, TESForm* value){ return value; }
+	template <> BSFixedString Lists<BSFixedString, std::string>::ListAdjust(UInt64 obj, std::string key, UInt32 index, BSFixedString value) { return value; }
+	template <> TESForm* Lists<TESForm*, UInt32>::ListAdjust(UInt64 obj, std::string key, UInt32 index, TESForm* value) { return value; }
 
 	template <typename T, typename S>
-	int Lists<T, S>::ListRemove(UInt64 obj, std::string key, T value, bool allInstances){
+	int Lists<T, S>::ListRemove(UInt64 obj, std::string key, T value, bool allInstances) {
 		int removed = 0;
 		s_dataLock.Enter();
 
 		boost::to_lower(key);
 		List* vector = GetVector(obj, key);
-		if (vector != NULL){
+		if (vector != NULL) {
 			// Remove
 			int count = vector->size();
 			if (allInstances)
@@ -207,11 +225,11 @@ namespace Data {
 			}
 			removed = count - vector->size();
 			// Cleanup
-			/*if (vector->size() == 0) {
+			if (vector->empty()) {
 				Data[obj].erase(key);
 				if (Data[obj].size() == 0)
 					Data.erase(obj);
-			}*/
+			}
 		}
 
 		s_dataLock.Leave();
@@ -224,7 +242,7 @@ namespace Data {
 		s_dataLock.Enter();
 		boost::to_lower(key);
 		List* vector = GetVector(obj, key);
-		if (vector != NULL && vector->size() > 0 && index < vector->size()) {
+		if (vector != NULL && !vector->empty() && index < vector->size()) {
 			try {
 				List::iterator itr = vector->begin();
 				std::advance(itr, index);
@@ -232,11 +250,11 @@ namespace Data {
 				//vector->at(index) = value;
 				inserted = true;
 			}
-			catch (const std::out_of_range&){
+			catch (const std::out_of_range&) {
 				inserted = false;
 			}
 		}
-		else if (index == 0 && (vector == NULL || vector->size() == 0)){
+		else if (index == 0 && (vector == NULL || vector->empty())) {
 			Data[obj][key].push_back(cast(value));
 			inserted = true;
 		}
@@ -250,35 +268,14 @@ namespace Data {
 		s_dataLock.Enter();
 		boost::to_lower(key);
 		List* vector = GetVector(obj, key);
-		if (vector != NULL && vector->size() > 0 && index < vector->size()) {
+		if (vector != NULL && !vector->empty() && index < vector->size()) {
 			vector->erase(vector->begin() + index);
 			removed = true;
 			// Cleanup
-			/*if (vector->size() == 0) {
+			if (vector->empty()) {
 				Data[obj].erase(key);
 				if (Data[obj].size() == 0)
 					Data.erase(obj);
-			}*/
-		}
-		s_dataLock.Leave();
-		return removed;
-	}
-
-
-	template <typename T, typename S>
-	int Lists<T, S>::ListClear(UInt64 obj, std::string key){
-		int removed = 0;
-		s_dataLock.Enter();
-		Map::iterator itr = Data.find(obj);
-		if (itr != Data.end()){
-			boost::to_lower(key);
-			Obj::iterator itr2 = itr->second.find(key);
-			if (itr2 != itr->second.end()){
-				removed = itr2->second.size();
-				itr->second.erase(itr2);
-				// Cleanup
-				//if (itr->second.size() == 0)
-				//	Data.erase(itr);
 			}
 		}
 		s_dataLock.Leave();
@@ -286,7 +283,85 @@ namespace Data {
 	}
 
 	template <typename T, typename S>
-	int Lists<T, S>::ListCount(UInt64 obj, std::string key){
+	T Lists<T, S>::ListPluck(UInt64 obj, std::string key, UInt32 index, T value) {
+		s_dataLock.Enter();
+		boost::to_lower(key);
+		List* vector = GetVector(obj, key);
+		if (vector != NULL && !vector->empty() && index < vector->size()) {
+			value = cast(vector->at(index));
+			vector->erase(vector->begin() + index);
+			// Cleanup
+			if (vector->empty()) {
+				Data[obj].erase(key);
+				if (Data[obj].size() == 0)
+					Data.erase(obj);
+			}
+		}
+		s_dataLock.Leave();
+		return value;
+	}
+	template <typename T, typename S>
+	T Lists<T, S>::ListShift(UInt64 obj, std::string key) {
+		S value = S();
+		s_dataLock.Enter();
+		boost::to_lower(key);
+		List* vector = GetVector(obj, key);
+		if (vector != NULL && !vector->empty()) {
+			value = vector->at(0);
+			vector->erase(vector->begin());
+			// Cleanup
+			if (vector->empty()) {
+				Data[obj].erase(key);
+				if (Data[obj].size() == 0)
+					Data.erase(obj);
+			}
+		}
+		s_dataLock.Leave();
+		return cast(value);
+	}
+	template <typename T, typename S>
+	T Lists<T, S>::ListPop(UInt64 obj, std::string key) {
+		S value = S();
+		s_dataLock.Enter();
+		boost::to_lower(key);
+		List* vector = GetVector(obj, key);
+		if (vector != NULL && !vector->empty()) {
+			value = vector->at(vector->size() - 1);
+			vector->pop_back();
+			// Cleanup
+			if (vector->empty()) {
+				Data[obj].erase(key);
+				if (Data[obj].size() == 0)
+					Data.erase(obj);
+			}
+		}
+		s_dataLock.Leave();
+		return cast(value);
+	}
+
+
+	template <typename T, typename S>
+	int Lists<T, S>::ListClear(UInt64 obj, std::string key) {
+		int removed = 0;
+		s_dataLock.Enter();
+		Map::iterator itr = Data.find(obj);
+		if (itr != Data.end()) {
+			boost::to_lower(key);
+			Obj::iterator itr2 = itr->second.find(key);
+			if (itr2 != itr->second.end()) {
+				removed = itr2->second.size();
+				itr->second.erase(itr2);
+				// Cleanup
+				if (itr->second.size() == 0)
+					Data.erase(itr);
+			}
+		}
+		s_dataLock.Leave();
+		return removed;
+	}
+
+	template <typename T, typename S>
+	int Lists<T, S>::ListCount(UInt64 obj, std::string key) {
 		int count = 0;
 		s_dataLock.Enter();
 		boost::to_lower(key);
@@ -298,14 +373,14 @@ namespace Data {
 	}
 
 	template <typename T, typename S>
-	int Lists<T, S>::ListCountValue(UInt64 obj, std::string key, T value, bool exclude){
+	int Lists<T, S>::ListCountValue(UInt64 obj, std::string key, T value, bool exclude) {
 		int count = 0;
 		s_dataLock.Enter();
 		boost::to_lower(key);
 		List* vector = GetVector(obj, key);
-		if (vector != NULL){
+		if (vector != NULL) {
 			S var = cast(value);
-			for (List::iterator itr = vector->begin(); itr != vector->end(); ++itr){
+			for (List::iterator itr = vector->begin(); itr != vector->end(); ++itr) {
 				if (var == *itr)
 					count += 1;
 			}
@@ -316,12 +391,12 @@ namespace Data {
 	}
 
 	template <typename T, typename S>
-	int Lists<T, S>::ListFind(UInt64 obj, std::string key, T value){
+	int Lists<T, S>::ListFind(UInt64 obj, std::string key, T value) {
 		int index = -1;
 		s_dataLock.Enter();
 		boost::to_lower(key);
 		List* vector = GetVector(obj, key);
-		if (vector != NULL){
+		if (vector != NULL) {
 			List::iterator itr = std::find(vector->begin(), vector->end(), cast(value));
 			if (itr != vector->end()) index = itr - vector->begin();
 		}
@@ -330,7 +405,7 @@ namespace Data {
 	}
 
 	template <typename T, typename S>
-	bool Lists<T, S>::ListHas(UInt64 obj, std::string key, T value){
+	bool Lists<T, S>::ListHas(UInt64 obj, std::string key, T value) {
 		bool found = false;
 		s_dataLock.Enter();
 		boost::to_lower(key);
@@ -352,7 +427,7 @@ namespace Data {
 	}
 
 	template <typename T, typename S>
-	void Lists<T, S>::ListSlice(UInt64 obj, std::string key, VMArray<T> Output, UInt32 startIndex){
+	void Lists<T, S>::ListSlice(UInt64 obj, std::string key, VMArray<T> Output, UInt32 startIndex) {
 		s_dataLock.Enter();
 
 		boost::to_lower(key);
@@ -360,7 +435,8 @@ namespace Data {
 		if (vector != NULL && startIndex < vector->size() && startIndex >= 0) {
 			List::iterator itr = vector->begin();
 			std::advance(itr, startIndex);
-			for (UInt32 index = 0; index < Output.Length() && itr != vector->end(); ++itr, ++index){
+			UInt32 length(Output.Length());
+			for (UInt32 index = 0; index < length && itr != vector->end(); ++itr, ++index) {
 				T val = cast(*itr);
 				Output.Set(&val, index);
 			}
@@ -369,7 +445,7 @@ namespace Data {
 	}
 
 	template <typename T, typename S>
-	int Lists<T, S>::ListResize(UInt64 obj, std::string key, UInt32 length, T filler){
+	int Lists<T, S>::ListResize(UInt64 obj, std::string key, UInt32 length, T filler) {
 		if (length == 0)
 			return ListClear(obj, key) * -1;
 		s_dataLock.Enter();
@@ -382,15 +458,16 @@ namespace Data {
 
 	template <typename T, typename S>
 	bool Lists<T, S>::ListCopy(UInt64 obj, std::string key, VMArray<T> Input) {
-		if (Input.Length() < 1)
+		UInt32 length(Input.Length());
+		if (length < 1)
 			return false;
 		s_dataLock.Enter();
 		boost::to_lower(key);
 		List* vector = GetVector(obj, key);
 		if (vector != NULL)
 			vector->clear();
-		Data[obj][key].reserve(Input.Length());
-		for (UInt32 i = 0; i < Input.Length(); ++i) {
+		Data[obj][key].reserve(length);
+		for (UInt32 i = 0; i < length; ++i) {
 			T var;
 			Input.Get(&var, i);
 			S value = cast(var);
@@ -401,14 +478,14 @@ namespace Data {
 	}
 
 	template <typename T, typename S>
-	VMResultArray<T> Lists<T, S>::ToArray(UInt64 obj, std::string key){
+	VMResultArray<T> Lists<T, S>::ToArray(UInt64 obj, std::string key) {
 		VMResultArray<T> arr;
 		s_dataLock.Enter();
 		boost::to_lower(key);
 		List* vector = GetVector(obj, key);
-		if (vector != NULL){
+		if (vector != NULL) {
 			arr.reserve(vector->size());
-			for (List::iterator itr = vector->begin(); itr != vector->end(); ++itr){
+			for (List::iterator itr = vector->begin(); itr != vector->end(); ++itr) {
 				T var = cast(*itr);
 				arr.push_back(var);
 			}
@@ -417,15 +494,93 @@ namespace Data {
 		return arr;
 	}
 
+	template <typename T, typename S>
+	int Values<T, S>::CountPrefixKey(std::string prefix) {
+		int count = 0;
+		if (prefix.length() > 0) {
+			s_dataLock.Enter();
+			boost::to_lower(prefix);
+			for (Map::iterator itr = Data.begin(); itr != Data.end(); ++itr) {
+				Obj &ObjRef = itr->second;
+				for (Obj::iterator itr2 = ObjRef.begin(); itr2 != ObjRef.end(); ++itr2) {
+					if (boost::starts_with(std::string(itr2->first), prefix)) count++;
+				}
+			}
+			s_dataLock.Leave();
+		}
+		return count;
+	}
+
+	template <typename T, typename S>
+	int Lists<T, S>::CountPrefixKey(std::string prefix) {
+		int count = 0;
+		if (prefix.length() > 0) {
+			s_dataLock.Enter();
+			boost::to_lower(prefix);
+			for (Map::iterator itr = Data.begin(); itr != Data.end(); ++itr) {
+				Obj &ObjRef = itr->second;
+				for (Obj::iterator itr2 = ObjRef.begin(); itr2 != ObjRef.end(); ++itr2) {
+					if (boost::starts_with(std::string(itr2->first), prefix)) count++;
+				}
+			}
+			s_dataLock.Leave();
+		}
+		return count;
+	}
+
+	template <typename T, typename S>
+	int Values<T, S>::ClearPrefixKey(std::string prefix) {
+		int count  = 0;
+		if (prefix.length() > 0) {
+			s_dataLock.Enter();
+			boost::to_lower(prefix);
+			for (Map::iterator itr = Data.begin(); itr != Data.end(); ++itr) {
+				Obj &ObjRef = itr->second;
+				for (Obj::iterator itr2 = ObjRef.begin(); itr2 != ObjRef.end();) {
+					std::string key = itr2->first;
+					if (boost::starts_with(key, prefix)) {
+						itr2 = ObjRef.erase(itr2);
+						count++;
+					}
+					else ++itr2;
+				}
+			}
+			s_dataLock.Leave();
+		}
+		return count;
+	}
+
+	template <typename T, typename S>
+	int Lists<T, S>::ClearPrefixKey(std::string prefix) {
+		int count = 0;
+		if (prefix.length() > 0) {
+			s_dataLock.Enter();
+			boost::to_lower(prefix);
+			for (Map::iterator itr = Data.begin(); itr != Data.end(); ++itr) {
+				Obj &ObjRef = itr->second;
+				for (Obj::iterator itr2 = ObjRef.begin(); itr2 != ObjRef.end();) {
+					std::string key = itr2->first;
+					if (boost::starts_with(key, prefix)) {
+						itr2 = ObjRef.erase(itr2);
+						count++;
+					}
+					else ++itr2;
+				}
+			}
+			s_dataLock.Leave();
+		}
+		return count;
+	}
+
 	// Special case for strings
-	template <> int Lists<BSFixedString, std::string>::ListFind(UInt64 obj, std::string key, BSFixedString value){
+	template <> int Lists<BSFixedString, std::string>::ListFind(UInt64 obj, std::string key, BSFixedString value) {
 		int index = -1;
 		s_dataLock.Enter();
 		boost::to_lower(key);
 		List* vector = GetVector(obj, key);
-		if (vector != NULL){
+		if (vector != NULL) {
 			std::string var = value.data;
-			for (List::iterator itr = vector->begin(); itr != vector->end(); ++itr){
+			for (List::iterator itr = vector->begin(); itr != vector->end(); ++itr) {
 				if (boost::iequals(var, *itr)) {
 					index = itr - vector->begin();
 					break;
@@ -440,18 +595,18 @@ namespace Data {
 		return ListFind(obj, key, value) != -1;
 	}
 
-	template <> int Lists<BSFixedString, std::string>::ListRemove(UInt64 obj, std::string key, BSFixedString value, bool allInstances){
+	template <> int Lists<BSFixedString, std::string>::ListRemove(UInt64 obj, std::string key, BSFixedString value, bool allInstances) {
 		int removed = 0;
 		s_dataLock.Enter();
 
 		boost::to_lower(key);
 		List* vector = GetVector(obj, key);
-		if (vector != NULL){
+		if (vector != NULL) {
 			// Remove
 			int count = vector->size();
 			std::string var = value.data;
-			for (List::iterator itr = vector->begin(); itr != vector->end();){
-				if (boost::iequals(var, *itr)){
+			for (List::iterator itr = vector->begin(); itr != vector->end();) {
+				if (boost::iequals(var, *itr)) {
 					count++;
 					vector->erase(itr);
 					if (!allInstances) break;
@@ -460,25 +615,25 @@ namespace Data {
 			}
 			removed = count - vector->size();
 			// Cleanup
-			/*if (vector->size() == 0) {
+			if (vector->empty()) {
 				Data[obj].erase(key);
 				if (Data[obj].size() == 0)
 					Data.erase(obj);
-			}*/
+			}
 		}
 
 		s_dataLock.Leave();
 		return removed;
 	}
 
-	template <> int Lists<BSFixedString, std::string>::ListCountValue(UInt64 obj, std::string key, BSFixedString value, bool exclude){
+	template <> int Lists<BSFixedString, std::string>::ListCountValue(UInt64 obj, std::string key, BSFixedString value, bool exclude) {
 		int count = 0;
 		s_dataLock.Enter();
 		boost::to_lower(key);
 		List* vector = GetVector(obj, key);
-		if (vector != NULL){
+		if (vector != NULL) {
 			std::string var = value.data;
-			for (List::iterator itr = vector->begin(); itr != vector->end(); ++itr){
+			for (List::iterator itr = vector->begin(); itr != vector->end(); ++itr) {
 				if (boost::iequals(var, *itr))
 					count += 1;
 			}
@@ -496,7 +651,7 @@ namespace Data {
 	void Values<T, S>::RemoveForm(UInt64 &obj) {
 		s_dataLock.Enter();
 		Map::iterator itr = Data.find(obj);
-		if (itr != Data.end()){
+		if (itr != Data.end()) {
 			UInt32 type = (UInt32)(obj >> 32);
 			UInt32 id = (UInt32)(obj);
 			_MESSAGE("Found handle[%llu] with id: %lu", obj, id);
@@ -518,12 +673,13 @@ namespace Data {
 	int Values<T, S>::Cleanup() {
 		int removed = 0;
 		s_dataLock.Enter();
-		for (Map::iterator itr = Data.begin(); itr != Data.end();){
-			if (itr->first != 0){
+		for (Map::iterator itr = Data.begin(); itr != Data.end();) {
+			if (itr->first != 0) {
 				TESForm* ptr = (TESForm*)Forms::GameGetForm((UInt32)(itr->first & 0xFFFFFFFF));
-				if (!ptr || !Forms::IsValidObject(ptr, itr->first)) {
+				if (itr->second.empty() || !Forms::IsValidObject(ptr, itr->first)) {
 					itr = Data.erase(itr);
 					removed++;
+					continue;
 				}
 			}
 			itr++;
@@ -536,10 +692,10 @@ namespace Data {
 	int Lists<T, S>::Cleanup() {
 		int removed = 0;
 		s_dataLock.Enter();
-		for (Map::iterator itr = Data.begin(); itr != Data.end();){
-			if (itr->first != 0){
+		for (Map::iterator itr = Data.begin(); itr != Data.end();) {
+			if (itr->first != 0) {
 				TESForm* ptr = (TESForm*)Forms::GameGetForm((UInt32)(itr->first & 0xFFFFFFFF));
-				if (!ptr || !Forms::IsValidObject(ptr, itr->first)){
+				if (itr->second.empty() || !Forms::IsValidObject(ptr, itr->first)) {
 					itr = Data.erase(itr);
 					removed++;
 					continue;
@@ -570,7 +726,7 @@ namespace Data {
 	}
 
 	template <typename T, typename S>
-	std::string Values<T, S>::GetNthKey(UInt64 obj, UInt32 i){
+	const std::string Values<T, S>::GetNthKey(UInt64 obj, UInt32 i) {
 		if (Data.find(obj) == Data.end() || Data[obj].size() <= i)
 			return "";
 		Obj::iterator itr = Data[obj].begin();
@@ -579,13 +735,66 @@ namespace Data {
 	}
 
 	template <typename T, typename S>
-	std::string Lists<T, S>::GetNthKey(UInt64 obj, UInt32 i){
+	const std::string Lists<T, S>::GetNthKey(UInt64 obj, UInt32 i) {
 		if (Data.find(obj) == Data.end() || Data[obj].size() <= i)
 			return "";
 		Obj::iterator itr = Data[obj].begin();
 		std::advance(itr, i);
 		return itr != Data[obj].end() ? itr->first : "";
 	}
+
+	template <typename T, typename S>
+	VMResultArray<TESForm*> Values<T, S>::GetAllObj() {
+		VMResultArray<TESForm*> arr;
+		s_dataLock.Enter();
+		arr.reserve(Data.size());
+		for (Map::iterator itr = Data.begin(); itr != Data.end(); ++itr) {
+			TESForm* FormRef = LookupFormByID((UInt32)(itr->first & 0xFFFFFFFF));
+			arr.push_back(FormRef);
+		}
+		s_dataLock.Leave();
+		return arr;
+	}
+
+	template <typename T, typename S>
+	VMResultArray<TESForm*> Lists<T, S>::GetAllObj() {
+		VMResultArray<TESForm*> arr;
+		s_dataLock.Enter();
+		arr.reserve(Data.size());
+		for (Map::iterator itr = Data.begin(); itr != Data.end(); ++itr) {
+			TESForm* FormRef = LookupFormByID((UInt32)(itr->first & 0xFFFFFFFF));
+			arr.push_back(FormRef);
+		}
+		s_dataLock.Leave();
+		return arr;
+	}
+
+	template <typename T, typename S>
+	VMResultArray<BSFixedString> Values<T, S>::GetAllObjKeys(UInt64 obj) {
+		VMResultArray<BSFixedString> arr;
+		s_dataLock.Enter();
+		if (Data.size() > 0 && Data.find(obj) != Data.end()) {
+			for (Obj::iterator itr = Data[obj].begin(); itr != Data[obj].end(); ++itr) {
+				arr.push_back(BSFixedString(itr->first.c_str()));
+			}
+		}
+		s_dataLock.Leave();
+		return arr;
+	}
+
+	template <typename T, typename S>
+	VMResultArray<BSFixedString> Lists<T, S>::GetAllObjKeys(UInt64 obj) {
+		VMResultArray<BSFixedString> arr;
+		s_dataLock.Enter();
+		if (Data.size() > 0 && Data.find(obj) != Data.end()) {
+			for (Obj::iterator itr = Data[obj].begin(); itr != Data[obj].end(); ++itr) {
+				arr.push_back(BSFixedString(itr->first.c_str()));
+			}
+		}
+		s_dataLock.Leave();
+		return arr;
+	}
+
 
 
 
@@ -594,16 +803,16 @@ namespace Data {
 	void Values<T, S>::LoadStream(std::stringstream &ss){
 		int count;
 		ss >> count;
-		if (count < 1)
-			return;
+		//_MESSAGE("- count: %d", count);
+		if (count < 1) return;
 		s_dataLock.Enter();
 		Data.reserve(count);
-
 		for (int i = 0; i < count; i++) {
 			UInt64 objKey;
 			ss >> objKey;
 			int count2;
 			ss >> count2;
+			//_MESSAGE("\t - Object: %llu (%d)", objKey, count2);
 
 			// Check if objKey still exists and prevent it falling into global 0 key
 			if (objKey != 0) {
@@ -617,7 +826,7 @@ namespace Data {
 						S value;
 						ss >> key;
 						ss >> value;
-						// _MESSAGE("---- Key: %s", key.c_str());
+						//_MESSAGE("\t -- Key: %s", key.c_str());
 					}
 					continue;
 				}
@@ -630,6 +839,7 @@ namespace Data {
 				std::string key;
 				ss >> key;
 				DecodeValue(key);
+				//_MESSAGE("\t -- Key: %s", key.c_str());
 				//boost::to_lower(key);
 				// Value
 				S value;
@@ -651,8 +861,8 @@ namespace Data {
 	void Lists<T, S>::LoadStream(std::stringstream &ss){
 		int count;
 		ss >> count;
-		if (count < 1)
-			return;
+		//_MESSAGE("- count: %d", count);
+		if (count < 1) return;
 		s_dataLock.Enter();
 		Data.reserve(count);
 		for (int i = 0; i < count; ++i) {
@@ -660,6 +870,7 @@ namespace Data {
 			ss >> objKey;
 			int count2;
 			ss >> count2;
+			//_MESSAGE("\t - Object: %llu (%d)", objKey, count2);
 
 			// Check if objKey still exists and prevent it falling into global 0 key
 			if (objKey != 0) {
@@ -713,47 +924,67 @@ namespace Data {
 
 	template <typename T, typename S>
 	void Values<T, S>::SaveStream(std::stringstream &ss) {
-		if (Data.size() == 0) return;
+		//_MESSAGE("- count: %d", (int)Data.size());
+		if (Data.size() < 1) return;
 		s_dataLock.Enter();
 		ss << (int)Data.size();
 		for (Map::iterator i = Data.begin(); i != Data.end(); ++i) {
-			ss << ' ' << i->first;
-			ss << ' ' << (int)i->second.size();
-			for (Obj::iterator n = i->second.begin(); n != i->second.end(); ++n) {
-				// Key
-				std::string key = n->first;
-				EncodeValue(key);
-				ss << ' ' << key;
-				// Value
-				S val = n->second;
-				EncodeValue(val);
-				ss << ' ' << val;
+			int size = i->second.size();
+			if (size > 0) {
+				ss << ' ' << i->first;
+				ss << ' ' << size;
+				//_MESSAGE("\t - Object: %llu (%d)", i->first, size);
+				for (Obj::iterator n = i->second.begin(); n != i->second.end(); ++n) {
+					// Key
+					std::string key = n->first;
+					//_MESSAGE("\t -- Key: %s", key.c_str());
+					EncodeValue(key);
+					ss << ' ' << key;
+					// Value
+					S val = n->second;
+					EncodeValue(val);
+					ss << ' ' << val;
+				}
 			}
+			else {
+				_MESSAGE("\t Discaring empty: %llu", i->first);
+			}
+			
 		}
 		s_dataLock.Leave();
 	}
 
 	template <typename T, typename S>
 	void Lists<T, S>::SaveStream(std::stringstream &ss) {
-		if (Data.size() == 0) return;
+		//_MESSAGE("- count: %d", (int)Data.size());
+		if (Data.size() < 1) return;
 		s_dataLock.Enter();
 		ss << (int)Data.size();
 			for (Map::iterator i = Data.begin(); i != Data.end(); ++i) {
-				ss << ' ' << i->first;
-				ss << ' ' << (int)i->second.size();
-				for (Obj::iterator n = i->second.begin(); n != i->second.end(); ++n) {
-					// Key
-					std::string key = n->first;
-					EncodeValue(key);
-					ss << ' ' << key;
-					// Vector
-					ss << ' ' << (int)n->second.size();
-					for (List::iterator itr = n->second.begin(); itr != n->second.end(); ++itr) {
-						S value = *itr;
-						EncodeValue(value);
-						ss << ' ' << value;
+				int size = i->second.size();
+				if (size > 0) {
+					ss << ' ' << i->first;
+					ss << ' ' << size;
+					//_MESSAGE("\t - Object: %llu (%d)", i->first, size);
+					for (Obj::iterator n = i->second.begin(); n != i->second.end(); ++n) {
+						// Key
+						std::string key = n->first;
+						EncodeValue(key);
+						//_MESSAGE("\t -- %s", key.c_str());
+						ss << ' ' << key;
+						// Vector
+						ss << ' ' << (int)n->second.size();
+						for (List::iterator itr = n->second.begin(); itr != n->second.end(); ++itr) {
+							S value = *itr;
+							EncodeValue(value);
+							ss << ' ' << value;
+						}
 					}
 				}
+				else {
+					_MESSAGE("\t Discaring empty: %llu", i->first);
+				}
+				
 			}
 		s_dataLock.Leave();
 	}

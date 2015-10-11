@@ -5,6 +5,11 @@
 #include "skse/GameReferences.h"
 #include "skse/SafeWrite.h"
 
+#include "skse/GameRTTI.h"
+#include "skse/GameTypes.h"
+#include "skse/PapyrusArgs.h"
+
+
 #include "SafeRead.h"
 
 namespace MiscUtil {
@@ -75,6 +80,79 @@ namespace MiscUtil {
 		return ActorRef ? BSFixedString(ActorRef->race->editorId.data) : NULL;
 	}
 
+
+
+	inline bool HasKeyword(TESObjectREFR* ObjRef, BGSKeyword* findKeyword) {
+		BGSKeywordForm* keywords = DYNAMIC_CAST(ObjRef, TESForm, BGSKeywordForm);
+		if (keywords) return keywords->HasKeyword(findKeyword);
+		else return false;
+	}
+
+	bool IsWithinRadius(TESObjectREFR* CenterObj, TESObjectREFR* ObjRef, float distance) {
+		NiPoint3 &a = CenterObj->pos;
+		NiPoint3 &b = ObjRef->pos;
+		float tempx, tempy, tempz, tempd;
+		tempx = std::abs(a.x - b.x);
+		tempy = std::abs(a.y - b.y);
+		tempz = std::abs(a.z - b.z);
+		if (tempx + tempy + tempz < distance)
+			return true; // very small distances
+		if (tempx + tempy + tempz > distance / 2)
+			return false; // very large distances
+		tempx = tempx * tempx;
+		tempy = tempy * tempy;
+		tempz = tempz * tempz;
+		tempd = distance * distance;
+		if (tempx + tempy + tempz < tempd)
+			return true; // near but within distance
+		return false;
+	}
+
+	VMResultArray<Actor*> ScanCellActors(StaticFunctionTag* base, TESObjectREFR* CenterObj, float SearchRadius, BGSKeyword* FindKeyword) {
+		VMResultArray<Actor*> output;
+		if (CenterObj != NULL) {
+			_MESSAGE("Cell scanning from form: %lu", CenterObj->formID);
+			TESObjectCELL* Cell = CenterObj->parentCell;
+			if (Cell) {
+				tArray<TESObjectREFR*> objList = Cell->objectList;
+				UInt32 count = objList.count;
+				_MESSAGE("\tcell item count: %lu", count);
+				for (UInt32 idx = 0; idx < count; ++idx) {
+					TESObjectREFR* ObjRef = objList[idx];
+					Actor *ActorRef = ObjRef != NULL ? DYNAMIC_CAST(ObjRef, TESObjectREFR, Actor) : NULL;
+					if (ActorRef == NULL || ActorRef->IsDead(1)) continue;
+					else if (SearchRadius > 0.0f && !IsWithinRadius(CenterObj, ActorRef, SearchRadius)) continue;
+					else if (FindKeyword && !HasKeyword(ActorRef, FindKeyword)) continue;
+					else output.push_back(ActorRef);
+				}
+			}
+			_MESSAGE("Cell scanning found: %d", (int)output.size());
+		}
+		return output;
+	}
+
+	VMResultArray<TESObjectREFR*> ScanCellObjects(StaticFunctionTag* base, UInt32 FormType, TESObjectREFR* CenterObj, float SearchRadius, BGSKeyword* FindKeyword) {
+		VMResultArray<TESObjectREFR*> output;
+		if (CenterObj != NULL) {
+			_MESSAGE("Cell scanning from form: %lu", CenterObj->formID);
+			TESObjectCELL* Cell = CenterObj->parentCell;
+			if (Cell) {
+				tArray<TESObjectREFR*> objList = Cell->objectList;
+				UInt32 count = objList.count;
+				_MESSAGE("\tcell item count: %lu", count);
+				for (UInt32 idx = 0; idx < count; ++idx) {
+					TESObjectREFR* ObjRef = objList[idx];
+					if (ObjRef == NULL || ObjRef->baseForm->GetFormType() != FormType) continue;
+					else if (SearchRadius > 0.0f && !IsWithinRadius(CenterObj, ObjRef, SearchRadius)) continue;
+					else if (FindKeyword && !HasKeyword(ObjRef, FindKeyword)) continue;
+					else output.push_back(ObjRef);
+				}
+			}
+			_MESSAGE("Cell scanning found: %d", (int)output.size());
+		}
+		return output;
+	}
+
 } // MiscUtil
 
 
@@ -101,6 +179,11 @@ void MiscUtil::RegisterFuncs(VMClassRegistry* registry) {
 
 	registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, BSFixedString, Actor*>("GetActorRaceEditorID", "MiscUtil", GetActorRaceEditorID, registry));
 	registry->SetFunctionFlags("MiscUtil", "GetActorRaceEditorID", VMClassRegistry::kFunctionFlag_NoWait);
+
+
+	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, VMResultArray<Actor*>, TESObjectREFR*, float, BGSKeyword*>("ScanCellActors", "MiscUtil", ScanCellActors, registry));
+	registry->RegisterFunction(new NativeFunction4<StaticFunctionTag, VMResultArray<TESObjectREFR*>, UInt32, TESObjectREFR*, float, BGSKeyword*>("ScanCellObjects", "MiscUtil", ScanCellObjects, registry));
+
 
 }
 

@@ -89,6 +89,9 @@ namespace External {
 		template <typename T> bool ListCopy(std::string key, VMArray<T> Input);
 		template <typename T> VMResultArray<T> ToArray(std::string key);
 
+		int CountPrefix(std::string type, std::string prefix);
+		//int ClearPrefix(std::string type, std::string prefix);
+
 		//bool ExternalFile::ImportOnForm(TESForm* FormRef);
 
 		// read/write

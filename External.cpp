@@ -91,9 +91,9 @@ namespace External {
 #endif
 		if (s_Files != NULL && !s_Files->empty()){
 			for (FileVector::iterator itr = s_Files->begin(); itr != s_Files->end(); ++itr) {
-				if ((*itr)->isModified)
-					(*itr)->RevertFile();
+				(*itr)->RevertFile();
 			}
+			s_Files->clear();
 		}
 	}
 
@@ -210,7 +210,7 @@ namespace External {
 		s_dataLock.Enter();
 		isModified = false;
 		root.clear();
-		LoadFile();
+		//LoadFile();
 		s_dataLock.Leave();
 	}
 
@@ -322,13 +322,12 @@ namespace External {
 		boost::to_lower(key);
 		if (HasKey(type, key)){
 			Value list = Value(Json::arrayValue);
-			Value::iterator itr = root[type][key].begin();
-			for (itr = root[type][key].begin(); itr != root[type][key].end(); ++itr){
+			for (Value::iterator itr = root[type][key].begin(); itr != root[type][key].end(); ++itr){
 				if (!allInstances && removed > 0) list.append((*itr));
 				else if (removing != (*itr)) list.append((*itr));
 				else removed += 1;
 			}
-			root[type][key] = list;
+			root[type][key].swap(list);
 			/*if (root[type][key].size() == 0){
 				root[type].removeMember(key);
 				if (root[type].size() == 0)
@@ -490,12 +489,12 @@ namespace External {
 
 	template <typename T>
 	void ExternalFile::ListSlice(std::string key, VMArray<T> Output, int startIndex){
-		if (Output.Length() < 1) return;
+		UInt32 length(Output.Length());
+		if (length < 1) return;
 		s_dataLock.Enter();
 
 		boost::to_lower(key);
 		std::string type = List<T>();
-		UInt32 length = Output.Length();
 		if (HasKey(type, key)){
 			Value::iterator itr = root[type][key].begin();
 			std::advance(itr, startIndex);
@@ -513,14 +512,15 @@ namespace External {
 
 	template <typename T>
 	bool ExternalFile::ListCopy(std::string key, VMArray<T> Input) {
-		if (Input.Length() < 1) return false;
+		UInt32 length(Input.Length());
+		if (length < 1) return false;
 		s_dataLock.Enter();
 
 		T var;
 		boost::to_lower(key);
 		std::string type = List<T>();
 		if (HasKey(type, key)) root[type][key].clear();
-		for (UInt32 i = 0; i < Input.Length(); ++i) {
+		for (UInt32 i = 0; i < length; ++i) {
 			Input.Get(&var, i);
 			root[type][key].append(MakeValue<T>(var));
 		}
@@ -557,5 +557,36 @@ namespace External {
 	template VMResultArray<float> ExternalFile::ToArray<float>(std::string key);
 	template VMResultArray<BSFixedString> ExternalFile::ToArray<BSFixedString>(std::string key);
 	template VMResultArray<TESForm*> ExternalFile::ToArray<TESForm*>(std::string key);
+
+	int ExternalFile::CountPrefix(std::string type, std::string prefix) {
+		int count = 0;
+		if (root.isMember(type) && !root[type].empty()) {
+			s_dataLock.Enter();
+			boost::to_lower(prefix);
+			Value::Members members = root[type].getMemberNames();
+			for (Value::Members::iterator itr = members.begin(); itr != members.end(); ++itr) {
+				if (boost::starts_with((*itr), prefix)) count++;
+			}
+			s_dataLock.Leave();
+		}
+		return count;
+	}
+
+	/*int ExternalFile::ClearPrefix(std::string type, std::string prefix) {
+		int count = 0;
+		if (root.isMember(type) && !root[type].empty()) {
+			s_dataLock.Enter();
+			boost::to_lower(prefix);
+			Value list = Value(Json::objectValue);
+			for (Value::iterator itr = root[type].begin(); itr != root[type].end(); ++itr) {
+				if (boost::starts_with((*itr), prefix)) count++;
+				else list.append(*itr);
+			}
+			root[type] = list;
+			if (count > 0) isModified = true;
+			s_dataLock.Leave();
+		}
+		return count;
+	}*/
 
 }

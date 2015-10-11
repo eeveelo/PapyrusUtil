@@ -10,6 +10,11 @@ namespace Forms {
 	static UInt8 s_savefileIndexMap[0xFF];
 	static UInt8 s_numSavefileMods = 0;
 
+	void ClearModList() {
+		for (UInt32 i = 0; i < s_numSavefileMods; i++) s_savefileIndexMap[i] = -1;
+		s_numSavefileMods = 0;
+	}
+
 	void LoadModList(SKSESerializationInterface * intfc) {
 		_MESSAGE("Loading mod list...");
 
@@ -155,6 +160,5 @@ namespace Forms {
 		obj = (((UInt32)index) << 24) | obj;
 		return obj == 0 ? NULL : LookupFormByID(obj);
 	}
-	
 
 }

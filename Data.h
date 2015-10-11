@@ -71,8 +71,11 @@ namespace Data
 		void SetValue(UInt64 obj, std::string key, T value);
 		T GetValue(UInt64 obj, std::string key, T value);
 		T AdjustValue(UInt64 obj, std::string key, T value);
+		T PluckValue(UInt64 obj, std::string key, T value);
 		bool UnsetValue(UInt64 obj, std::string key);
 		bool HasValue(UInt64 obj, std::string key);
+		int ClearPrefixKey(std::string prefix);
+		int CountPrefixKey(std::string prefix);
 
 		// Serialization
 		void Revert();
@@ -83,7 +86,9 @@ namespace Data
 		inline int GetObjCount() { return Data.size(); }
 		inline int GetKeyCount(UInt64 obj) { return Data.find(obj) != Data.end() ? Data[obj].size() : 0; }
 		TESForm* GetNthObj(UInt32 i);
-		std::string GetNthKey(UInt64 obj, UInt32 i);
+		const std::string GetNthKey(UInt64 obj, UInt32 i);
+		VMResultArray<TESForm*> GetAllObj();
+		VMResultArray<BSFixedString> GetAllObjKeys(UInt64 obj);
 		void RemoveForm(UInt64 &obj);
 		int Cleanup();
 	};
@@ -102,6 +107,10 @@ namespace Data
 		T ListGet(UInt64 obj, std::string key, UInt32 index);
 		T ListSet(UInt64 obj, std::string key, UInt32 index, T value);
 		T ListAdjust(UInt64 obj, std::string key, UInt32 index, T value);
+		T ListPluck(UInt64 obj, std::string key, UInt32 index, T value);
+		T ListShift(UInt64 obj, std::string key);
+		T ListPop(UInt64 obj, std::string key);
+
 		int ListRemove(UInt64 obj, std::string key, T value, bool allInstances);
 		bool ListInsertAt(UInt64 obj, std::string key, UInt32 index, T value);
 		bool ListRemoveAt(UInt64 obj, std::string key, UInt32 index);
@@ -115,6 +124,8 @@ namespace Data
 		int ListResize(UInt64 obj, std::string key, UInt32 length, T filler);
 		bool ListCopy(UInt64 obj, std::string key, VMArray<T> Input);
 		VMResultArray<T> ToArray(UInt64 obj, std::string key);
+		int ClearPrefixKey(std::string prefix);
+		int CountPrefixKey(std::string prefix);
 
 		List* GetVector(UInt64 &obj, std::string &key){
 			Map::iterator itr = Data.find(obj);
@@ -135,7 +146,9 @@ namespace Data
 		inline int GetObjCount() { return Data.size(); }
 		inline int GetKeyCount(UInt64 obj) { return Data.find(obj) != Data.end() ? Data[obj].size() : 0; }
 		TESForm* GetNthObj(UInt32 i);
-		std::string GetNthKey(UInt64 obj, UInt32 i);
+		const std::string GetNthKey(UInt64 obj, UInt32 i);
+		VMResultArray<TESForm*> GetAllObj();
+		VMResultArray<BSFixedString> GetAllObjKeys(UInt64 obj);
 		void RemoveForm(UInt64 obj);
 		int Cleanup();
 	};

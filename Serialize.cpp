@@ -40,29 +40,28 @@ namespace Data {
 	//extern aniv* animValues;
 
 	template <class T> void Load(T *Data, SKSESerializationInterface *intfc, UInt32 &version, UInt32 &length) {
-		if (version == kSerializationDataVersion && length > 1) {
+		if (version == kSerializationDataVersion && length > 5) {
 			char *buf = new char[length + 1];
 			intfc->ReadRecordData(buf, length);
 			buf[length] = 0;
 			std::stringstream ss(buf);
-			_MESSAGE("- length: %d", strlen(buf));
-			if (strlen(buf) < 200) _MESSAGE(buf);
 			Data->LoadStream(ss);
 			delete[] buf;
+			_MESSAGE("\t- objects: %d", Data->Data.size());
 		}
 	}
 
 	template <class T> void Save(T *Data, SKSESerializationInterface* intfc, UInt32 type) {
-		if (!Data || Data->Data.size() < 1)
-			_MESSAGE("\tSkipping!");
+		if (!Data || Data->Data.empty())
+			_MESSAGE("\t- empty!");
 		else{
+			_MESSAGE("\t- objects: %d", Data->Data.size());
 			std::stringstream ss;
 			Data->SaveStream(ss);
 			if (intfc->OpenRecord(type, kSerializationDataVersion)) {
-				std::string str = ss.str();
+				const std::string &str = ss.str();
 				const char *cstr = str.c_str();
 				intfc->WriteRecordData(cstr, strlen(cstr));
-				if (strlen(cstr) < 200) _MESSAGE(cstr);
 			}
 		}
 	}
@@ -79,7 +78,7 @@ namespace Data {
 		UInt32	version;
 		UInt32	length;
 
-		if (!intValues) InitLists();
+		InitLists();
 
 		//Forms::LoadCurrentMods();
 		//Forms::LoadModList(intfc);
@@ -89,52 +88,52 @@ namespace Data {
 		while (intfc->GetNextRecordInfo(&type, &version, &length)) {
 			switch (type) {
 			case 'MODS':
-				_MESSAGE("MODS Load");
+				_MESSAGE("\tMODS Load");
 				Forms::LoadModList(intfc);
 				break;
 
 			case 'INTV':
-				_MESSAGE("INTV Load");
+				_MESSAGE("\tINTV Load");
 				Load(intValues, intfc, version, length);
 				break;
 
 			case 'FLOV':
-				_MESSAGE("FLOV Load");
+				_MESSAGE("\tFLOV Load");
 				Load(floatValues, intfc, version, length);
 				break;
 
 			case 'STRV':
-				_MESSAGE("STRV Load");
+				_MESSAGE("\tSTRV Load");
 				Load(stringValues, intfc, version, length);
 				break;
 
 			case 'FORV':
-				_MESSAGE("FORV Load");
+				_MESSAGE("\tFORV Load");
 				Load(formValues, intfc, version, length);
 				break;
 
 			case 'INTL':
-				_MESSAGE("INTL Load");
+				_MESSAGE("\tINTL Load");
 				Load(intLists, intfc, version, length);
 				break;
 
 			case 'FLOL':
-				_MESSAGE("FLOL Load");
+				_MESSAGE("\tFLOL Load");
 				Load(floatLists, intfc, version, length);
 				break;
 
 			case 'STRL':
-				_MESSAGE("STRL Load");
+				_MESSAGE("\tSTRL Load");
 				Load(stringLists, intfc, version, length);
 				break;
 
 			case 'FORL':
-				_MESSAGE("FORL Load");
+				_MESSAGE("\tFORL Load");
 				Load(formLists, intfc, version, length);
 				break;
 			
 			case 'PKGO':
-				_MESSAGE("PKGO Load");
+				_MESSAGE("\tPKGO Load");
 				Load(PackageData::GetPackages(), intfc, version, length);
 				break;
 
@@ -149,7 +148,8 @@ namespace Data {
 					intfc->ReadRecordData(buf, length);
 					buf[length] = 0;
 					std::stringstream ss(buf);
-					_MESSAGE("DATA: %d", strlen(ss.str().c_str()));
+					const std::string &tmp = ss.str();
+					_MESSAGE("DATA: %d", strlen(tmp.c_str()));
 					int ver;
 					ss >> ver;
 					Forms::LoadPreviousMods(ss);
@@ -185,8 +185,7 @@ namespace Data {
 		//Forms::ClearPreviousMods();
 
 		// Init lists if for some weird reason unset
-		if (!intValues)
-			InitLists();
+		InitLists();
 
 		/*if (intfc->OpenRecord('DATA', kSerializationDataVersion)) {
 			std::stringstream ss;
@@ -198,7 +197,7 @@ namespace Data {
 		}*/
 		// Save load order
 		Forms::SaveModList(intfc);
-		_MESSAGE("\tMODS done!");
+		_MESSAGE("\tMODS Saved");
 
 		// Cleanup removed forms
 		/*int cleaned = 0;
@@ -210,64 +209,63 @@ namespace Data {
 		cleaned += floatLists->Cleanup();
 		cleaned += stringLists->Cleanup();
 		cleaned += formLists->Cleanup();
-
 		if (cleaned > 0)
 			_MESSAGE("- discarded: %d", cleaned);*/
 
 		// Save value storage
 		Save(intValues, intfc, 'INTV');
-		_MESSAGE("\tINTV done!");
+		_MESSAGE("\tINTV Saved");
 		Save(floatValues, intfc, 'FLOV');
-		_MESSAGE("\tFLOV done!");
+		_MESSAGE("\tFLOV Saved");
 		Save(stringValues, intfc, 'STRV');
-		_MESSAGE("\tSTRV done!");
+		_MESSAGE("\tSTRV Saved");
 		Save(formValues, intfc, 'FORV');
-		_MESSAGE("\tFORV done!");
+		_MESSAGE("\tFORV Saved");
 
 		// Save list storage
 		Save(intLists, intfc, 'INTL');
-		_MESSAGE("\tINTL done!");
+		_MESSAGE("\tINTL Saved");
 		Save(floatLists, intfc, 'FLOL');
-		_MESSAGE("\tFLOL done!");
+		_MESSAGE("\tFLOL Saved");
 		Save(stringLists, intfc, 'STRL');
-		_MESSAGE("\tSTRL done!");
+		_MESSAGE("\tSTRL Saved");
 		Save(formLists, intfc, 'FORL');
-		_MESSAGE("\tFORL done!");
+		_MESSAGE("\tFORL Saved");
 
 		// Overrides
 		Save(PackageData::GetPackages(), intfc, 'PKGO');
-		_MESSAGE("\tPKGO done!");
+		_MESSAGE("\tPKGO Saved");
 
 		// Save external files
 		External::SaveFiles();
-		_MESSAGE("\tExternal done!");
+		_MESSAGE("\tExternal JSON Saved");
 
 		_MESSAGE("Save Done!\n");
 	}
 
 	void Serialization_Revert(SKSESerializationInterface* intfc) {
 		_MESSAGE("Storage Reverting...");
-		if (!intValues)
-			InitLists();
-		else {
-			//Forms::LoadCurrentMods();
-			//Forms::ClearPreviousMods();
 
-			intValues->Revert();
-			floatValues->Revert();
-			stringValues->Revert();
-			formValues->Revert();
+		InitLists();
+		Forms::ClearModList();
+		//Forms::LoadCurrentMods();
+		//Forms::ClearPreviousMods();
 
-			intLists->Revert();
-			floatLists->Revert();
-			stringLists->Revert();
-			formLists->Revert();
+		intValues->Revert();
+		floatValues->Revert();
+		stringValues->Revert();
+		formValues->Revert();
 
-			PackageData::GetPackages()->Revert();
+		intLists->Revert();
+		floatLists->Revert();
+		stringLists->Revert();
+		formLists->Revert();
 
-			// Revert external files
-			External::RevertFiles();
-		}
+		PackageData::GetPackages()->Revert();
+
+		// Revert external files
+		External::RevertFiles();
+
 		_MESSAGE("Done!\n");
 	}
 }

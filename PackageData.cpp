@@ -22,30 +22,39 @@ namespace PackageData {
 		Data.reserve(count);
 		for (int i = 0; i < count; ++i) {
 			// Unpack actor
-			UInt32 ActorID, ActorCount;
-			ss >> ActorID;
-			ss >> ActorCount;
+			UInt32 formID;
+			ss >> formID;
+			int count2;
+			ss >> count2;
 			// Validate actor
-			ActorID = Forms::ResolveFormID(ActorID);
-			TESForm* ActorRef = LookupFormByID(ActorID);
-			// TODO: Validate ActorRef before assuming they are still valid
-			Data[ActorRef->formID].reserve(ActorCount);
-			for (int n = 0; n < ActorCount; ++n) {
-				// Unpack Package
-				UInt32 PackID, priority, flag;
-				ss >> PackID;
-				ss >> priority;
-				ss >> flag;
-				// Validate Package
-				PackID = Forms::ResolveFormID(PackID);
-				TESForm* PackageRef = LookupFormByID(PackID);
-				if (ActorRef && PackageRef && PackageRef->formType == kFormType_Package){
-					// LOAD Package
-					if (priority > 100) priority = 100;
-					else if (priority < 1) priority = 1;
-					Data[ActorRef->formID][PackageRef->formID] = Flags(priority, flag == 1 ? 1 : 0);
+			UInt32 newID = Forms::ResolveFormID(formID);
+			TESForm *FormRef = LookupFormByID(newID);
+			Actor *ActorRef = FormRef != NULL ? DYNAMIC_CAST(FormRef, TESForm, Actor) : NULL;
+			if (ActorRef == NULL) {
+				for (int n = 0; n < count2; ++n) {
+					UInt32 PackID, priority, flag;
+					ss >> PackID; ss >> priority; ss >> flag;
 				}
 			}
+			else {
+				Data[newID].reserve(count2);
+				for (int n = 0; n < count2; ++n) {
+					// Unpack Package
+					UInt32 PackID, priority, flag;
+					ss >> PackID; ss >> priority; ss >> flag;
+					// Validate Package
+					PackID = Forms::ResolveFormID(PackID);
+					TESForm* PackageRef = LookupFormByID(PackID);
+					if (PackageRef != NULL && PackageRef->formType == kFormType_Package) {
+						// LOAD Package
+						if (priority > 100) priority = 100;
+						else if (priority < 1) priority = 1;
+						Data[newID][PackageRef->formID] = Flags(priority, flag == 1 ? 1 : 0);
+					}
+				}
+				Data[newID].shrink_to_fit();
+			}
+			
 		}
 		Data.shrink_to_fit();
 		s_dataLock.Leave();

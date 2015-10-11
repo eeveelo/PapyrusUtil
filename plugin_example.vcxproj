@@ -54,7 +54,7 @@
     <LinkIncremental>true</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <OutDir>C:\Steam\SteamApps\common\Skyrim\ModOrganizer\overwrite\skse\plugins\</OutDir>
+    <OutDir>C:\Steam\steamapps\common\Skyrim\ModOrganizer\overwrite\skse\plugins\</OutDir>
     <IntDir>$(Configuration)\</IntDir>
     <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
@@ -146,6 +146,8 @@
     <ClCompile Include="..\skse\SafeWrite.cpp" />
     <ClCompile Include="..\skse\Utilities.cpp" />
     <ClCompile Include="ActorUtil.cpp" />
+    <ClCompile Include="AnimUtil.cpp" />
+    <ClCompile Include="Asm.cpp" />
     <ClCompile Include="Data.cpp" />
     <ClCompile Include="Forms.cpp" />
     <ClCompile Include="jsoncpp.cpp" />
@@ -200,6 +202,8 @@
     <ClInclude Include="..\skse\skse_version.h" />
     <ClInclude Include="..\skse\Utilities.h" />
     <ClInclude Include="ActorUtil.h" />
+    <ClInclude Include="AnimUtil.h" />
+    <ClInclude Include="Asm.h" />
     <ClInclude Include="Data.h" />
     <ClInclude Include="Forms.h" />
     <ClInclude Include="JsonUtil.h" />

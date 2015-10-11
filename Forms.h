@@ -15,6 +15,7 @@ namespace Forms {
 	inline UInt8 GetModIndex(TESForm* obj) { return ((int)obj->formID) >> 24; }
 
 	// Load Order
+	void ClearModList();
 	void LoadModList(SKSESerializationInterface * intfc);
 	void SaveModList(SKSESerializationInterface * intfc);
 	void LoadPreviousMods(std::stringstream &ss);

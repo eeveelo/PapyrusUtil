@@ -147,6 +147,12 @@
     <ClCompile Include="..\skse\GameBSExtraData.cpp">
       <Filter>skse\api</Filter>
     </ClCompile>
+    <ClCompile Include="AnimUtil.cpp">
+      <Filter>papyrus</Filter>
+    </ClCompile>
+    <ClCompile Include="Asm.cpp">
+      <Filter>lib</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\skse\NiExtraData.h">
@@ -301,6 +307,12 @@
       <Filter>papyrus</Filter>
     </ClInclude>
     <ClInclude Include="PackageData.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="AnimUtil.h">
+      <Filter>papyrus</Filter>
+    </ClInclude>
+    <ClInclude Include="Asm.h">
       <Filter>lib</Filter>
     </ClInclude>
   </ItemGroup>

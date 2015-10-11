@@ -60,7 +60,7 @@ extern "C" {
 
 	bool SKSEPlugin_Load(const SKSEInterface * skse) {
 		//setlocale(LC_ALL, "POSIX");
-		_MESSAGE("Loading");
+		_MESSAGE("Loading Version: %d", (int)PAPYRUSUTIL_VERSION);
 
 		Data::InitLists();
 
