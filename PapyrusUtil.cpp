@@ -3,6 +3,7 @@
 #include <sstream>
 #include <vector>
 
+//#include <boost/filesystem.hpp>
 #include <boost/algorithm/string.hpp>
 /*#include <boost/algorithm/string/compare.hpp>
 #include <boost/algorithm/string/replace.hpp>
@@ -81,7 +82,7 @@ namespace PapyrusUtil {
 	template<typename T>
 	UInt32 CountValues(StaticFunctionTag*, VMArray<T> arr, T find){
 		UInt32 count(0), length(arr.Length());
-		if (arr.arr && length > 0){
+		if (length > 0){
 			for (UInt32 idx = 0; idx < length; ++idx){
 				T var;
 				arr.Get(&var, idx);
@@ -93,7 +94,7 @@ namespace PapyrusUtil {
 
 	template <> UInt32 CountValues(StaticFunctionTag*, VMArray<BSFixedString> arr, BSFixedString find) {
 		UInt32 count(0), length(arr.Length());
-		if (arr.arr && length > 0) {
+		if (length > 0) {
 			const char* str = find.data;
 			for (UInt32 idx = 0; idx < length; ++idx) {
 				BSFixedString var;
@@ -108,38 +109,38 @@ namespace PapyrusUtil {
 	template <typename T>
 	VMResultArray<T> ClearArray(StaticFunctionTag*, VMArray<T> arr, T remove){
 		VMResultArray<T> Output;
-		if (!arr.arr || arr.Length() == 0)
-			return Output;
-		UInt32 length(arr.Length()), count(CountValues(NULL, arr, remove));
-		if (count != length && (length - count) > 0){
-			Output.reserve((length - count));
-			for (UInt32 idx = 0; idx < length; ++idx){
-				T var;
-				arr.Get(&var, idx);
-				if (var != remove)
-					Output.push_back(var);
+		if (arr.Length() > 0) {
+			UInt32 length(arr.Length()), count(CountValues(NULL, arr, remove));
+			if (count != length && (length - count) > 0) {
+				Output.reserve((length - count));
+				for (UInt32 idx = 0; idx < length; ++idx) {
+					T var;
+					arr.Get(&var, idx);
+					if (var != remove)
+						Output.push_back(var);
+				}
 			}
-		}		
+		}
 		return Output;
 	}
 
 	template <> VMResultArray<BSFixedString> ClearArray(StaticFunctionTag*, VMArray<BSFixedString> arr, BSFixedString remove) {
 		VMResultArray<BSFixedString> Output;
-		if (!arr.arr || arr.Length() == 0)
-			return Output;
-		UInt32 length(arr.Length()), count(CountValues(NULL, arr, remove));
-		if (count != length && (length - count) > 0) {
-			Output.reserve((length - count));
-			const char* str = remove.data;
-			int size = Output.size();
-			for (UInt32 idx = 0; idx < length; ++idx) {
-				BSFixedString var;
-				arr.Get(&var, idx);
-				if (!var.data) var = BSFixedString("");
-				if (!boost::iequals(var.data, str))
-					Output.push_back(var);
+		if (arr.Length() > 0) {
+			UInt32 length(arr.Length()), count(CountValues(NULL, arr, remove));
+			if (count != length && (length - count) > 0) {
+				Output.reserve((length - count));
+				const char* str = remove.data;
+				int size = Output.size();
+				for (UInt32 idx = 0; idx < length; ++idx) {
+					BSFixedString var;
+					arr.Get(&var, idx);
+					if (!var.data) var = BSFixedString("");
+					if (!boost::iequals(var.data, str))
+						Output.push_back(var);
+				}
 			}
-		}
+		}		
 		return Output;
 	}
 	
@@ -183,6 +184,50 @@ namespace PapyrusUtil {
 	}
 
 	template<typename T>
+	void SortArray(StaticFunctionTag*, VMArray<T> Input, bool descending) {
+		if (Input.Length() < 1)	return;
+
+		UInt32 length = Input.Length();
+		std::vector<T> arr;
+		arr.resize(length);
+		for (UInt32 idx = 0; idx < length; ++idx) {
+			T value;
+			Input.Get(&value, idx);
+			arr[idx] = value;
+		}
+
+		std::sort(arr.begin(), arr.end());
+		if (descending) std::reverse(arr.begin(), arr.end());
+
+		for (UInt32 idx = 0; idx < length; ++idx) {
+			Input.Set(&arr[idx], idx);
+		}
+
+	}
+
+	template <> void SortArray(StaticFunctionTag*, VMArray<BSFixedString> Input, bool descending) {
+		if (Input.Length() < 1)	return;
+
+		UInt32 length = Input.Length();
+		std::vector<std::string> arr;
+		arr.resize(length);
+		for (UInt32 idx = 0; idx < length; ++idx) {
+			BSFixedString value;
+			Input.Get(&value, idx);
+			arr[idx] = value.data;
+		}
+
+		std::sort(arr.begin(), arr.end());
+		if (descending) std::reverse(arr.begin(), arr.end());
+
+		for (UInt32 idx = 0; idx < length; ++idx) {
+			BSFixedString value = BSFixedString(arr[idx].c_str());
+			Input.Set(&value, idx);
+		}
+		
+	}
+
+	template<typename T>
 	T AddValues(StaticFunctionTag*, VMArray<T> Values){
 		T out = 0;
 		UInt32 length(Values.Length());
@@ -213,7 +258,6 @@ namespace PapyrusUtil {
 	T SignValue(StaticFunctionTag*, bool sign, T var){
 		return ((sign && var > 0) || (!sign && var < 0)) ? var * -1 : var;
 	}
-
 
 	//trim whitespace
 	/*static inline std::string &trim(std::string &s) {
@@ -268,6 +312,14 @@ namespace PapyrusUtil {
 #include "skse/PapyrusNativeFunctions.h"
 
 void PapyrusUtil::RegisterFuncs(VMClassRegistry* registry) {
+
+	registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, void, VMArray<SInt32>, bool>("SortIntArray", "PapyrusUtil", SortArray<SInt32>, registry));
+	//registry->SetFunctionFlags("PapyrusUtil", "SortIntArray", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, void, VMArray<float>, bool>("SortFloatArray", "PapyrusUtil", SortArray<float>, registry));
+	//registry->SetFunctionFlags("PapyrusUtil", "SortFloatArray", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, void, VMArray<BSFixedString>, bool>("SortStringArray", "PapyrusUtil", SortArray<BSFixedString>, registry));
+	//registry->SetFunctionFlags("PapyrusUtil", "SortStringArray", VMClassRegistry::kFunctionFlag_NoWait);
+
 	/*registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, void, VMArray<TESForm*>, UInt32, TESForm*>("_SetFormValue", "PapyrusUtil", SetArrayValue<TESForm*>, registry));
 	registry->SetFunctionFlags("PapyrusUtil", "_SetFormValue", VMClassRegistry::kFunctionFlag_NoWait);
 	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, void, VMArray<BGSBaseAlias*>, UInt32, BGSBaseAlias*>("_SetAliasValue", "PapyrusUtil", SetArrayValue<BGSBaseAlias*>, registry));
@@ -458,5 +510,7 @@ void PapyrusUtil::RegisterFuncs(VMClassRegistry* registry) {
 	registry->SetFunctionFlags("PapyrusUtil", "SignFloat", VMClassRegistry::kFunctionFlag_NoWait);
 	registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, SInt32, bool, SInt32>("SignInt", "PapyrusUtil", SignValue<SInt32>, registry));
 	registry->SetFunctionFlags("PapyrusUtil", "SignInt", VMClassRegistry::kFunctionFlag_NoWait);
+
+
 
 }

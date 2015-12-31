@@ -1,6 +1,6 @@
 #pragma once
 
-#define PAPYRUSUTIL_VERSION 31
+#define PAPYRUSUTIL_VERSION 32
 
 #include "skse/PluginAPI.h"
 #include "skse/GameAPI.h"

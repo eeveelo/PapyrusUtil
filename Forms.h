@@ -31,8 +31,10 @@ namespace Forms {
 	TESForm* GetFormKey(UInt64 key);
 	
 	// Form Strings
+	bool IsFormString(const std::string &str);
 	std::string GetFormString(TESForm* obj);
-	TESForm* ParseFormString(std::string &objString);
+	TESForm* ParseFormString(const std::string &objString);
+	TESForm* ParseForm(UInt32 &obj, const char* mod);
 
 	// Misc
 	int GameGetForm(int formId);

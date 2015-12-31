@@ -428,20 +428,21 @@ namespace Data {
 
 	template <typename T, typename S>
 	void Lists<T, S>::ListSlice(UInt64 obj, std::string key, VMArray<T> Output, UInt32 startIndex) {
-		s_dataLock.Enter();
-
-		boost::to_lower(key);
-		List* vector = GetVector(obj, key);
-		if (vector != NULL && startIndex < vector->size() && startIndex >= 0) {
-			List::iterator itr = vector->begin();
-			std::advance(itr, startIndex);
-			UInt32 length(Output.Length());
-			for (UInt32 index = 0; index < length && itr != vector->end(); ++itr, ++index) {
-				T val = cast(*itr);
-				Output.Set(&val, index);
+		if (Output.Length() > 0) {
+			s_dataLock.Enter();
+			boost::to_lower(key);
+			List* vector = GetVector(obj, key);
+			if (vector != NULL && startIndex < vector->size() && startIndex >= 0) {
+				List::iterator itr = vector->begin();
+				std::advance(itr, startIndex);
+				UInt32 length(Output.Length());
+				for (UInt32 index = 0; index < length && itr != vector->end(); ++itr, ++index) {
+					T val = cast(*itr);
+					Output.Set(&val, index);
+				}
 			}
+			s_dataLock.Leave();
 		}
-		s_dataLock.Leave();
 	}
 
 	template <typename T, typename S>
@@ -494,81 +495,160 @@ namespace Data {
 		return arr;
 	}
 
+
 	template <typename T, typename S>
 	int Values<T, S>::CountPrefixKey(std::string prefix) {
+		if (prefix.length() < 1) return 0;
 		int count = 0;
-		if (prefix.length() > 0) {
-			s_dataLock.Enter();
-			boost::to_lower(prefix);
-			for (Map::iterator itr = Data.begin(); itr != Data.end(); ++itr) {
-				Obj &ObjRef = itr->second;
-				for (Obj::iterator itr2 = ObjRef.begin(); itr2 != ObjRef.end(); ++itr2) {
-					if (boost::starts_with(std::string(itr2->first), prefix)) count++;
-				}
+		s_dataLock.Enter();
+		boost::to_lower(prefix);
+		for (Map::iterator itr = Data.begin(); itr != Data.end(); ++itr) {
+			Obj &ObjRef = itr->second;
+			for (Obj::iterator itr2 = ObjRef.begin(); itr2 != ObjRef.end(); ++itr2) {
+				if (boost::starts_with(std::string(itr2->first), prefix)) count++;
 			}
-			s_dataLock.Leave();
 		}
+		s_dataLock.Leave();
+		return count;
+	}
+
+	template <typename T, typename S>
+	int Values<T, S>::CountPrefixKey(UInt64 obj, std::string prefix) {
+		if (prefix.length() < 1) return 0;
+		int count = 0;
+		s_dataLock.Enter();
+		Map::iterator itr = Data.find(obj);
+		if (itr != Data.end()) {
+			boost::to_lower(prefix);
+			Obj &ObjRef = itr->second;
+			for (Obj::iterator itr2 = ObjRef.begin(); itr2 != ObjRef.end(); ++itr2) {
+				if (boost::starts_with(std::string(itr2->first), prefix)) count++;
+			}
+		}
+		s_dataLock.Leave();
 		return count;
 	}
 
 	template <typename T, typename S>
 	int Lists<T, S>::CountPrefixKey(std::string prefix) {
+		if (prefix.length() < 1) return 0;
 		int count = 0;
-		if (prefix.length() > 0) {
-			s_dataLock.Enter();
-			boost::to_lower(prefix);
-			for (Map::iterator itr = Data.begin(); itr != Data.end(); ++itr) {
-				Obj &ObjRef = itr->second;
-				for (Obj::iterator itr2 = ObjRef.begin(); itr2 != ObjRef.end(); ++itr2) {
-					if (boost::starts_with(std::string(itr2->first), prefix)) count++;
-				}
+		s_dataLock.Enter();
+		boost::to_lower(prefix);
+		for (Map::iterator itr = Data.begin(); itr != Data.end(); ++itr) {
+			Obj &ObjRef = itr->second;
+			for (Obj::iterator itr2 = ObjRef.begin(); itr2 != ObjRef.end(); ++itr2) {
+				if (boost::starts_with(std::string(itr2->first), prefix)) count++;
 			}
-			s_dataLock.Leave();
 		}
+		s_dataLock.Leave();
+		return count;
+	}
+
+	template <typename T, typename S>
+	int Lists<T, S>::CountPrefixKey(UInt64 obj, std::string prefix) {
+		if (prefix.length() < 1) return 0;
+		int count = 0;
+		s_dataLock.Enter();
+		Map::iterator itr = Data.find(obj);
+		if (itr != Data.end()) {
+			boost::to_lower(prefix);
+			Obj &ObjRef = itr->second;
+			for (Obj::iterator itr2 = ObjRef.begin(); itr2 != ObjRef.end(); ++itr2) {
+				if (boost::starts_with(std::string(itr2->first), prefix)) count++;
+			}
+		}
+		s_dataLock.Leave();
+		return count;
+	}
+
+	template <typename T, typename S>
+	int Values<T, S>::ClearPrefixKey(UInt64 obj, std::string prefix) {
+		if (prefix.length() < 1) return 0;
+
+		int count  = 0;
+		s_dataLock.Enter();
+		Map::iterator itr = Data.find(obj);
+		if (itr != Data.end()) {
+			boost::to_lower(prefix);
+			Obj &ObjRef = itr->second;
+			for (Obj::iterator itr2 = ObjRef.begin(); itr2 != ObjRef.end();) {
+				std::string key = itr2->first;
+				if (boost::starts_with(key, prefix)) {
+					itr2 = ObjRef.erase(itr2);
+					count++;
+				}
+				else ++itr2;
+			}
+		}
+		s_dataLock.Leave();
+		return count;
+	}
+
+	template <typename T, typename S>
+	int Lists<T, S>::ClearPrefixKey(UInt64 obj, std::string prefix) {
+		if (prefix.length() < 1) return 0;
+
+		int count = 0;
+		s_dataLock.Enter();
+		Map::iterator itr = Data.find(obj);
+		if (itr != Data.end()) {
+			boost::to_lower(prefix);
+			Obj &ObjRef = itr->second;
+			for (Obj::iterator itr2 = ObjRef.begin(); itr2 != ObjRef.end();) {
+				std::string key = itr2->first;
+				if (boost::starts_with(key, prefix)) {
+					itr2 = ObjRef.erase(itr2);
+					count++;
+				}
+				else ++itr2;
+			}
+		}
+		s_dataLock.Leave();
 		return count;
 	}
 
 	template <typename T, typename S>
 	int Values<T, S>::ClearPrefixKey(std::string prefix) {
-		int count  = 0;
-		if (prefix.length() > 0) {
-			s_dataLock.Enter();
-			boost::to_lower(prefix);
-			for (Map::iterator itr = Data.begin(); itr != Data.end(); ++itr) {
-				Obj &ObjRef = itr->second;
-				for (Obj::iterator itr2 = ObjRef.begin(); itr2 != ObjRef.end();) {
-					std::string key = itr2->first;
-					if (boost::starts_with(key, prefix)) {
-						itr2 = ObjRef.erase(itr2);
-						count++;
-					}
-					else ++itr2;
+		if (prefix.length() < 1) return 0;
+
+		int count = 0;
+		s_dataLock.Enter();
+		boost::to_lower(prefix);
+		for (Map::iterator itr = Data.begin(); itr != Data.end(); ++itr) {
+			Obj &ObjRef = itr->second;
+			for (Obj::iterator itr2 = ObjRef.begin(); itr2 != ObjRef.end();) {
+				std::string key = itr2->first;
+				if (boost::starts_with(key, prefix)) {
+					itr2 = ObjRef.erase(itr2);
+					count++;
 				}
+				else ++itr2;
 			}
-			s_dataLock.Leave();
 		}
+		s_dataLock.Leave();
 		return count;
 	}
 
 	template <typename T, typename S>
 	int Lists<T, S>::ClearPrefixKey(std::string prefix) {
+		if (prefix.length() < 1) return 0;
+
 		int count = 0;
-		if (prefix.length() > 0) {
-			s_dataLock.Enter();
-			boost::to_lower(prefix);
-			for (Map::iterator itr = Data.begin(); itr != Data.end(); ++itr) {
-				Obj &ObjRef = itr->second;
-				for (Obj::iterator itr2 = ObjRef.begin(); itr2 != ObjRef.end();) {
-					std::string key = itr2->first;
-					if (boost::starts_with(key, prefix)) {
-						itr2 = ObjRef.erase(itr2);
-						count++;
-					}
-					else ++itr2;
+		s_dataLock.Enter();
+		boost::to_lower(prefix);
+		for (Map::iterator itr = Data.begin(); itr != Data.end(); ++itr) {
+			Obj &ObjRef = itr->second;
+			for (Obj::iterator itr2 = ObjRef.begin(); itr2 != ObjRef.end();) {
+				std::string key = itr2->first;
+				if (boost::starts_with(key, prefix)) {
+					itr2 = ObjRef.erase(itr2);
+					count++;
 				}
+				else ++itr2;
 			}
-			s_dataLock.Leave();
 		}
+		s_dataLock.Leave();
 		return count;
 	}
 

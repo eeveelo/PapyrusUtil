@@ -2,6 +2,7 @@
 
 #include <string>
 #include <boost/filesystem.hpp>
+#include <boost/algorithm/string.hpp>
 
 #include "skse/GameAPI.h"
 #include "skse/GameTypes.h"
@@ -44,7 +45,86 @@ namespace JsonUtil {
 		if (File) File->ClearAll();
 	}
 
+	bool UnloadFile(StaticFunctionTag* base, BSFixedString name, bool savechanges, bool minify){
+		return External::RevertFile(name.data, savechanges, minify);
+	}
+	bool IsPendingSave(StaticFunctionTag* base, BSFixedString name){
+		return External::ChangesPending(name.data);
+	}
 
+
+	template <typename T>
+	void SetPathValue(StaticFunctionTag* base, BSFixedString name, BSFixedString path, T value) {
+		ExternalFile* File = GetFile(name.data);
+		if (File && IsValidKey(path))
+			File->SetPathValue<T>(path.data, MakeValue<T>(value));
+	}
+	/*template <> void SetPathValue(StaticFunctionTag* base, BSFixedString name, BSFixedString path, BSFixedString value) {
+		ExternalFile* File = GetFile(name.data);
+		if (File && IsValidKey(path)) {
+			File->SetPathValue(std::string(path.data), std::string(value.data));
+		}
+	}*/
+
+	template <typename T>
+	T GetPathValue(StaticFunctionTag* base, BSFixedString name, BSFixedString path, T missing) {
+		ExternalFile* File = GetFile(name.data);
+		if (!File || !IsValidKey(path)) return missing;
+		else return File->GetPathValue<T>(path.data, missing);
+	}
+
+	template <> BSFixedString GetPathValue(StaticFunctionTag* base, BSFixedString name, BSFixedString path, BSFixedString missing) {
+		ExternalFile* File = GetFile(name.data);
+		if (!File || !IsValidKey(path)) return missing;
+		std::string value = File->GetPathValue(path.data, std::string(missing.data));
+		return BSFixedString(value.c_str());
+	}
+
+
+	template <typename T> VMResultArray<T> PathElements(StaticFunctionTag* base, BSFixedString name, BSFixedString path, T invalidType) {
+		ExternalFile* File = GetFile(name.data);
+		if (File && IsValidKey(path)) return File->PathElements<T>(path.data, invalidType);
+		VMResultArray<T> arr;
+		return arr;
+	}
+	VMResultArray<BSFixedString> PathMembers(StaticFunctionTag* base, BSFixedString name, BSFixedString path) {
+		ExternalFile* File = GetFile(name.data);
+		if (File && IsValidKey(path)) return File->PathMembers(path.data);
+		VMResultArray<BSFixedString> arr;
+		return arr;
+	}
+	SInt32 PathCount(StaticFunctionTag* base, BSFixedString name, BSFixedString path) {
+		ExternalFile* File = GetFile(name.data);
+		return (File && IsValidKey(path)) ? File->PathCount(path.data) : -1;
+	}
+	bool CanResolve(StaticFunctionTag* base, BSFixedString name, BSFixedString path) {
+		ExternalFile* File = GetFile(name.data);
+		return File && IsValidKey(path) && File->CanResolve(path.data);
+	}
+	bool IsObject(StaticFunctionTag* base, BSFixedString name, BSFixedString path) {
+		ExternalFile* File = GetFile(name.data);
+		return File && IsValidKey(path) && File->IsObject(path.data);
+	}
+	bool IsArray(StaticFunctionTag* base, BSFixedString name, BSFixedString path) {
+		ExternalFile* File = GetFile(name.data);
+		return File && IsValidKey(path) && File->IsArray(path.data);
+	}
+	bool IsString(StaticFunctionTag* base, BSFixedString name, BSFixedString path) {
+		ExternalFile* File = GetFile(name.data);
+		return File && IsValidKey(path) && File->IsString(path.data);
+	}
+	bool IsNumber(StaticFunctionTag* base, BSFixedString name, BSFixedString path) {
+		ExternalFile* File = GetFile(name.data);
+		return File && IsValidKey(path) && File->IsNumber(path.data);
+	}
+	bool IsBool(StaticFunctionTag* base, BSFixedString name, BSFixedString path) {
+		ExternalFile* File = GetFile(name.data);
+		return File && IsValidKey(path) && File->IsBool(path.data);
+	}
+	bool IsForm(StaticFunctionTag* base, BSFixedString name, BSFixedString path) {
+		ExternalFile* File = GetFile(name.data);
+		return File && IsValidKey(path) && File->IsForm(path.data);
+	}
 
 
 	template <typename T>
@@ -263,13 +343,19 @@ namespace JsonUtil {
 	VMResultArray<BSFixedString> JsonFilesInFolder(StaticFunctionTag* base, BSFixedString dirpath) {
 		VMResultArray<BSFixedString> arr;
 		if (dirpath.data && dirpath.data[0] != '\0') {
-			fs::path someDir(dirpath.data);
+			std::string dirstr = "Data\\SKSE\\Plugins\\StorageUtilData\\";
+			dirstr.append(dirpath.data);
+			fs::path someDir(dirstr);
 			fs::directory_iterator end_iter;
 			if (fs::exists(someDir) && fs::is_directory(someDir)){
 				for (fs::directory_iterator dir_iter(someDir); dir_iter != end_iter; ++dir_iter){
 					if (fs::is_regular_file(dir_iter->status())) {
-						std::string file = dir_iter->path().generic_string();
-						arr.push_back(BSFixedString(file.c_str()));
+						fs::path filepath = dir_iter->path();
+						std::string file = filepath.filename().generic_string();
+						//std::string ext = filepath.extension().generic_string();
+						//_MESSAGE("file: %s ext: %s", file.c_str(), ext.c_str());
+						if (boost::iequals(filepath.extension().generic_string(), ".json"))
+							arr.push_back(BSFixedString(file.c_str()));						
 					}
 				}
 			}
@@ -294,6 +380,70 @@ void JsonUtil::RegisterFuncs(VMClassRegistry* registry){
 
 	registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, void, BSFixedString>("ClearAll", "JsonUtil", ClearAll, registry));
 	registry->SetFunctionFlags("JsonUtil", "ClearAll", VMClassRegistry::kFunctionFlag_NoWait);
+
+	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, bool, BSFixedString, bool, bool>("UnloadFile", "JsonUtil", UnloadFile, registry));
+	//registry->SetFunctionFlags("JsonUtil", "UnloadFile", VMClassRegistry::kFunctionFlag_NoWait);
+
+	registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, bool, BSFixedString>("IsPendingSave", "JsonUtil", IsPendingSave, registry));
+	registry->SetFunctionFlags("JsonUtil", "IsPendingSave", VMClassRegistry::kFunctionFlag_NoWait);
+
+
+	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, void, BSFixedString, BSFixedString, SInt32>("SetPathIntValue", "JsonUtil", SetPathValue<SInt32>, registry));
+	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, void, BSFixedString, BSFixedString, float>("SetPathFloatValue", "JsonUtil", SetPathValue<float>, registry));
+	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, void, BSFixedString, BSFixedString, BSFixedString>("SetPathStringValue", "JsonUtil", SetPathValue<BSFixedString>, registry));
+	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, void, BSFixedString, BSFixedString, TESForm*>("SetPathFormValue", "JsonUtil", SetPathValue<TESForm*>, registry));
+	//registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, void, BSFixedString, BSFixedString, bool>("SetPathBoolValue", "JsonUtil", SetPathValue<bool>, registry));
+	//registry->SetFunctionFlags("JsonUtil", "SetPathIntValue", VMClassRegistry::kFunctionFlag_NoWait);
+	//registry->SetFunctionFlags("JsonUtil", "SetPathFloatValue", VMClassRegistry::kFunctionFlag_NoWait);
+	//registry->SetFunctionFlags("JsonUtil", "SetPathStringValue", VMClassRegistry::kFunctionFlag_NoWait);
+	//registry->SetFunctionFlags("JsonUtil", "SetPathFormValue", VMClassRegistry::kFunctionFlag_NoWait);
+
+	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, SInt32, BSFixedString, BSFixedString, SInt32>("GetPathIntValue", "JsonUtil", GetPathValue<SInt32>, registry));
+	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, float, BSFixedString, BSFixedString, float>("GetPathFloatValue", "JsonUtil", GetPathValue<float>, registry));
+	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, BSFixedString, BSFixedString, BSFixedString, BSFixedString>("GetPathStringValue", "JsonUtil", GetPathValue<BSFixedString>, registry));
+	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, TESForm*, BSFixedString, BSFixedString, TESForm*>("GetPathFormValue", "JsonUtil", GetPathValue<TESForm*>, registry));
+	//registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, bool, BSFixedString, BSFixedString, bool>("GetPathBoolValue", "JsonUtil", GetPathValue<bool>, registry));
+	registry->SetFunctionFlags("JsonUtil", "GetPathIntValue", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("JsonUtil", "GetPathFloatValue", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("JsonUtil", "GetPathStringValue", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("JsonUtil", "GetPathFormValue", VMClassRegistry::kFunctionFlag_NoWait);
+	//registry->SetFunctionFlags("JsonUtil", "GetPathBoolValue", VMClassRegistry::kFunctionFlag_NoWait);
+
+	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, VMResultArray<SInt32>, BSFixedString, BSFixedString, SInt32>("PathIntElements", "JsonUtil", PathElements<SInt32>, registry));
+	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, VMResultArray<float>, BSFixedString, BSFixedString, float>("PathFloatElements", "JsonUtil", PathElements<float>, registry));
+	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, VMResultArray<BSFixedString>, BSFixedString, BSFixedString, BSFixedString>("PathStringElements", "JsonUtil", PathElements<BSFixedString>, registry));
+	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, VMResultArray<TESForm*>, BSFixedString, BSFixedString, TESForm*>("PathFormElements", "JsonUtil", PathElements<TESForm*>, registry));
+	registry->SetFunctionFlags("JsonUtil", "PathIntElements", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("JsonUtil", "PathFloatElements", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("JsonUtil", "PathStringElements", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("JsonUtil", "PathFormElements", VMClassRegistry::kFunctionFlag_NoWait);
+
+	registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, VMResultArray<BSFixedString>, BSFixedString, BSFixedString>("PathMembers", "JsonUtil", PathMembers, registry));
+	registry->SetFunctionFlags("JsonUtil", "PathMembers", VMClassRegistry::kFunctionFlag_NoWait);
+
+	registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, SInt32, BSFixedString, BSFixedString>("PathCount", "JsonUtil", PathCount, registry));
+	registry->SetFunctionFlags("JsonUtil", "PathCount", VMClassRegistry::kFunctionFlag_NoWait);
+
+	registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, bool, BSFixedString, BSFixedString>("CanResolvePath", "JsonUtil", CanResolve, registry));
+	registry->SetFunctionFlags("JsonUtil", "CanResolvePath", VMClassRegistry::kFunctionFlag_NoWait);
+
+	registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, bool, BSFixedString, BSFixedString>("IsPathObject", "JsonUtil", IsObject, registry));
+	registry->SetFunctionFlags("JsonUtil", "IsPathObject", VMClassRegistry::kFunctionFlag_NoWait);
+
+	registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, bool, BSFixedString, BSFixedString>("IsPathArray", "JsonUtil", IsArray, registry));
+	registry->SetFunctionFlags("JsonUtil", "IsPathArray", VMClassRegistry::kFunctionFlag_NoWait);
+
+	registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, bool, BSFixedString, BSFixedString>("IsPathString", "JsonUtil", IsString, registry));
+	registry->SetFunctionFlags("JsonUtil", "IsPathString", VMClassRegistry::kFunctionFlag_NoWait);
+
+	registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, bool, BSFixedString, BSFixedString>("IsPathNumber", "JsonUtil", IsNumber, registry));
+	registry->SetFunctionFlags("JsonUtil", "IsPathNumber", VMClassRegistry::kFunctionFlag_NoWait);
+
+	registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, bool, BSFixedString, BSFixedString>("IsPathBool", "JsonUtil", IsBool, registry));
+	registry->SetFunctionFlags("JsonUtil", "IsPathBool", VMClassRegistry::kFunctionFlag_NoWait);
+
+	registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, bool, BSFixedString, BSFixedString>("IsPathForm", "JsonUtil", IsForm, registry));
+	registry->SetFunctionFlags("JsonUtil", "IsPathForm", VMClassRegistry::kFunctionFlag_NoWait);
 
 	// Global  values
 	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, SInt32, BSFixedString, BSFixedString, SInt32>("SetIntValue", "JsonUtil", SetValue<SInt32>, registry));

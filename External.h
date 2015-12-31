@@ -15,6 +15,7 @@
 
 namespace External {
 	typedef Json::Value Value;
+	typedef Json::Path Path;
 
 	template<typename T>
 	inline Value MakeValue(T v) { return Value(v); }
@@ -22,13 +23,27 @@ namespace External {
 	template <> inline Value MakeValue<float>(float v) { return Value(v); }
 	template <> inline Value MakeValue<BSFixedString>(BSFixedString v) { return Value(v.data); }
 	template <> inline Value MakeValue<TESForm*>(TESForm* v) { return Value(Forms::GetFormString(v)); }
+	//template <> inline Value MakeValue<TESForm*>(TESForm* v) { return Value(Forms::GetFormString(v)); }
 
 	template <typename T>
 	inline T ParseValue(Value value, T missing){ return; };
-	template <> inline SInt32 ParseValue<SInt32>(Value value, SInt32 missing){ return value.isNull() ? missing : value.asInt(); }
-	template <> inline float ParseValue<float>(Value value, float missing){ return value.isNull() ? missing : value.asFloat(); }
-	template <> inline BSFixedString ParseValue<BSFixedString>(Value value, BSFixedString missing){ return value.isNull() ? missing : BSFixedString(value.asCString()); }
-	template <> inline TESForm* ParseValue<TESForm*>(Value value, TESForm* missing){ return value.isNull() ? missing : Forms::ParseFormString(value.asString()); }
+	template <> inline SInt32 ParseValue<SInt32>(Value value, SInt32 missing){ return (value.isNull() || !value.isConvertibleTo(Json::intValue)) ? missing : value.asInt(); }
+	template <> inline float ParseValue<float>(Value value, float missing){ return (value.isNull() || !value.isConvertibleTo(Json::realValue)) ? missing : value.asFloat(); }
+	template <> inline BSFixedString ParseValue<BSFixedString>(Value value, BSFixedString missing){
+		return value.isString() ? BSFixedString(value.asCString()) : (!value.isNull() && value.isConvertibleTo(Json::stringValue)) ? BSFixedString(value.asString().c_str()) : missing;
+	}
+	template <> inline TESForm* ParseValue<TESForm*>(Value value, TESForm* missing) {
+		return value.isString() ? Forms::ParseFormString(value.asString()) : missing;
+	}
+	
+	/*template <> inline TESForm* ParseValue<TESForm*>(Value value, TESForm* missing) {
+		if (value.isNull()) return missing;
+		else if (value.isString()) return Forms::ParseFormString(value.asString());
+		else if (value.isArray() && value.size() == 2) {
+			return Forms::ParseForm(value.get(Value::ArrayIndex(0), Value::null).asInt(), value.get(1, Value::null).asCString());
+		}
+		else return missing;
+	}*/
 
 	template <typename T>
 	inline T ParseValue(Value value){ T t = T(); return ParseValue<T>(value, t); }
@@ -38,17 +53,17 @@ namespace External {
 	template <> inline TESForm* ParseValue<TESForm*>(Value value){ return ParseValue<TESForm*>(value, NULL); }
 
 	// value type keys
-	template<typename T> inline std::string Type(){ return "x"; }
-	template <> inline std::string Type<SInt32>(){ return "int"; }
-	template <> inline std::string Type<float>(){ return "float"; }
-	template <> inline std::string Type<BSFixedString>(){ return "string"; }
-	template <> inline std::string Type<TESForm*>(){ return "form"; }
+	template<typename T> inline std::string const Type(){ return "x"; }
+	template <> inline std::string const Type<SInt32>(){ return "int"; }
+	template <> inline std::string const Type<float>(){ return "float"; }
+	template <> inline std::string const Type<BSFixedString>(){ return "string"; }
+	template <> inline std::string const Type<TESForm*>(){ return "form"; }
 
-	template<typename T> inline std::string List(){ return "x"; }
-	template <> inline std::string List<SInt32>(){ return "intList"; }
-	template <> inline std::string List<float>(){ return "floatList"; }
-	template <> inline std::string List<BSFixedString>(){ return "stringList"; }
-	template <> inline std::string List<TESForm*>(){ return "formList"; }
+	template<typename T> inline const std::string List(){ return "x"; }
+	template <> inline std::string const List<SInt32>(){ return "intList"; }
+	template <> inline std::string const List<float>(){ return "floatList"; }
+	template <> inline std::string const List<BSFixedString>(){ return "stringList"; }
+	template <> inline std::string const List<TESForm*>(){ return "formList"; }
 	
 	class ExternalFile{
 	private:
@@ -89,6 +104,25 @@ namespace External {
 		template <typename T> bool ListCopy(std::string key, VMArray<T> Input);
 		template <typename T> VMResultArray<T> ToArray(std::string key);
 
+
+		inline Value Resolve(std::string pathto) { Path path(pathto.front() != '.' ? '.' + pathto : pathto); return path.resolve(root, Value(Json::nullValue)); }
+		inline Value Resolve(std::string pathto, Value missing) { Path path(pathto.front() != '.' ? '.' + pathto : pathto); return path.resolve(root, missing); }
+
+		template <typename T> void SetPathValue(std::string path, Value var);
+		template <typename T> T GetPathValue(std::string path, T defaultValue);
+		template <typename T> VMResultArray<T> PathElements(std::string path, T invalidType);
+		VMResultArray<BSFixedString> PathMembers(std::string path);
+		int PathCount(std::string path);
+
+		//Value ResolveValue(std::string path, Value value);
+		bool CanResolve(std::string path);
+		bool IsObject(std::string path);
+		bool IsArray(std::string path);
+		bool IsString(std::string path);
+		bool IsNumber(std::string path);
+		bool IsBool(std::string path);
+		bool IsForm(std::string path);
+
 		int CountPrefix(std::string type, std::string prefix);
 		//int ClearPrefix(std::string type, std::string prefix);
 
@@ -106,6 +140,8 @@ namespace External {
 
 	typedef std::vector<ExternalFile*> FileVector;
 	ExternalFile* GetFile(std::string name);
+	bool RevertFile(std::string name, bool savechanges, bool minify);
+	bool ChangesPending(std::string name);
 	void SaveFiles();
 	void RevertFiles();
 

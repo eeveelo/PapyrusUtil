@@ -346,6 +346,34 @@ namespace StorageUtil {
 	}
 
 	template <typename T, typename S>
+	UInt32 ObjCountValuesPrefixKey(StaticFunctionTag* base, TESForm* obj, BSFixedString prefix) {
+		return Data::GetValues<T, S>()->CountPrefixKey(GetFormKey(obj), prefix.data);
+	}
+
+	template <typename T, typename S>
+	UInt32 ObjCountListsPrefixKey(StaticFunctionTag* base, TESForm* obj, BSFixedString prefix) {
+		return Data::GetLists<T, S>()->CountPrefixKey(GetFormKey(obj), prefix.data);
+	}
+	
+	UInt32 ObjCountAllPrefix(StaticFunctionTag* base, TESForm* obj, BSFixedString prefix) {
+		UInt32 count  = 0;
+		UInt64 objkey = GetFormKey(obj);
+		std::string key = prefix.data;
+		if (!key.empty()) {
+			count += Data::GetValues<SInt32, SInt32>()->CountPrefixKey(objkey, key);
+			count += Data::GetValues<float, float>()->CountPrefixKey(objkey, key);
+			count += Data::GetValues<BSFixedString, std::string>()->CountPrefixKey(objkey, key);
+			count += Data::GetValues<TESForm*, UInt32>()->CountPrefixKey(objkey, key);
+			// Lists
+			count += Data::GetLists<SInt32, SInt32>()->CountPrefixKey(objkey, key);
+			count += Data::GetLists<float, float>()->CountPrefixKey(objkey, key);
+			count += Data::GetLists<BSFixedString, std::string>()->CountPrefixKey(objkey, key);
+			count += Data::GetLists<TESForm*, UInt32>()->CountPrefixKey(objkey, key);
+		}
+		return count;
+	}
+
+	template <typename T, typename S>
 	UInt32 ClearValuesPrefixKey(StaticFunctionTag* base, BSFixedString prefix) {
 		return Data::GetValues<T, S>()->ClearPrefixKey(prefix.data);
 	}
@@ -368,6 +396,34 @@ namespace StorageUtil {
 			count += Data::GetLists<float, float>()->ClearPrefixKey(key);
 			count += Data::GetLists<BSFixedString, std::string>()->ClearPrefixKey(key);
 			count += Data::GetLists<TESForm*, UInt32>()->ClearPrefixKey(key);
+		}
+		return count;
+	}
+
+	template <typename T, typename S>
+	UInt32 ObjClearValuesPrefixKey(StaticFunctionTag* base, TESForm* obj, BSFixedString prefix) {
+		return Data::GetValues<T, S>()->ClearPrefixKey(GetFormKey(obj), prefix.data);
+	}
+
+	template <typename T, typename S>
+	UInt32 ObjClearListsPrefixKey(StaticFunctionTag* base, TESForm* obj, BSFixedString prefix) {
+		return Data::GetLists<T, S>()->ClearPrefixKey(GetFormKey(obj), prefix.data);
+	}
+
+	UInt32 ObjClearAllPrefix(StaticFunctionTag* base, TESForm* obj, BSFixedString prefix) {
+		UInt32 count = 0;
+		UInt64 objkey = GetFormKey(obj);
+		std::string key = prefix.data;
+		if (!key.empty()) {
+			count += Data::GetValues<SInt32, SInt32>()->ClearPrefixKey(objkey, key);
+			count += Data::GetValues<float, float>()->ClearPrefixKey(objkey, key);
+			count += Data::GetValues<BSFixedString, std::string>()->ClearPrefixKey(objkey, key);
+			count += Data::GetValues<TESForm*, UInt32>()->ClearPrefixKey(objkey, key);
+			// Lists
+			count += Data::GetLists<SInt32, SInt32>()->ClearPrefixKey(objkey, key);
+			count += Data::GetLists<float, float>()->ClearPrefixKey(objkey, key);
+			count += Data::GetLists<BSFixedString, std::string>()->ClearPrefixKey(objkey, key);
+			count += Data::GetLists<TESForm*, UInt32>()->ClearPrefixKey(objkey, key);
 		}
 		return count;
 	}
@@ -785,6 +841,47 @@ void StorageUtil::RegisterFuncs(VMClassRegistry* registry) {
 	registry->RegisterFunction(new NativeFunction1 <StaticFunctionTag, UInt32, BSFixedString>("ClearFormListPrefix", "StorageUtil", ClearListsPrefixKey<TESForm*, UInt32>, registry));
 
 	registry->RegisterFunction(new NativeFunction1 <StaticFunctionTag, UInt32, BSFixedString>("ClearAllPrefix", "StorageUtil", ClearAllPrefix, registry));
+
+
+	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, UInt32, TESForm*, BSFixedString>("CountObjIntValuePrefix", "StorageUtil", ObjCountValuesPrefixKey<SInt32, SInt32>, registry));
+	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, UInt32, TESForm*, BSFixedString>("CountObjFloatValuePrefix", "StorageUtil", ObjCountValuesPrefixKey<float, float>, registry));
+	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, UInt32, TESForm*, BSFixedString>("CountObjStringValuePrefix", "StorageUtil", ObjCountValuesPrefixKey<BSFixedString, std::string>, registry));
+	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, UInt32, TESForm*, BSFixedString>("CountObjFormValuePrefix", "StorageUtil", ObjCountValuesPrefixKey<TESForm*, UInt32>, registry));
+	registry->SetFunctionFlags("StorageUtil", "CountObjIntValuePrefix", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "CountObjFloatValuePrefix", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "CountObjStringValuePrefix", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "CountObjFormValuePrefix", VMClassRegistry::kFunctionFlag_NoWait);
+
+	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, UInt32, TESForm*, BSFixedString>("CountObjIntListPrefix", "StorageUtil", ObjCountListsPrefixKey<SInt32, SInt32>, registry));
+	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, UInt32, TESForm*, BSFixedString>("CountObjFloatListPrefix", "StorageUtil", ObjCountListsPrefixKey<float, float>, registry));
+	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, UInt32, TESForm*, BSFixedString>("CountObjStringListPrefix", "StorageUtil", ObjCountListsPrefixKey<BSFixedString, std::string>, registry));
+	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, UInt32, TESForm*, BSFixedString>("CountObjFormListPrefix", "StorageUtil", ObjCountListsPrefixKey<TESForm*, UInt32>, registry));
+	registry->SetFunctionFlags("StorageUtil", "CountObjIntListPrefix", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "CountObjFloatListPrefix", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "CountObjStringListPrefix", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "CountObjFormListPrefix", VMClassRegistry::kFunctionFlag_NoWait);
+
+	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, UInt32, TESForm*, BSFixedString>("CountAllObjPrefix", "StorageUtil", ObjCountAllPrefix, registry));
+
+	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, UInt32, TESForm*, BSFixedString>("ClearObjIntValuePrefix", "StorageUtil", ObjClearValuesPrefixKey<SInt32, SInt32>, registry));
+	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, UInt32, TESForm*, BSFixedString>("ClearObjFloatValuePrefix", "StorageUtil", ObjClearValuesPrefixKey<float, float>, registry));
+	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, UInt32, TESForm*, BSFixedString>("ClearObjStringValuePrefix", "StorageUtil", ObjClearValuesPrefixKey<BSFixedString, std::string>, registry));
+	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, UInt32, TESForm*, BSFixedString>("ClearObjFormValuePrefix", "StorageUtil", ObjClearValuesPrefixKey<TESForm*, UInt32>, registry));
+	registry->SetFunctionFlags("StorageUtil", "ClearObjIntValuePrefix", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "ClearObjFloatValuePrefix", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "ClearObjStringValuePrefix", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "ClearObjFormValuePrefix", VMClassRegistry::kFunctionFlag_NoWait);
+
+	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, UInt32, TESForm*, BSFixedString>("ClearObjIntListPrefix", "StorageUtil", ObjClearListsPrefixKey<SInt32, SInt32>, registry));
+	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, UInt32, TESForm*, BSFixedString>("ClearObjFloatListPrefix", "StorageUtil", ObjClearListsPrefixKey<float, float>, registry));
+	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, UInt32, TESForm*, BSFixedString>("ClearObjStringListPrefix", "StorageUtil", ObjClearListsPrefixKey<BSFixedString, std::string>, registry));
+	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, UInt32, TESForm*, BSFixedString>("ClearObjFormListPrefix", "StorageUtil", ObjClearListsPrefixKey<TESForm*, UInt32>, registry));
+	registry->SetFunctionFlags("StorageUtil", "ClearObjIntListPrefix", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "ClearObjFloatListPrefix", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "ClearObjStringListPrefix", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "ClearObjFormListPrefix", VMClassRegistry::kFunctionFlag_NoWait);
+
+	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, UInt32, TESForm*, BSFixedString>("ClearAllObjPrefix", "StorageUtil", ObjClearAllPrefix, registry));
 
 	// Debug Functions
 	registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, void, TESForm*>("debug_DeleteValues", "StorageUtil", DeleteValues, registry));

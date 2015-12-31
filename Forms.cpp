@@ -140,25 +140,52 @@ namespace Forms {
 	}
 
 	// Form Strings
+	bool ends_with(const std::string &str, const std::string &suffix) {
+		return str.size() >= suffix.size() && str.compare(str.size() - suffix.size(), suffix.size(), suffix) == 0;
+	}
+
+	bool IsFormString(const std::string &str) {
+		if (str.size() < 6 || str.find("|") == std::string::npos) return false;
+		else return ends_with(str, ".esp") || ends_with(str, ".esm");
+	}
+
 	std::string GetFormString(TESForm* obj){
 		if (!obj) return "0";
 		DataHandler *Data = DataHandler::GetSingleton();
 		ModInfo *modInfo = Data->modList.loadedMods[GetModIndex(obj)];
 		if (!modInfo) return "0";
-		UInt32 id   = GetBaseID(obj);
+		UInt32 id = GetBaseID(obj);
 		std::stringstream ss;
 		ss << id << "|" << modInfo->name;
 		return ss.str();
 	}
 
-	TESForm* ParseFormString(std::string &objString){
-		if (objString.empty() || objString.size() < 5) return NULL;
-		std::vector<std::string> var;
+	TESForm* ParseFormString(const std::string &objString) {
+		if (!IsFormString(objString)) return NULL;
+		
+		std::size_t pos = objString.find("|");
+		//if (pos == std::string::npos) return NULL;
+
+		UInt32 obj = atoi(objString.substr(0, pos).c_str());
+		UInt8 index = DataHandler::GetSingleton()->GetModIndex(objString.substr(pos + 1).c_str());
+		obj = (((UInt32)index) << 24) | obj;
+		return obj == 0 ? NULL : LookupFormByID(obj);
+
+		/*std::vector<std::string> var;
 		boost::split(var, objString, boost::is_any_of("|"));
 		UInt32 obj = atoi(var[0].c_str());
 		UInt8 index = DataHandler::GetSingleton()->GetModIndex(var[1].c_str());
 		obj = (((UInt32)index) << 24) | obj;
+		return obj == 0 ? NULL : LookupFormByID(obj);*/
+	}
+
+	TESForm* ParseForm(UInt32 &obj, const char* mod) {
+		UInt8 index = DataHandler::GetSingleton()->GetModIndex(mod);
+		obj = (((UInt32)index) << 24) | obj;
 		return obj == 0 ? NULL : LookupFormByID(obj);
 	}
+
+	
+
 
 }

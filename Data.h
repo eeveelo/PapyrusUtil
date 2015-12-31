@@ -76,6 +76,8 @@ namespace Data
 		bool HasValue(UInt64 obj, std::string key);
 		int ClearPrefixKey(std::string prefix);
 		int CountPrefixKey(std::string prefix);
+		int ClearPrefixKey(UInt64 obj, std::string prefix);
+		int CountPrefixKey(UInt64 obj, std::string prefix);
 
 		// Serialization
 		void Revert();
@@ -126,6 +128,8 @@ namespace Data
 		VMResultArray<T> ToArray(UInt64 obj, std::string key);
 		int ClearPrefixKey(std::string prefix);
 		int CountPrefixKey(std::string prefix);
+		int ClearPrefixKey(UInt64 obj, std::string prefix);
+		int CountPrefixKey(UInt64 obj, std::string prefix);
 
 		List* GetVector(UInt64 &obj, std::string &key){
 			Map::iterator itr = Data.find(obj);

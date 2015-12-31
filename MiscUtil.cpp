@@ -1,5 +1,8 @@
 #include "MiscUtil.h"
 
+#include <boost/filesystem.hpp>
+#include <boost/algorithm/string.hpp>
+
 #include "skse/GameAPI.h"
 #include "skse/GameCamera.h"
 #include "skse/GameReferences.h"
@@ -73,11 +76,11 @@ namespace MiscUtil {
 	}
 
 	BSFixedString GetRaceEditorID(StaticFunctionTag* base, TESRace* RaceRef) {
-		return RaceRef ? BSFixedString(RaceRef->editorId.data) : NULL;
+		return RaceRef ? RaceRef->editorId.data : NULL;
 	}
 
 	BSFixedString GetActorRaceEditorID(StaticFunctionTag* base, Actor* ActorRef) {
-		return ActorRef ? BSFixedString(ActorRef->race->editorId.data) : NULL;
+		return ActorRef ? ActorRef->race->editorId.data : NULL;
 	}
 
 
@@ -153,6 +156,36 @@ namespace MiscUtil {
 		return output;
 	}
 
+
+	namespace fs = boost::filesystem;
+	VMResultArray<BSFixedString> FilesInFolder(StaticFunctionTag* base, BSFixedString dirpath, BSFixedString extension) {
+		VMResultArray<BSFixedString> arr;
+		if (dirpath.data && dirpath.data[0] != '\0') {
+			fs::path dir(dirpath.data);
+			fs::directory_iterator end_iter;
+			if (fs::exists(dir) && fs::is_directory(dir)) {
+				std::string ext;
+				if (extension.data[0] == '.') ext = extension.data;
+				else {
+					ext = ".";
+					ext.append(extension.data);
+				}
+				_MESSAGE("dir: %s ext: %s", dirpath.data, ext.c_str());
+				for (fs::directory_iterator dir_iter(dir); dir_iter != end_iter; ++dir_iter) {
+					if (fs::is_regular_file(dir_iter->status())) {
+						fs::path filepath = dir_iter->path();
+						std::string file = filepath.filename().generic_string();
+						//std::string ext = filepath.extension().generic_string();
+						//_MESSAGE("file: %s ext: %s", file.c_str(), ext.c_str());
+						if (ext == "*" || boost::iequals(filepath.extension().generic_string(), ext))
+							arr.push_back(BSFixedString(file.c_str()));
+					}
+				}
+			}
+		}
+		return arr;
+	}
+
 } // MiscUtil
 
 
@@ -184,7 +217,8 @@ void MiscUtil::RegisterFuncs(VMClassRegistry* registry) {
 	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, VMResultArray<Actor*>, TESObjectREFR*, float, BGSKeyword*>("ScanCellActors", "MiscUtil", ScanCellActors, registry));
 	registry->RegisterFunction(new NativeFunction4<StaticFunctionTag, VMResultArray<TESObjectREFR*>, UInt32, TESObjectREFR*, float, BGSKeyword*>("ScanCellObjects", "MiscUtil", ScanCellObjects, registry));
 
-
+	registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, VMResultArray<BSFixedString>, BSFixedString, BSFixedString>("FilesInFolder", "MiscUtil", FilesInFolder, registry));
+	registry->SetFunctionFlags("MiscUtil", "FilesInFolder", VMClassRegistry::kFunctionFlag_NoWait);
 }
 
 
