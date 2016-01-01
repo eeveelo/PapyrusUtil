@@ -17,6 +17,7 @@ namespace External {
 	typedef Json::Value Value;
 	typedef Json::Path Path;
 
+
 	template<typename T>
 	inline Value MakeValue(T v) { return Value(v); }
 	template <> inline Value MakeValue<SInt32>(SInt32 v) { return Value::Int(v); }
@@ -25,26 +26,25 @@ namespace External {
 	template <> inline Value MakeValue<TESForm*>(TESForm* v) { return Value(Forms::GetFormString(v)); }
 	//template <> inline Value MakeValue<TESForm*>(TESForm* v) { return Value(Forms::GetFormString(v)); }
 
-	template <typename T>
-	inline T ParseValue(Value value, T missing){ return; };
-	template <> inline SInt32 ParseValue<SInt32>(Value value, SInt32 missing){ return (value.isNull() || !value.isConvertibleTo(Json::intValue)) ? missing : value.asInt(); }
-	template <> inline float ParseValue<float>(Value value, float missing){ return (value.isNull() || !value.isConvertibleTo(Json::realValue)) ? missing : value.asFloat(); }
-	template <> inline BSFixedString ParseValue<BSFixedString>(Value value, BSFixedString missing){
+
+	/*template <typename T>
+	inline T ParseValue(Value value, T missing) { return; };
+	template <> inline SInt32 ParseValue<SInt32>(Value value, SInt32 missing) { return (value.isNull() || !value.isConvertibleTo(Json::intValue)) ? missing : value.asInt(); }
+	template <> inline float ParseValue<float>(Value value, float missing) { return (value.isNull() || !value.isConvertibleTo(Json::realValue)) ? missing : value.asFloat(); }
+	template <> inline BSFixedString ParseValue<BSFixedString>(Value value, BSFixedString missing) {
 		return value.isString() ? BSFixedString(value.asCString()) : (!value.isNull() && value.isConvertibleTo(Json::stringValue)) ? BSFixedString(value.asString().c_str()) : missing;
 	}
 	template <> inline TESForm* ParseValue<TESForm*>(Value value, TESForm* missing) {
 		return value.isString() ? Forms::ParseFormString(value.asString()) : missing;
-	}
-	
-	/*template <> inline TESForm* ParseValue<TESForm*>(Value value, TESForm* missing) {
-		if (value.isNull()) return missing;
-		else if (value.isString()) return Forms::ParseFormString(value.asString());
-		else if (value.isArray() && value.size() == 2) {
-			return Forms::ParseForm(value.get(Value::ArrayIndex(0), Value::null).asInt(), value.get(1, Value::null).asCString());
-		}
-		else return missing;
 	}*/
 
+	template <typename T>
+	inline T ParseValue(Value value, T missing){ return; };
+	template <> inline SInt32 ParseValue<SInt32>(Value value, SInt32 missing){ return value.isNull() ? missing : value.asInt(); }
+	template <> inline float ParseValue<float>(Value value, float missing){ return value.isNull() ? missing : value.asFloat(); }
+	template <> inline BSFixedString ParseValue<BSFixedString>(Value value, BSFixedString missing){ return value.isString() ? BSFixedString(value.asCString()) : missing; }
+	template <> inline TESForm* ParseValue<TESForm*>(Value value, TESForm* missing) { return value.isNull() ? missing : Forms::ParseFormString(value.asString()); }
+	
 	template <typename T>
 	inline T ParseValue(Value value){ T t = T(); return ParseValue<T>(value, t); }
 	template <> inline SInt32 ParseValue<SInt32>(Value value){ return ParseValue<SInt32>(value, 0); }
@@ -53,18 +53,19 @@ namespace External {
 	template <> inline TESForm* ParseValue<TESForm*>(Value value){ return ParseValue<TESForm*>(value, NULL); }
 
 	// value type keys
-	template<typename T> inline std::string const Type(){ return "x"; }
-	template <> inline std::string const Type<SInt32>(){ return "int"; }
-	template <> inline std::string const Type<float>(){ return "float"; }
-	template <> inline std::string const Type<BSFixedString>(){ return "string"; }
-	template <> inline std::string const Type<TESForm*>(){ return "form"; }
+	template<typename T> inline const char* Type(){ return "x"; }
+	template <> inline const char* Type<SInt32>(){ return "int"; }
+	template <> inline const char* Type<float>(){ return "float"; }
+	template <> inline const char* Type<BSFixedString>(){ return "string"; }
+	template <> inline const char* Type<TESForm*>(){ return "form"; }
 
-	template<typename T> inline const std::string List(){ return "x"; }
-	template <> inline std::string const List<SInt32>(){ return "intList"; }
-	template <> inline std::string const List<float>(){ return "floatList"; }
-	template <> inline std::string const List<BSFixedString>(){ return "stringList"; }
-	template <> inline std::string const List<TESForm*>(){ return "formList"; }
+	template<typename T> inline const char* List(){ return "x"; }
+	template <> inline const char* List<SInt32>(){ return "intList"; }
+	template <> inline const char* List<float>(){ return "floatList";}
+	template <> inline const char* List<BSFixedString>(){ return "stringList"; }
+	template <> inline const char* List<TESForm*>(){ return "formList"; }
 	
+
 	class ExternalFile{
 	private:
 		Value root;
@@ -78,8 +79,25 @@ namespace External {
 
 		ExternalFile(std::string doc) : isModified(false), minify(false) { name = doc; docpath = "Data\\SKSE\\Plugins\\StorageUtilData\\" + doc; LoadFile(); } //reader = Json::Features::strictMode(); 
 
-		inline bool HasKey(std::string &type, std::string &key){ return root.isMember(type) && root[type].isMember(key); }
-	
+
+																																							   //template<typename T>
+																																							   //inline Value make(T v) { return Value(v); }
+		inline Value make(SInt32 v) const;
+		inline Value make(float v) const;
+		inline Value make(BSFixedString v) const;
+		inline Value make(TESForm* v) const;
+
+		inline SInt32 parse(Value value, SInt32 missing) const;
+		inline float parse(Value value, float missing) const;
+		inline TESForm* parse(Value value, TESForm* missing) const;
+		inline BSFixedString parse(Value value, BSFixedString missing) const;
+
+		template<typename T> inline bool HasKey(const std::string &key) { return root.isMember(Type<T>()) && root[Type<T>()].isMember(key); }
+		inline bool HasKey(std::string &type, std::string &key) { return root.isMember(type) && root[type].isMember(key); }
+
+		template <typename T> void SetValue(std::string key, T value);
+		template <typename T> T GetValue(std::string key, T value);
+
 		void SetValue(std::string type, std::string key, Value value);
 		Value GetValue(std::string type, std::string key, Value value);
 		Value AdjustValue(std::string type, std::string key, Value value);

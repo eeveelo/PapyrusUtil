@@ -149,7 +149,7 @@ namespace Forms {
 		else return ends_with(str, ".esp") || ends_with(str, ".esm");
 	}
 
-	std::string GetFormString(TESForm* obj){
+	const std::string GetFormString(TESForm* obj){
 		if (!obj) return "0";
 		DataHandler *Data = DataHandler::GetSingleton();
 		ModInfo *modInfo = Data->modList.loadedMods[GetModIndex(obj)];

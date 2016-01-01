@@ -32,7 +32,7 @@ namespace Forms {
 	
 	// Form Strings
 	bool IsFormString(const std::string &str);
-	std::string GetFormString(TESForm* obj);
+	const std::string GetFormString(TESForm* obj);
 	TESForm* ParseFormString(const std::string &objString);
 	TESForm* ParseForm(UInt32 &obj, const char* mod);
 

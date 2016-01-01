@@ -22,6 +22,33 @@ namespace External {
 	static FileVector* s_Files = NULL;
 
 
+	// Make value for storage
+	inline Value ExternalFile::make(SInt32 v) const {
+		return Value::Int(v);
+	}
+	inline Value ExternalFile::make(float v) const {
+		return Value(v);
+	}
+	inline Value ExternalFile::make(BSFixedString v) const {
+		return Value(v.data);
+	}
+	inline Value ExternalFile::make(TESForm* v) const {
+		return Value(Forms::GetFormString(v));
+	}
+
+	// Parse json value for output
+	inline SInt32 ExternalFile::parse(Value value, SInt32 missing) const {
+		return (value.isInt() || (!value.isNull() && value.isConvertibleTo(Json::intValue))) ? value.asInt() : missing;
+	}
+	inline float ExternalFile::parse(Value value, float missing)  const {
+		return (value.isDouble() || (!value.isNull() && value.isConvertibleTo(Json::realValue))) ? value.asFloat() : missing;
+	}
+	inline TESForm* ExternalFile::parse(Value value, TESForm* missing) const {
+		return value.isString() ? Forms::ParseFormString(value.asString()) : missing;
+	}
+	inline BSFixedString ExternalFile::parse(Value value, BSFixedString missing) const {
+		return value.isString() ? BSFixedString(value.asCString()) : (!value.isNull() && value.isConvertibleTo(Json::stringValue)) ? BSFixedString(value.asString().c_str()) : missing;
+	}
 
 
 	/*
@@ -29,6 +56,35 @@ namespace External {
 	// GLOBAL KEY => VALUE STORAGE
 	//
 	*/
+
+
+	template <typename T>
+	void ExternalFile::SetValue(std::string key, T value) {
+		s_dataLock.Enter();
+		boost::to_lower(key);
+		root[Type<T>()][key] = make(value);
+		isModified = true;
+		s_dataLock.Leave();
+	}
+	template void ExternalFile::SetValue<SInt32>(std::string key, SInt32 value);
+	template void ExternalFile::SetValue<float>(std::string key, float value);
+	template void ExternalFile::SetValue<BSFixedString>(std::string key, BSFixedString value);
+	template void ExternalFile::SetValue<TESForm*>(std::string key, TESForm* value);
+
+	template <typename T>
+	T ExternalFile::GetValue(std::string key, T value) {
+		s_dataLock.Enter();
+		boost::to_lower(key);
+		if (HasKey<T>(key))
+			value = parse(root[Type<T>()][key], value);
+		s_dataLock.Leave();
+		return value;
+	}
+	template SInt32 ExternalFile::GetValue<SInt32>(std::string key, SInt32 value);
+	template float ExternalFile::GetValue<float>(std::string key, float value);
+	template BSFixedString ExternalFile::GetValue<BSFixedString>(std::string key, BSFixedString value);
+	template TESForm* ExternalFile::GetValue<TESForm*>(std::string key, TESForm* value);
+
 	void ExternalFile::SetValue(std::string type, std::string key, Value value) {
 		s_dataLock.Enter();
 		boost::to_lower(key);
