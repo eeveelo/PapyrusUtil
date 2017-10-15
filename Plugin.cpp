@@ -70,10 +70,7 @@ namespace Plugin {
 		_MESSAGE("-done");
 
 	}
-	void Update() {
-		//float timePassed = *((float*)0x1B4ADE4);
-		//AnimUtil::Update(timePassed);
-	}
+
 
 	bool RegisterFuncs(VMClassRegistry* registry) {
 		_MESSAGE("Registering functions...");

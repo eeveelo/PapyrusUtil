@@ -5,6 +5,10 @@
 
 #include "skse/GameAPI.h"
 
+#include "skse/GameRTTI.h"
+#include "skse/GameTypes.h"
+#include "skse/GameReferences.h"
+
 namespace Forms {
 
 	static UInt8 s_savefileIndexMap[0xFF];
@@ -144,20 +148,32 @@ namespace Forms {
 		return str.size() >= suffix.size() && str.compare(str.size() - suffix.size(), suffix.size(), suffix) == 0;
 	}
 
+
 	bool IsFormString(const std::string &str) {
-		if (str.size() < 6 || str.find("|") == std::string::npos) return false;
-		else return ends_with(str, ".esp") || ends_with(str, ".esm");
+		if (str.size() < 4 || str.find("|") == std::string::npos) return false;
+		else return ends_with(str, ".esp") || ends_with(str, ".esm") || ends_with(str, ".FF");
 	}
 
 	const std::string GetFormString(TESForm* obj){
 		if (!obj) return "0";
-		DataHandler *Data = DataHandler::GetSingleton();
-		ModInfo *modInfo = Data->modList.loadedMods[GetModIndex(obj)];
-		if (!modInfo) return "0";
-		UInt32 id = GetBaseID(obj);
+
 		std::stringstream ss;
-		ss << id << "|" << modInfo->name;
-		return ss.str();
+		UInt32 id = GetBaseID(obj);
+		ss << id << "|";
+		UInt8 index = GetModIndex(obj);
+		if (index < 0xFF) {
+			// esp & esm objects
+			DataHandler *Data = DataHandler::GetSingleton();
+			ModInfo *modInfo = Data->modList.loadedMods[GetModIndex(obj)];
+			ss << modInfo->name;
+		}
+		else {
+			// Temp objects - save form type as part of modname
+			ss << (int)obj->formType << ".FF";
+		}
+		
+		const std::string out = ss.str();
+		return out;
 	}
 
 	TESForm* ParseFormString(const std::string &objString) {
@@ -167,9 +183,24 @@ namespace Forms {
 		//if (pos == std::string::npos) return NULL;
 
 		UInt32 obj = atoi(objString.substr(0, pos).c_str());
-		UInt8 index = DataHandler::GetSingleton()->GetModIndex(objString.substr(pos + 1).c_str());
-		obj = (((UInt32)index) << 24) | obj;
-		return obj == 0 ? NULL : LookupFormByID(obj);
+		std::string mod = objString.substr(pos + 1);
+
+		if (ends_with(objString, ".FF")) {
+			// Temp objects - check form type
+			mod.resize((mod.length() - 3));
+			UInt8 type = atoi(mod.c_str());
+			obj = (((UInt32)0xFF) << 24) | obj;
+			TESForm* objform = obj == 0 ? NULL : LookupFormByID(obj);
+			if (objform && objform->formType == type) return objform;
+			else return NULL;
+		}
+		else {
+			// esp & esm objects
+			UInt8 index = DataHandler::GetSingleton()->GetModIndex(mod.c_str());
+			obj = (((UInt32)index) << 24) | obj;
+			return obj == 0 ? NULL : LookupFormByID(obj);
+		}
+
 
 		/*std::vector<std::string> var;
 		boost::split(var, objString, boost::is_any_of("|"));
@@ -181,11 +212,8 @@ namespace Forms {
 
 	TESForm* ParseForm(UInt32 &obj, const char* mod) {
 		UInt8 index = DataHandler::GetSingleton()->GetModIndex(mod);
+		if (index >= 0xFF) index = 0xFF;
 		obj = (((UInt32)index) << 24) | obj;
 		return obj == 0 ? NULL : LookupFormByID(obj);
 	}
-
-	
-
-
 }

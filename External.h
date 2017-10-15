@@ -3,6 +3,11 @@
 #include <json/json.h>
 //#define JSON_VALUE_USE_INTERNAL_MAP
 
+//#include<ctime>
+
+#define OLD_STYLE_JSON 1
+//#define NEW_STYLE_JSON 1
+
 #include "common/ICriticalSection.h"
 
 #include "skse/PluginAPI.h"
@@ -69,19 +74,22 @@ namespace External {
 	class ExternalFile{
 	private:
 		Value root;
-		Json::Reader reader;
 		ICriticalSection s_dataLock;
+		Json::Reader reader;
+		std::string readErrors;
 	public:
 		std::string name;
 		std::string docpath;
+		//std::time_t opened;
 		bool isModified;
+		bool isLoaded;
 		bool minify;
 
-		ExternalFile(std::string doc) : isModified(false), minify(false) { name = doc; docpath = "Data\\SKSE\\Plugins\\StorageUtilData\\" + doc; LoadFile(); } //reader = Json::Features::strictMode(); 
+		ExternalFile(std::string doc) : isModified(false), isLoaded(false), minify(false) { name = doc; docpath = "Data\\SKSE\\Plugins\\StorageUtilData\\" + doc; /*opened = std::time(0);*/ LoadFile(); } //reader = Json::Features::strictMode(); 
+		
+		bool IsGood() { return reader.good() && readErrors.empty(); }
+		std::string GetErrors() { return readErrors; }
 
-
-																																							   //template<typename T>
-																																							   //inline Value make(T v) { return Value(v); }
 		inline Value make(SInt32 v) const;
 		inline Value make(float v) const;
 		inline Value make(BSFixedString v) const;
@@ -92,12 +100,41 @@ namespace External {
 		inline TESForm* parse(Value value, TESForm* missing) const;
 		inline BSFixedString parse(Value value, BSFixedString missing) const;
 
-		template<typename T> inline bool HasKey(const std::string &key) { return root.isMember(Type<T>()) && root[Type<T>()].isMember(key); }
-		inline bool HasKey(std::string &type, std::string &key) { return root.isMember(type) && root[type].isMember(key); }
+		template<typename T> inline bool HasKey(const std::string &key);// { return root.isMember(Type<T>()) && root[Type<T>()].isMember(key); }
+
+#ifdef NEW_STYLE_JSON
+		inline void ENTER() { s_dataLock.Enter(); }
+		inline void LEAVE() { s_dataLock.Leave(); }
+
+		/*template<typename T> inline void getvar(const std::string &key, Value &var);
+		inline void getvar(const char* type, const std::string &key, Value &var);
+
+		template<typename T> inline void setvar(const std::string &key, Value &var);
+		inline void setvar(const char* type, const std::string &key, Value &var);*/
+
+
 
 		template <typename T> void SetValue(std::string key, T value);
 		template <typename T> T GetValue(std::string key, T value);
+		template <typename T> bool UnsetValue(std::string key);
+		template <typename T> bool HasValue(std::string key);
+		SInt32 AdjustValue(std::string key, SInt32 value);
+		float AdjustValue(std::string key, float value);
 
+		template <typename T> int ListAdd(std::string key, T value, bool allowDuplicate);
+		template <typename T> T ListGet(std::string key, int index);
+		template <typename T> T ListSet(std::string key, int index, T value);
+		template <typename T> int ListRemove(std::string key, T removing, bool allInstances);
+		template <typename T> bool ListRemoveAt(std::string key, int index);
+		template <typename T> bool ListInsertAt(std::string key, int index, T value);
+		template <typename T> int ListClear(std::string key);
+		template <typename T> int ListCount(std::string key);
+		template <typename T> int ListCountValue(std::string key, T value, bool exclude);
+		template <typename T> int ListFind(std::string key, T value);
+		template <typename T> bool ListHas(std::string key, T value);
+		template <typename T> int ListResize(std::string key, int length, T filler);
+#endif
+#ifdef OLD_STYLE_JSON
 		void SetValue(std::string type, std::string key, Value value);
 		Value GetValue(std::string type, std::string key, Value value);
 		Value AdjustValue(std::string type, std::string key, Value value);
@@ -117,31 +154,46 @@ namespace External {
 		bool ListHas(std::string type, std::string key, Value value);
 		int ListResize(std::string type, std::string key, int length, Value filler);
 
+		//void ListSort(std::string type, std::string key);
+
 		template <typename T> T ListAdjust(std::string key, int index, T adjustBy);
 		template <typename T> void ListSlice(std::string key, VMArray<T> Output, int startIndex);
 		template <typename T> bool ListCopy(std::string key, VMArray<T> Input);
 		template <typename T> VMResultArray<T> ToArray(std::string key);
 
+		int CountPrefix(std::string type, std::string prefix);
 
-		inline Value Resolve(std::string pathto) { Path path(pathto.front() != '.' ? '.' + pathto : pathto); return path.resolve(root, Value(Json::nullValue)); }
-		inline Value Resolve(std::string pathto, Value missing) { Path path(pathto.front() != '.' ? '.' + pathto : pathto); return path.resolve(root, missing); }
+#endif
+		inline bool HasKey(const char* type, const std::string &key);// { return root.isMember(type) && root[type].isMember(key); }
+		inline bool HasKey(std::string &type, const std::string &key);// { return root.isMember(type) && root[type].isMember(key); }
+	
 
-		template <typename T> void SetPathValue(std::string path, Value var);
-		template <typename T> T GetPathValue(std::string path, T defaultValue);
-		template <typename T> VMResultArray<T> PathElements(std::string path, T invalidType);
-		VMResultArray<BSFixedString> PathMembers(std::string path);
-		int PathCount(std::string path);
+
+		inline Value Resolve(const std::string &pathto);// { Path path(pathto.front() != '.' ? '.' + pathto : pathto); return path.resolve(root, Value(Json::nullValue)); }
+		inline Value Resolve(const std::string &pathto, Value missing);// { Path path(pathto.front() != '.' ? '.' + pathto : pathto); return path.resolve(root, missing); }
+
+		template <typename T> void SetPathValue(const std::string &path, Value var);
+		template <typename T> void SetPathArray(const std::string &path, VMArray<T> arr, bool append);
+		void ClearPath(const std::string &path);
+		template <typename T> T GetPathValue(const std::string &path, T defaultValue);
+		template <typename T> VMResultArray<T> PathElements(const std::string &path, T invalidType);
+		VMResultArray<BSFixedString> PathMembers(const std::string &path);
+		int PathCount(const std::string &path);
+
+		template <typename T> int FindPathElement(const std::string &path, Value toFind);
 
 		//Value ResolveValue(std::string path, Value value);
-		bool CanResolve(std::string path);
-		bool IsObject(std::string path);
-		bool IsArray(std::string path);
-		bool IsString(std::string path);
-		bool IsNumber(std::string path);
-		bool IsBool(std::string path);
-		bool IsForm(std::string path);
+		bool CanResolve(const std::string &path);
+		bool IsObject(const std::string &path);
+		bool IsArray(const std::string &path);
+		bool IsString(const std::string &path);
+		bool IsNumber(const std::string &path);
+		bool IsBool(const std::string &path);
+		bool IsForm(const std::string &path);
 
-		int CountPrefix(std::string type, std::string prefix);
+		bool SetRawPathValue(const std::string &path, const std::string &raw);
+
+
 		//int ClearPrefix(std::string type, std::string prefix);
 
 		//bool ExternalFile::ImportOnForm(TESForm* FormRef);
@@ -158,6 +210,8 @@ namespace External {
 
 	typedef std::vector<ExternalFile*> FileVector;
 	ExternalFile* GetFile(std::string name);
+	bool UnloadFile(std::string name);
+	bool FileExists(std::string name);
 	bool RevertFile(std::string name, bool savechanges, bool minify);
 	bool ChangesPending(std::string name);
 	void SaveFiles();

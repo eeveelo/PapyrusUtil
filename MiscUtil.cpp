@@ -1,6 +1,10 @@
 #include "MiscUtil.h"
 
+#include <sstream>
+#include <set>
+
 #include <boost/filesystem.hpp>
+#include <boost/filesystem/fstream.hpp>
 #include <boost/algorithm/string.hpp>
 
 #include "skse/GameAPI.h"
@@ -14,6 +18,8 @@
 
 
 #include "SafeRead.h"
+
+// TODO: test TESTScanCellNPCsByFaction and remove prepend
 
 namespace MiscUtil {
 
@@ -85,6 +91,52 @@ namespace MiscUtil {
 
 
 
+	struct CellLocker
+	{
+		CellLocker(TESObjectCELL* cell)
+		{
+			locked = cell;
+			if (cell != NULL)
+			{
+				static int _lockCellEnterHelper = 0x4C0180;
+				_asm
+				{
+					pushad
+					pushfd
+
+						mov ecx, cell
+						call _lockCellEnterHelper
+
+						popfd
+						popad
+				};
+			}
+		}
+
+		~CellLocker()
+		{
+			TESObjectCELL * cell = locked;
+			if (cell != NULL)
+			{
+				static int _lockCellExitHelper = 0x4C0190;
+				_asm
+				{
+					pushad
+					pushfd
+
+						mov ecx, cell
+						call _lockCellExitHelper
+
+						popfd
+						popad
+				}
+			}
+		}
+
+	private:
+		TESObjectCELL * locked;
+	};
+
 	inline bool HasKeyword(TESObjectREFR* ObjRef, BGSKeyword* findKeyword) {
 		BGSKeywordForm* keywords = DYNAMIC_CAST(ObjRef, TESForm, BGSKeywordForm);
 		if (keywords) return keywords->HasKeyword(findKeyword);
@@ -111,35 +163,13 @@ namespace MiscUtil {
 		return false;
 	}
 
-	VMResultArray<Actor*> ScanCellActors(StaticFunctionTag* base, TESObjectREFR* CenterObj, float SearchRadius, BGSKeyword* FindKeyword) {
-		VMResultArray<Actor*> output;
-		if (CenterObj != NULL) {
-			_MESSAGE("Cell scanning from form: %lu", CenterObj->formID);
-			TESObjectCELL* Cell = CenterObj->parentCell;
-			if (Cell) {
-				tArray<TESObjectREFR*> objList = Cell->objectList;
-				UInt32 count = objList.count;
-				_MESSAGE("\tcell item count: %lu", count);
-				for (UInt32 idx = 0; idx < count; ++idx) {
-					TESObjectREFR* ObjRef = objList[idx];
-					Actor *ActorRef = ObjRef != NULL ? DYNAMIC_CAST(ObjRef, TESObjectREFR, Actor) : NULL;
-					if (ActorRef == NULL || ActorRef->IsDead(1)) continue;
-					else if (SearchRadius > 0.0f && !IsWithinRadius(CenterObj, ActorRef, SearchRadius)) continue;
-					else if (FindKeyword && !HasKeyword(ActorRef, FindKeyword)) continue;
-					else output.push_back(ActorRef);
-				}
-			}
-			_MESSAGE("Cell scanning found: %d", (int)output.size());
-		}
-		return output;
-	}
-
 	VMResultArray<TESObjectREFR*> ScanCellObjects(StaticFunctionTag* base, UInt32 FormType, TESObjectREFR* CenterObj, float SearchRadius, BGSKeyword* FindKeyword) {
 		VMResultArray<TESObjectREFR*> output;
 		if (CenterObj != NULL) {
 			_MESSAGE("Cell scanning from form: %lu", CenterObj->formID);
 			TESObjectCELL* Cell = CenterObj->parentCell;
 			if (Cell) {
+				CellLocker _locker(Cell);
 				tArray<TESObjectREFR*> objList = Cell->objectList;
 				UInt32 count = objList.count;
 				_MESSAGE("\tcell item count: %lu", count);
@@ -157,7 +187,109 @@ namespace MiscUtil {
 	}
 
 
+	VMResultArray<Actor*> ScanCellNPCs(StaticFunctionTag* base, TESObjectREFR* CenterObj, float SearchRadius, BGSKeyword* FindKeyword, bool ignoredead) {
+		VMResultArray<Actor*> output;
+		if (CenterObj != NULL) {
+			_MESSAGE("Cell scanning from form: %lu", CenterObj->formID);
+			TESObjectCELL* Cell = CenterObj->parentCell;
+			if (Cell) {
+				CellLocker _locker(Cell);
+				tArray<TESObjectREFR*> objList = Cell->objectList;
+				UInt32 count = objList.count;
+				_MESSAGE("\tcell item count: %lu", count);
+				for (UInt32 idx = 0; idx < count; ++idx) {
+					TESObjectREFR* ObjRef = objList[idx];
+					Actor *ActorRef = ObjRef != NULL ? DYNAMIC_CAST(ObjRef, TESObjectREFR, Actor) : NULL;
+					if (ActorRef == NULL || (ignoredead && ActorRef->IsDead(1))) continue;
+					else if (SearchRadius > 0.0f && !IsWithinRadius(CenterObj, ActorRef, SearchRadius)) continue;
+					else if (FindKeyword && !HasKeyword(ActorRef, FindKeyword)) continue;
+					else output.push_back(ActorRef);
+				}
+			}
+			_MESSAGE("Cell scanning found: %d", (int)output.size());
+		}
+		return output;
+	}
+
+
+
+
+	// Copied from skse/PapyrusActor.cpp
+	typedef std::set<TESFaction*> FactionRankSet;
+	class CollectUniqueFactions : public Actor::FactionVisitor
+	{
+	public:
+		CollectUniqueFactions::CollectUniqueFactions(FactionRankSet * rankSet, SInt8 min, SInt8 max, TESFaction* FactionRef) : m_rankSet(rankSet), m_min(min), m_max(max), FindFaction(FactionRef) { }
+		virtual bool Accept(TESFaction * faction, SInt8 rank)
+		{
+			if (rank >= m_min && rank <= m_max && FindFaction->formID == faction->formID)
+				m_rankSet->insert(faction);
+			return false;
+		}
+
+	private:
+		SInt8 m_min;
+		SInt8 m_max;
+		FactionRankSet * m_rankSet;
+		TESFaction* FindFaction;
+	};
+	// copied end
+
+	bool IsInFaction(Actor* ActorRef, TESFaction* FactionRef, SInt8 min, SInt8 max){
+		if (ActorRef != NULL && FactionRef != NULL){
+			FactionRankSet rankSet;
+			CollectUniqueFactions factionVisitor(&rankSet, min, max, FactionRef);
+			ActorRef->VisitFactions(factionVisitor);
+			if (rankSet.size() > 0)
+				return true;
+		}
+		return false;
+	}
+
+
+	VMResultArray<Actor*> ScanCellNPCsByFaction(StaticFunctionTag* base, TESFaction* FindFaction, TESObjectREFR* CenterObj, float SearchRadius, SInt32 gte, SInt32 lte, bool ignoredead) {
+		VMResultArray<Actor*> output;
+		if (CenterObj != NULL && FindFaction != NULL) {
+
+			if (gte > SCHAR_MAX)
+				gte = SCHAR_MAX;
+			if (gte < SCHAR_MIN)
+				gte = SCHAR_MIN;
+			if (lte < SCHAR_MIN)
+				lte = SCHAR_MIN;
+			if (lte > SCHAR_MAX)
+				lte = SCHAR_MAX;
+
+			_MESSAGE("Cell scanning for faction(%lu, %d, %d) from form: %lu", FindFaction->formID, (int)gte, (int)lte, CenterObj->formID);
+			TESObjectCELL* Cell = CenterObj->parentCell;
+			if (Cell) {
+				CellLocker _locker(Cell);
+				tArray<TESObjectREFR*> objList = Cell->objectList;
+				UInt32 count = objList.count;
+				_MESSAGE("\tcell item count: %lu", count);
+				for (UInt32 idx = 0; idx < count; ++idx) {
+					TESObjectREFR* ObjRef = objList[idx];
+					Actor *ActorRef = ObjRef != NULL ? DYNAMIC_CAST(ObjRef, TESObjectREFR, Actor) : NULL;
+					if (ActorRef == NULL || (ignoredead && ActorRef->IsDead(1))) continue;
+					else if (SearchRadius > 0.0f && !IsWithinRadius(CenterObj, ActorRef, SearchRadius)) continue;
+					else if (!IsInFaction(ActorRef, FindFaction, gte, lte)) continue;
+					else output.push_back(ActorRef);
+				}
+			}
+			_MESSAGE("Cell scanning found: %d", (int)output.size());
+		}
+		return output;
+	}
+
+
 	namespace fs = boost::filesystem;
+
+	bool FileExists(StaticFunctionTag* base, BSFixedString name) {
+		if (!name.data || name.data[0] == '\0') return false;
+		fs::path Path = fs::path(name.data);
+		return fs::exists(Path);
+	}
+
 	VMResultArray<BSFixedString> FilesInFolder(StaticFunctionTag* base, BSFixedString dirpath, BSFixedString extension) {
 		VMResultArray<BSFixedString> arr;
 		if (dirpath.data && dirpath.data[0] != '\0') {
@@ -184,6 +316,55 @@ namespace MiscUtil {
 			}
 		}
 		return arr;
+	}
+
+	BSFixedString ReadFromFile(StaticFunctionTag* base, BSFixedString filename) {
+		if (!filename.data || filename.data[0] == '\0') return BSFixedString("");
+		std::string output = "0";
+		fs::path File(filename.data);
+		if (fs::exists(File) && !fs::is_directory(File)) {
+			fs::ifstream doc;
+			try
+			{
+				doc.open(File, std::ios::in | std::ios::binary);
+				if (!doc.fail()) {
+					std::stringstream ss;
+					ss << doc.rdbuf();
+					output = ss.str();
+				}
+			}
+			catch (std::exception&)
+			{
+				_MESSAGE("Failed to load/read file: %s", File.generic_string().c_str());
+			}
+			if (doc.is_open())
+				doc.close();
+
+		}
+		return BSFixedString(output.c_str());
+	}
+
+	bool WriteToFile(StaticFunctionTag* base, BSFixedString filename, BSFixedString input, bool append, bool timestamp) {
+		if (!filename.data || filename.data[0] == '\0') return false;
+		bool output = false;
+		fs::path File(filename.data);
+		fs::ofstream doc;
+		try
+		{
+			if(append) doc.open(File, std::ios::out | std::ios::app | std::ios::binary);
+			else doc.open(File, std::ios::out | std::ios::binary);
+			if (doc.is_open()) {
+				doc << input.data;
+				doc.close();
+				output = true;
+			}
+		}
+		catch (std::exception&)
+		{
+			_MESSAGE("Failed to load/write file: %s", File.generic_string().c_str());
+		}
+		if (doc.is_open()) doc.close();
+		return output;
 	}
 
 } // MiscUtil
@@ -213,12 +394,19 @@ void MiscUtil::RegisterFuncs(VMClassRegistry* registry) {
 	registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, BSFixedString, Actor*>("GetActorRaceEditorID", "MiscUtil", GetActorRaceEditorID, registry));
 	registry->SetFunctionFlags("MiscUtil", "GetActorRaceEditorID", VMClassRegistry::kFunctionFlag_NoWait);
 
+	registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, bool, BSFixedString>("FileExists", "MiscUtil", FileExists, registry));
+	registry->SetFunctionFlags("MiscUtil", "FileExists", VMClassRegistry::kFunctionFlag_NoWait);
 
-	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, VMResultArray<Actor*>, TESObjectREFR*, float, BGSKeyword*>("ScanCellActors", "MiscUtil", ScanCellActors, registry));
 	registry->RegisterFunction(new NativeFunction4<StaticFunctionTag, VMResultArray<TESObjectREFR*>, UInt32, TESObjectREFR*, float, BGSKeyword*>("ScanCellObjects", "MiscUtil", ScanCellObjects, registry));
+	registry->RegisterFunction(new NativeFunction4<StaticFunctionTag, VMResultArray<Actor*>, TESObjectREFR*, float, BGSKeyword*, bool>("ScanCellNPCs", "MiscUtil", ScanCellNPCs, registry));
+	registry->RegisterFunction(new NativeFunction6<StaticFunctionTag, VMResultArray<Actor*>, TESFaction*, TESObjectREFR*, float, SInt32, SInt32, bool>("TESTScanCellNPCsByFaction", "MiscUtil", ScanCellNPCsByFaction, registry));
 
 	registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, VMResultArray<BSFixedString>, BSFixedString, BSFixedString>("FilesInFolder", "MiscUtil", FilesInFolder, registry));
 	registry->SetFunctionFlags("MiscUtil", "FilesInFolder", VMClassRegistry::kFunctionFlag_NoWait);
+
+	registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, BSFixedString, BSFixedString>("ReadFromFile", "MiscUtil", ReadFromFile, registry));
+	registry->RegisterFunction(new NativeFunction4<StaticFunctionTag, bool, BSFixedString, BSFixedString, bool, bool>("WriteToFile", "MiscUtil", WriteToFile, registry));
+
 }
 
 

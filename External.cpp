@@ -6,6 +6,7 @@
 #include <fstream>
 #include <streambuf>
 
+
 //#include <direct.h>
 
 #include <boost/filesystem.hpp>
@@ -40,7 +41,7 @@ namespace External {
 	inline SInt32 ExternalFile::parse(Value value, SInt32 missing) const {
 		return (value.isInt() || (!value.isNull() && value.isConvertibleTo(Json::intValue))) ? value.asInt() : missing;
 	}
-	inline float ExternalFile::parse(Value value, float missing)  const {
+	inline float ExternalFile::parse(Value value, float missing) const {
 		return (value.isDouble() || (!value.isNull() && value.isConvertibleTo(Json::realValue))) ? value.asFloat() : missing;
 	}
 	inline TESForm* ExternalFile::parse(Value value, TESForm* missing) const {
@@ -51,12 +52,37 @@ namespace External {
 	}
 
 
+	template<typename T> inline bool ExternalFile::HasKey(const std::string &key) { return root.isMember(Type<T>()) && root[Type<T>()].isMember(key); }
+	inline bool ExternalFile::HasKey(std::string &type, const std::string &key) { return root.isMember(type) && root[type].isMember(key); }
+
+
+	/*inline void ExternalFile::getvar(const char* type, const std::string &key, Value &var) {
+		if (root.isMember(type) && root.isMember(key))
+			var = root[type][key];
+	}
+
+	template <> inline void ExternalFile::getvar<SInt32>(const std::string &key, Value &var) { return getvar("int", key, var); }
+	template <> inline void ExternalFile::getvar<float>(const std::string &key, Value &var) { return getvar("float", key, var); }
+	template <> inline void ExternalFile::getvar<BSFixedString>(const std::string &key, Value &var) { return getvar("string", key, var); }
+	template <> inline void ExternalFile::getvar<TESForm*>(const std::string &key, Value &var) { return getvar("form", key, var); }
+
+	inline void ExternalFile::setvar(const char* type, const std::string &key, Value &var) {
+		root[type][key] = var;
+	}
+
+	template <> inline void ExternalFile::setvar<SInt32>(const std::string &key, Value &var) { return setvar("int", key, var); }
+	template <> inline void ExternalFile::setvar<float>(const std::string &key, Value &var) { return setvar("float", key, var); }
+	template <> inline void ExternalFile::setvar<BSFixedString>(const std::string &key, Value &var) { return setvar("string", key, var); }
+	template <> inline void ExternalFile::setvar<TESForm*>(const std::string &key, Value &var) { return setvar("form", key, var); }
+	*/
+
 	/*
 	//
 	// GLOBAL KEY => VALUE STORAGE
 	//
 	*/
 
+#ifdef NEW_STYLE_JSON
 
 	template <typename T>
 	void ExternalFile::SetValue(std::string key, T value) {
@@ -84,6 +110,109 @@ namespace External {
 	template float ExternalFile::GetValue<float>(std::string key, float value);
 	template BSFixedString ExternalFile::GetValue<BSFixedString>(std::string key, BSFixedString value);
 	template TESForm* ExternalFile::GetValue<TESForm*>(std::string key, TESForm* value);
+
+	template <typename T>
+	bool ExternalFile::UnsetValue(std::string key) {
+		bool removed = false;
+		s_dataLock.Enter();
+
+		boost::to_lower(key);
+		if (HasKey<T>(key)) {
+			isModified = true;
+			removed = true;
+			root[Type<T>()].removeMember(key);
+			//if (root[type].empty())
+			//	root.removeMember(type);
+		}
+
+		s_dataLock.Leave();
+		return removed;
+	}
+	template bool ExternalFile::UnsetValue<SInt32>(std::string key);
+	template bool ExternalFile::UnsetValue<float>(std::string key);
+	template bool ExternalFile::UnsetValue<BSFixedString>(std::string key);
+	template bool ExternalFile::UnsetValue<TESForm*>(std::string key);
+
+	template <typename T>
+	bool ExternalFile::HasValue(std::string key) {
+		bool has = false;
+		s_dataLock.Enter();
+		boost::to_lower(key);
+		has = root.isMember(Type<T>()) && root[Type<T>()].isMember(key);
+		s_dataLock.Leave();
+		return has;
+	}
+	template bool ExternalFile::HasValue<SInt32>(std::string key);
+	template bool ExternalFile::HasValue<float>(std::string key);
+	template bool ExternalFile::HasValue<BSFixedString>(std::string key);
+	template bool ExternalFile::HasValue<TESForm*>(std::string key);
+
+	SInt32 ExternalFile::AdjustValue(std::string key, SInt32 value) {
+		s_dataLock.Enter();
+		boost::to_lower(key);
+		if (HasKey<SInt32>(key)) root[Type<SInt32>()][key] = Value::Int(value + root[Type<SInt32>()][key].asInt());
+		else root[Type<SInt32>()][key] = Value::Int(value);
+		isModified = true;
+		s_dataLock.Leave();
+		return value;
+	}
+
+	float ExternalFile::AdjustValue(std::string key, float value) {
+		s_dataLock.Enter();
+		boost::to_lower(key);
+		if (HasKey<float>(key)) root[Type<float>()][key] = Value(value + root[Type<float>()][key].asFloat());
+		else root[Type<float>()][key] = Value(value);
+		isModified = true;
+		s_dataLock.Leave();
+		return value;
+	}
+
+
+	/*
+	//
+	// GLOBAL KEY => VALUE => LIST STORAGE
+	//
+	*/
+	template <typename T> int ListAdd(std::string key, T value, bool allowDuplicate) {
+		int size = -1;
+		s_dataLock.Enter();
+		boost::to_lower(key);
+		if (!allowDuplicate) {
+		}
+
+		s_dataLock.Leave();
+		return size;
+	}
+	template <typename T> T ListGet(std::string key, int index);
+	template <typename T> T ListSet(std::string key, int index, T value);
+	template <typename T> int ListRemove(std::string key, T removing, bool allInstances);
+	template <typename T> bool ListRemoveAt(std::string key, int index);
+	template <typename T> bool ListInsertAt(std::string key, int index, T value);
+	template <typename T> int ListClear(std::string key);
+	template <typename T> int ListCount(std::string key);
+	template <typename T> int ListCountValue(std::string key, T value, bool exclude);
+	template <typename T> int ListFind(std::string key, T value) {
+		int index = -1;
+		s_dataLock.Enter();
+		boost::to_lower(key);
+		if (HasKey<T>(key)) {
+			Value var   = make(value);
+			Value &list = root[Type<T>()][key];
+			for (Value::iterator itr = list.begin(); itr != list.end(); ++itr) {
+				if (var == (*itr) || (var.isString() && boost::iequals((*itr).asString(), var.asString()))) {
+					index = itr.key().asInt();
+					break;
+				}
+			}
+		}
+		s_dataLock.Leave();
+		return index;
+	}
+	template <typename T> bool ListHas(std::string key, T value);
+	template <typename T> int ListResize(std::string key, int length, T filler);
+#endif
+
+#ifdef OLD_STYLE_JSON
 
 	void ExternalFile::SetValue(std::string type, std::string key, Value value) {
 		s_dataLock.Enter();
@@ -141,9 +270,11 @@ namespace External {
 		return has;
 	}
 
+
+
 	// Global key=>value=>list
 
-	int ExternalFile::ListAdd(std::string type, std::string key, Value value, bool allowDuplicate){
+	int ExternalFile::ListAdd(std::string type, std::string key, Value value, bool allowDuplicate) {
 		if (!allowDuplicate && ListFind(type, key, value) != -1) return -1;
 		s_dataLock.Enter();
 		boost::to_lower(key);
@@ -152,8 +283,7 @@ namespace External {
 		s_dataLock.Leave();
 		return (root[type][key].size() - 1);
 	}
-
-	Value ExternalFile::ListGet(std::string type, std::string key, int index){
+	Value ExternalFile::ListGet(std::string type, std::string key, int index) {
 		s_dataLock.Enter();
 		boost::to_lower(key);
 		Value value;
@@ -163,10 +293,10 @@ namespace External {
 		return value;
 	}
 
-	Value ExternalFile::ListSet(std::string type, std::string key, int index, Value value){
+	Value ExternalFile::ListSet(std::string type, std::string key, int index, Value value) {
 		s_dataLock.Enter();
 		boost::to_lower(key);
-		if (HasKey(type, key) && root[type][key].isValidIndex(index)){
+		if (HasKey(type, key) && root[type][key].isValidIndex(index)) {
 			root[type][key][index] = value;
 			isModified = true;
 		}
@@ -174,23 +304,23 @@ namespace External {
 		return value;
 	}
 
-	int ExternalFile::ListRemove(std::string type, std::string key, Value removing, bool allInstances){
+	int ExternalFile::ListRemove(std::string type, std::string key, Value removing, bool allInstances) {
 		int removed = 0;
 		s_dataLock.Enter();
 
 		boost::to_lower(key);
-		if (HasKey(type, key)){
+		if (HasKey(type, key)) {
 			Value list = Value(Json::arrayValue);
-			for (Value::iterator itr = root[type][key].begin(); itr != root[type][key].end(); ++itr){
+			for (Value::iterator itr = root[type][key].begin(); itr != root[type][key].end(); ++itr) {
 				if (!allInstances && removed > 0) list.append((*itr));
 				else if (removing != (*itr)) list.append((*itr));
 				else removed += 1;
 			}
 			root[type][key].swap(list);
 			/*if (root[type][key].size() == 0){
-				root[type].removeMember(key);
-				if (root[type].size() == 0)
-					root.removeMember(type);
+			root[type].removeMember(key);
+			if (root[type].size() == 0)
+			root.removeMember(type);
 			}*/
 			isModified = true;
 		}
@@ -199,23 +329,23 @@ namespace External {
 		return removed;
 	}
 
-	bool ExternalFile::ListRemoveAt(std::string type, std::string key, int index){
+	bool ExternalFile::ListRemoveAt(std::string type, std::string key, int index) {
 		bool removed = false;
 		s_dataLock.Enter();
 
 		boost::to_lower(key);
-		if (HasKey(type, key) && root[type][key].isValidIndex(index)){
+		if (HasKey(type, key) && root[type][key].isValidIndex(index)) {
 			Value list = Value(Json::arrayValue);
 			Value::iterator itr = root[type][key].begin();
-			for (itr = root[type][key].begin(); itr != root[type][key].end(); ++itr){
+			for (itr = root[type][key].begin(); itr != root[type][key].end(); ++itr) {
 				if (itr.key().asInt() == index)	removed = true;
 				else list.append((*itr));
 			}
 			root[type][key] = list;
 			/*if (root[type][key].size() == 0){
-				root[type].removeMember(key);
-				if (root[type].size() == 0)
-					root.removeMember(type);
+			root[type].removeMember(key);
+			if (root[type].size() == 0)
+			root.removeMember(type);
 			}*/
 			isModified = true;
 		}
@@ -223,16 +353,16 @@ namespace External {
 		return removed;
 	}
 
-	bool ExternalFile::ListInsertAt(std::string type, std::string key, int index, Value value){
+	bool ExternalFile::ListInsertAt(std::string type, std::string key, int index, Value value) {
 		bool inserted = false;
 		s_dataLock.Enter();
 
 		boost::to_lower(key);
-		if (HasKey(type, key) && root[type][key].isValidIndex(index)){
+		if (HasKey(type, key) && root[type][key].isValidIndex(index)) {
 			Value list = Value(Json::arrayValue);
 			Value::iterator itr = root[type][key].begin();
-			for (itr = root[type][key].begin(); itr != root[type][key].end(); ++itr){
-				if (itr.key().asInt() == index){
+			for (itr = root[type][key].begin(); itr != root[type][key].end(); ++itr) {
+				if (itr.key().asInt() == index) {
 					list.append(value);
 					inserted = true;
 				}
@@ -246,14 +376,14 @@ namespace External {
 		return inserted;
 	}
 
-	int ExternalFile::ListClear(std::string type, std::string key){
+	int ExternalFile::ListClear(std::string type, std::string key) {
 		int cleared = 0;
 		s_dataLock.Enter();
 
 		boost::to_lower(key);
-		if (HasKey(type, key)){
+		if (HasKey(type, key)) {
 			isModified = true;
-			cleared    = root[type][key].size();
+			cleared = root[type][key].size();
 			root[type].removeMember(key);
 			//if (root[type].size() == 0)
 			//	root.removeMember(type);
@@ -263,7 +393,20 @@ namespace External {
 		return cleared;
 	}
 
-	int ExternalFile::ListCount(std::string type, std::string key){
+	/*void ExternalFile::ListSort(std::string type, std::string key) {
+		int cleared = 0;
+		s_dataLock.Enter();
+
+		boost::to_lower(key);
+		if (HasKey(type, key)) {
+			isModified = true;
+			std::sort(root[type][key].begin(), root[type][key].end());
+		}
+
+		s_dataLock.Leave();
+	}*/
+
+	int ExternalFile::ListCount(std::string type, std::string key) {
 		int count = 0;
 		s_dataLock.Enter();
 		boost::to_lower(key);
@@ -272,11 +415,11 @@ namespace External {
 		return count;
 	}
 
-	int ExternalFile::ListCountValue(std::string type, std::string key, Value value, bool exclude){
+	int ExternalFile::ListCountValue(std::string type, std::string key, Value value, bool exclude) {
 		int count = 0;
 		s_dataLock.Enter();
 		boost::to_lower(key);
-		if (HasKey(type, key)){
+		if (HasKey(type, key)) {
 			for (Value::iterator itr = root[type][key].begin(); itr != root[type][key].end(); ++itr) {
 				if (value == (*itr) || (value.isString() && boost::iequals((*itr).asString(), value.asString())))
 					count += 1;
@@ -287,13 +430,13 @@ namespace External {
 		return count;
 	}
 
-	int ExternalFile::ListFind(std::string type, std::string key, Value value){
+	int ExternalFile::ListFind(std::string type, std::string key, Value value) {
 		int index = -1;
 		s_dataLock.Enter();
 		boost::to_lower(key);
-		if (HasKey(type, key)){
+		if (HasKey(type, key)) {
 			for (Value::iterator itr = root[type][key].begin(); itr != root[type][key].end(); ++itr) {
-				if (value == (*itr) || (value.isString() && boost::iequals((*itr).asString(), value.asString()))){
+				if (value == (*itr) || (value.isString() && boost::iequals((*itr).asString(), value.asString()))) {
 					index = itr.key().asInt();
 					//_MESSAGE("\t[%d] %s == %s", index, (*itr).asCString(), value.asCString());
 					break;
@@ -310,7 +453,7 @@ namespace External {
 
 		int start = 0;
 		boost::to_lower(key);
-		if (HasKey(type, key)){
+		if (HasKey(type, key)) {
 			start = root[type][key].size();
 			if (length < start)
 				root[type][key].resize(length);
@@ -330,11 +473,11 @@ namespace External {
 	}
 
 	template <typename T>
-	T ExternalFile::ListAdjust(std::string key, int index, T adjustBy){
+	T ExternalFile::ListAdjust(std::string key, int index, T adjustBy) {
 		s_dataLock.Enter();
 		boost::to_lower(key);
 		std::string type = List<T>();
-		if (HasKey(type, key) && root[type][key].isValidIndex(index)){
+		if (HasKey(type, key) && root[type][key].isValidIndex(index)) {
 			adjustBy = adjustBy + ParseValue<T>(root[type][key][index], T());
 			root[type][key][index] = MakeValue<T>(adjustBy);
 			isModified = true;
@@ -347,7 +490,7 @@ namespace External {
 
 
 	template <typename T>
-	void ExternalFile::ListSlice(std::string key, VMArray<T> Output, int startIndex){
+	void ExternalFile::ListSlice(std::string key, VMArray<T> Output, int startIndex) {
 		if (Output.Length() > 0) {
 			UInt32 length(Output.Length());
 			s_dataLock.Enter();
@@ -404,9 +547,9 @@ namespace External {
 
 		boost::to_lower(key);
 		std::string type = List<T>();
-		if (HasKey(type, key)){
+		if (HasKey(type, key)) {
 			arr.reserve(root[type][key].size());
-			for (Value::iterator itr = root[type][key].begin(); itr != root[type][key].end(); ++itr){
+			for (Value::iterator itr = root[type][key].begin(); itr != root[type][key].end(); ++itr) {
 				T var = ParseValue<T>(*itr);
 				arr.push_back(var);
 			}
@@ -433,6 +576,9 @@ namespace External {
 		}
 		return count;
 	}
+
+#endif
+
 
 	/*int ExternalFile::ClearPrefix(std::string type, std::string prefix) {
 		int count = 0;
@@ -467,7 +613,11 @@ namespace External {
 
 
 
-	template <typename T> void ExternalFile::SetPathValue(std::string path, Value value) {
+	inline Value ExternalFile::Resolve(const std::string &pathto) { Path path(pathto.front() != '.' ? '.' + pathto : pathto); return path.resolve(root, Value(Json::nullValue)); }
+	inline Value ExternalFile::Resolve(const std::string &pathto, Value missing) { Path path(pathto.front() != '.' ? '.' + pathto : pathto); return path.resolve(root, missing); }
+
+
+	template <typename T> void ExternalFile::SetPathValue(const std::string &path, Value value) {
 		if (!path.empty()) {
 			s_dataLock.Enter();
 			Path pathto(path.front() != '.' ? '.' + path : path);
@@ -476,23 +626,140 @@ namespace External {
 			s_dataLock.Leave();
 		}
 	}
-	template void ExternalFile::SetPathValue<SInt32>(std::string path, Value value);
-	template void ExternalFile::SetPathValue<float>(std::string path, Value value);
-	template void ExternalFile::SetPathValue<BSFixedString>(std::string path, Value value);
-	template void ExternalFile::SetPathValue<TESForm*>(std::string path, Value value);
+	template void ExternalFile::SetPathValue<SInt32>(const std::string &path, Value value);
+	template void ExternalFile::SetPathValue<float>(const std::string &path, Value value);
+	template void ExternalFile::SetPathValue<BSFixedString>(const std::string &path, Value value);
+	template void ExternalFile::SetPathValue<TESForm*>(const std::string &path, Value value);
 
-	template <typename T> T ExternalFile::GetPathValue(std::string path, T defaultValue) {
+
+	
+	void ExternalFile::ClearPath(const std::string &path) {
+		if (!path.empty()) {
+
+			// Full clear
+			if (path == "."){
+				ClearAll();
+				return;
+			}
+			s_dataLock.Enter();
+
+			std::string pathto = path.front() != '.' ? '.' + path : path;
+			Value value = Resolve(pathto, Value(Json::nullValue));
+			if (!value.isNull()){
+
+
+				std::vector<std::string> args;
+				boost::iter_split(args, pathto, boost::first_finder("."));
+
+				//_MESSAGE("path0: %s", args[0].c_str());
+				//if (args.size() > 1) _MESSAGE("path1: %s", args[1].c_str());
+				switch (args.size()){
+				case 2:
+					root.removeMember(args[1]);
+					break;
+				case 3:
+					root[args[1]].removeMember(args[2]);
+					break;
+				case 4:
+					root[args[1]][args[2]].removeMember(args[3]);
+					break;
+				case 5:
+					root[args[1]][args[2]][args[3]].removeMember(args[4]);
+					break;
+				case 6:
+					root[args[1]][args[2]][args[3]][args[4]].removeMember(args[5]);
+					break;
+				case 7:
+					root[args[1]][args[2]][args[3]][args[4]][args[5]].removeMember(args[6]);
+					break;
+				case 8:
+					root[args[1]][args[2]][args[3]][args[4]][args[5]][args[6]].removeMember(args[7]);
+					break;
+				case 9:
+					root[args[1]][args[2]][args[3]][args[4]][args[5]][args[6]][args[7]].removeMember(args[8]);
+					break;
+
+				}
+
+				isModified = true;
+			}
+
+
+			
+
+
+
+			s_dataLock.Leave();
+		}
+	}
+
+
+	template <typename T> void ExternalFile::SetPathArray(const std::string &path, VMArray<T> Input, bool append) {
+		if (!path.empty()) {
+			s_dataLock.Enter();
+
+			Path pathto(path.front() != '.' ? '.' + path : path);
+			Value value = Resolve(path, Value(Json::arrayValue));
+			if (!value.isArray()) value = Value(Json::arrayValue);
+			else if (!append && value.size() > 0) value.clear();
+
+
+			UInt32 length(Input.Length());
+
+
+			T var;
+			for (UInt32 i = 0; i < length; ++i) {
+				Input.Get(&var, i);
+				value.append(MakeValue<T>(var));
+			}
+
+
+			pathto.make(root).swap(value);
+			isModified = true;
+			s_dataLock.Leave();
+		}
+	}
+	template void ExternalFile::SetPathArray<SInt32>(const std::string &path, VMArray<SInt32> arr, bool append);
+	template void ExternalFile::SetPathArray<float>(const std::string &path, VMArray<float> arr, bool append);
+	template void ExternalFile::SetPathArray<BSFixedString>(const std::string &path, VMArray<BSFixedString> arr, bool append);
+	template void ExternalFile::SetPathArray<TESForm*>(const std::string &path, VMArray<TESForm*> arr, bool append);
+	
+
+	template <typename T> T ExternalFile::GetPathValue(const std::string &path, T defaultValue) {
+		if (!path.empty()) {
+			s_dataLock.Enter();
+			Value value = Resolve(path, Value(Json::nullValue));
+			if (!value.isNull()) defaultValue = parse(value, defaultValue);
+			s_dataLock.Leave();
+		}		
+		return defaultValue;
+	}
+	template SInt32 ExternalFile::GetPathValue<SInt32>(const std::string &path, SInt32 defaultValue);
+	template float ExternalFile::GetPathValue<float>(const std::string &path, float defaultValue);
+	template BSFixedString ExternalFile::GetPathValue<BSFixedString>(const std::string &path, BSFixedString defaultValue);
+	template TESForm* ExternalFile::GetPathValue<TESForm*>(const std::string &path, TESForm* defaultValue);
+
+	/*
+	template <> SInt32 ExternalFile::GetPathValue(std::string path, SInt32 defaultValue) {
 		if (path.empty()) return defaultValue;
 		s_dataLock.Enter();
-		Value value = Resolve(path, MakeValue<T>(defaultValue));
-		defaultValue = ParseValue<T>(value, defaultValue);
+
+		Value value = Resolve(path, Value::Int(defaultValue));
+		try
+		{
+			if (value.isInt() || value.isConvertibleTo(Json::intValue))
+				defaultValue = value.asInt();
+		}
+		catch (Json::LogicError &msg)
+		{
+			_MESSAGE("Json::LogicError: %s", msg.what());
+		}
+
+
 		s_dataLock.Leave();
 		return defaultValue;
 	}
-	//template SInt32 ExternalFile::GetPathValue<SInt32>(std::string path, SInt32 defaultValue);
-	//template float ExternalFile::GetPathValue<float>(std::string path, float defaultValue);
-	//template BSFixedString ExternalFile::GetPathValue<BSFixedString>(std::string path, BSFixedString defaultValue);
-	//template TESForm* ExternalFile::GetPathValue<TESForm*>(std::string path, TESForm* defaultValue);
+
 
 	template <> SInt32 ExternalFile::GetPathValue(std::string path, SInt32 defaultValue) {
 		if (path.empty()) return defaultValue;
@@ -534,16 +801,16 @@ namespace External {
 		return defaultValue;
 	}
 
-	template <> std::string ExternalFile::GetPathValue(std::string path, std::string defaultValue) {
+	template <> BSFixedString ExternalFile::GetPathValue(std::string path, BSFixedString defaultValue) {
 		if (path.empty()) return defaultValue;
 		s_dataLock.Enter();
 
-		Value value = Resolve(path, Value(defaultValue));
+		Value value = Resolve(path, Value(Json::nullValue));
+
 		try
 		{
-			if (value.isString() || value.isConvertibleTo(Json::stringValue))
-				defaultValue = value.asString();
-			//else if (value.isArray())
+			defaultValue = parse(value, defaultValue);
+			//else if (value.isArray())+
 			//	defaultValue = "(array)";
 			//else if (value.isObject())
 			//	defaultValue = "(object)";
@@ -577,10 +844,10 @@ namespace External {
 		s_dataLock.Leave();
 		return defaultValue;
 	}
+	*/
 
 
-
-	template <typename T> VMResultArray<T> ExternalFile::PathElements(std::string path, T invalidType) {
+	template <typename T> VMResultArray<T> ExternalFile::PathElements(const std::string &path, T invalidType) {
 		VMResultArray<T> arr;
 		if (path.empty()) return arr;
 		s_dataLock.Enter();
@@ -594,6 +861,30 @@ namespace External {
 		s_dataLock.Leave();
 		return arr;
 	}
+
+	template <typename T> int ExternalFile::FindPathElement(const std::string &path, Value toFind) {
+		int index = -1;
+		s_dataLock.Enter();
+		Value arr = Resolve(path);
+		if (arr.isArray() && !arr.empty()) {
+			for (Value::iterator itr = arr.begin(); itr != arr.end(); ++itr) {
+				if (toFind == (*itr) || (toFind.isString() && boost::iequals((*itr).asString(), toFind.asString()))) {
+					index = itr.key().asInt();
+					break;
+				}
+			}
+		}
+		s_dataLock.Leave();
+		return index;
+	}
+
+	template int ExternalFile::FindPathElement<SInt32>(const std::string &path, Value toFind);
+	template int ExternalFile::FindPathElement<float>(const std::string &path, Value toFind);
+	template int ExternalFile::FindPathElement<BSFixedString>(const std::string &path, Value toFind);
+	template int ExternalFile::FindPathElement<TESForm*>(const std::string &path, Value toFind);
+
+
+
 	/*template <> VMResultArray<BSFixedString> ExternalFile::PathElements(std::string path, BSFixedString invalidType) {
 		VMResultArray<BSFixedString> arr;
 		if (path.empty()) return arr;
@@ -614,13 +905,13 @@ namespace External {
 		s_dataLock.Leave();
 		return arr;
 	}*/
-	template VMResultArray<SInt32> ExternalFile::PathElements<SInt32>(std::string path, SInt32 invalidType);
-	template VMResultArray<float> ExternalFile::PathElements<float>(std::string path, float invalidType);
-	template VMResultArray<BSFixedString> ExternalFile::PathElements<BSFixedString>(std::string path, BSFixedString invalidType);
-	template VMResultArray<TESForm*> ExternalFile::PathElements<TESForm*>(std::string path, TESForm* invalidType);
+	template VMResultArray<SInt32> ExternalFile::PathElements<SInt32>(const std::string &path, SInt32 invalidType);
+	template VMResultArray<float> ExternalFile::PathElements<float>(const std::string &path, float invalidType);
+	template VMResultArray<BSFixedString> ExternalFile::PathElements<BSFixedString>(const std::string &path, BSFixedString invalidType);
+	template VMResultArray<TESForm*> ExternalFile::PathElements<TESForm*>(const std::string &path, TESForm* invalidType);
 
 
-	VMResultArray<BSFixedString> ExternalFile::PathMembers(std::string path) {
+	VMResultArray<BSFixedString> ExternalFile::PathMembers(const std::string &path) {
 		VMResultArray<BSFixedString> arr;
 		if (path.empty()) return arr;
 		s_dataLock.Enter();
@@ -636,7 +927,7 @@ namespace External {
 		return arr;
 	}
 
-	int ExternalFile::PathCount(std::string path) {
+	int ExternalFile::PathCount(const std::string &path) {
 		if (path.empty()) return -1;
 		s_dataLock.Enter();
 		Value value = Resolve(path);
@@ -646,30 +937,46 @@ namespace External {
 	}
 
 
-	bool ExternalFile::CanResolve(std::string path) {
+	bool ExternalFile::CanResolve(const std::string &path) {
 		return !Resolve(path).isNull();
 	}
-	bool ExternalFile::IsObject(std::string path) {
+	bool ExternalFile::IsObject(const std::string &path) {
 		return Resolve(path).isObject();
 	}
-	bool ExternalFile::IsArray(std::string path) {
+	bool ExternalFile::IsArray(const std::string &path) {
 		return Resolve(path).isArray();
 	}
-	bool ExternalFile::IsString(std::string path) {
+	bool ExternalFile::IsString(const std::string &path) {
 		return Resolve(path).isString();
 	}
-	bool ExternalFile::IsNumber(std::string path) {
+	bool ExternalFile::IsNumber(const std::string &path) {
 		return Resolve(path).isNumeric();
 	}
-	bool ExternalFile::IsBool(std::string path) {
+	bool ExternalFile::IsBool(const std::string &path) {
 		return Resolve(path).isBool();
 	}
-	bool ExternalFile::IsForm(std::string path) {
+	bool ExternalFile::IsForm(const std::string &path) {
 		Value value = Resolve(path);
 		return value.isString() && Forms::IsFormString(value.asString());
 	}
 	
 	
+
+	bool ExternalFile::SetRawPathValue(const std::string &path, const std::string &raw) {
+		if (path.empty() || raw.empty()) return false;
+		bool parsed = false;
+		s_dataLock.Enter();
+		Value value = Json::Value(Json::nullValue);
+		parsed = reader.parse(raw, value, false);
+
+		Path pathto(path.front() != '.' ? '.' + path : path);
+		pathto.make(root).swap(value);
+		isModified = true;
+
+		s_dataLock.Leave();
+		return parsed;
+	}
+
 
 
 
@@ -679,6 +986,38 @@ namespace External {
 	//
 	*/
 
+
+	bool FileExists(std::string name) {
+		if (name.empty()) return false;
+		else if (name.find(".json") == std::string::npos) name += ".json";
+		name = "Data\\SKSE\\Plugins\\StorageUtilData\\" + name;
+		fs::path Path = fs::path(name);
+		return fs::exists(Path);
+	}
+
+
+	bool UnloadFile(std::string name){
+		if (s_loadLock == NULL || s_Files == NULL || name.empty()) return false;
+		s_loadLock->Enter();
+
+		if (name.empty()) name = "noname.json";
+		else if (name.find(".json") == std::string::npos)
+			name += ".json";
+
+		bool output = false;
+		for (FileVector::iterator itr = s_Files->begin(); itr != s_Files->end(); ++itr) {
+			if (boost::iequals(name, (*itr)->name)) {
+				(*itr)->RevertFile();
+				s_Files->erase(itr);
+				output = true;
+				//_MESSAGE("\t - Closed File (%s) - Currently Open(%d)", name.c_str(), (int)s_Files->size());
+				break;
+			}
+		}
+
+		s_loadLock->Leave();
+		return output;
+	}
 
 	ExternalFile* GetFile(std::string name) {
 		if (s_loadLock == NULL) s_loadLock = new ICriticalSection();
@@ -702,6 +1041,7 @@ namespace External {
 		if (!File) {
 			File = new ExternalFile(name);
 			s_Files->push_back(File);
+			//_MESSAGE("\t - JSON files open: %d", (int)s_Files->size());
 		}
 
 		s_loadLock->Leave();
@@ -798,14 +1138,20 @@ namespace External {
 	// read/write
 
 	bool ExternalFile::LoadFile() {
-		Json::Reader reader;
+		if (isLoaded && !isModified){
+			//_MESSAGE("Skipping load, file already loaded.");
+			return true;
+		}
+		readErrors.clear();
+		//Json::Reader reader;
 		//setlocale(LC_NUMERIC, "POSIX");
 		// Path to file
 		fs::path Path = fs::path(docpath);
 
-		_MESSAGE("Loading: %s", Path.generic_string().c_str());
+		_MESSAGE("JSON Loading: %s", Path.generic_string().c_str());
 		// Check if file exists
 		if (!fs::exists(Path)) {
+			_MESSAGE("JSON: File does not exist, init empty root object...");
 			reader.parse("{}", root, false);
 			return false; // File doesn't exists, why bother?
 		}
@@ -823,29 +1169,46 @@ namespace External {
 				ss << doc.rdbuf();
 				std::string str = ss.str();
 				parsed = reader.parse(str, root, false);
+				if (!reader.good()) {
+					readErrors = reader.getFormattedErrorMessages();
+					_MESSAGE("JSON READER ERROR:");
+					_MESSAGE("%s\n", readErrors.c_str());
+				}
 			}
 		}
-		catch (std::exception&)
+		catch (const std::exception& ex)
 		{
-			_MESSAGE("Failed to load/read file...");
+			_MESSAGE("JSON EXCEPTION:");
+			_MESSAGE("%s\n", ex.what());
 			parsed = false;
 		}
 		if (doc.is_open())
 			doc.close();
 
 		// Failed to parse file properly, init empty root
-		if (!parsed || !root.isObject())
+		if (!parsed || !root.isObject()) {
+			_MESSAGE("JSON: Failed to parse file, init empty root object...");
+			_MESSAGE("\n");
 			reader.parse("{}", root, false);
+		}
 
+
+		//else if (root.empty()) {
+		//	_MESSAGE("Empty file root...");
+		//	reader.parse("{}", root, false);
+		//}
+
+
+		isLoaded = true;
 		s_dataLock.Leave();
 		return parsed;
 	}
 
 	bool ExternalFile::SaveFile() {
-		_MESSAGE("Papyrus Saving File: %s", name.c_str());
 		// Check if anything even needs saving
-		if (!isModified || !root.isObject())
-			return false;
+		if (!isModified || !root.isObject()) return false;
+		_MESSAGE("JSON Saving: %s", name.c_str());
+
 		// Path to file
 		fs::path Path = fs::path(docpath);
 		try
@@ -855,7 +1218,8 @@ namespace External {
 		}
 		catch (const fs::filesystem_error& ex)
 		{
-			_MESSAGE("Failed to check or create path to file: %s", ex.what());
+			_MESSAGE("FILESYSTEM EXCEPTION:");
+			_MESSAGE("%s\n", ex.what());
 			return false;
 		}
 
@@ -867,6 +1231,7 @@ namespace External {
 		{
 			doc.open(Path, fs::ofstream::out | fs::ofstream::trunc);
 			if (!doc.fail()) {
+				if (root.empty() || root.isNull()) reader.parse("{}", root, false);
 				Json::StyledStreamWriter writer;
 				writer.write(doc, root);
 				isModified = false;
@@ -874,7 +1239,8 @@ namespace External {
 		}
 		catch (const std::exception& ex)
 		{
-			_MESSAGE("Failed to load/read file: %s", ex.what());
+			_MESSAGE("JSON WRITE EXCEPTION:");
+			_MESSAGE("%s\n", ex.what());
 		}
 
 		// Close file if it's still open
@@ -887,12 +1253,16 @@ namespace External {
 
 	bool ExternalFile::SaveFile(bool styled) {
 		minify = styled;
-		return SaveFile();
+		bool output = SaveFile();
+		return output;
 	}
 
 	void ExternalFile::ClearAll() {
 		s_dataLock.Enter();
 		root.clear();
+		reader.parse("{}", root, false);
+		//Value empty = Value(Json::objectValue);
+		//root.swap(empty);
 		isModified = true;
 		s_dataLock.Leave();
 	}
@@ -900,7 +1270,10 @@ namespace External {
 	void ExternalFile::RevertFile() {
 		s_dataLock.Enter();
 		isModified = false;
+		isLoaded = false;
 		root.clear();
+		//Value empty = Value(Json::objectValue);
+		//root.swap(empty);
 		//LoadFile();
 		s_dataLock.Leave();
 	}
@@ -915,7 +1288,5 @@ namespace External {
 
 		s_dataLock.Leave();
 	}
-
-
 
 }

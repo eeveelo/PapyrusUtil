@@ -126,10 +126,13 @@ namespace Data
 		int ListResize(UInt64 obj, std::string key, UInt32 length, T filler);
 		bool ListCopy(UInt64 obj, std::string key, VMArray<T> Input);
 		VMResultArray<T> ToArray(UInt64 obj, std::string key);
+		VMResultArray<T> FilterByTypes(UInt64 obj, std::string key, VMArray<UInt32> types, bool matching);
 		int ClearPrefixKey(std::string prefix);
 		int CountPrefixKey(std::string prefix);
 		int ClearPrefixKey(UInt64 obj, std::string prefix);
 		int CountPrefixKey(UInt64 obj, std::string prefix);
+
+
 
 		List* GetVector(UInt64 &obj, std::string &key){
 			Map::iterator itr = Data.find(obj);
@@ -153,7 +156,7 @@ namespace Data
 		const std::string GetNthKey(UInt64 obj, UInt32 i);
 		VMResultArray<TESForm*> GetAllObj();
 		VMResultArray<BSFixedString> GetAllObjKeys(UInt64 obj);
-		void RemoveForm(UInt64 obj);
+		void RemoveForm(UInt64 &obj);
 		int Cleanup();
 	};
 

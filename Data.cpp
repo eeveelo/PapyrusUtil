@@ -42,6 +42,7 @@ namespace Data {
 		if (formLists == NULL) formLists = new forl();
 	}
 
+
 	/*
 	* Define methods
 	*/
@@ -652,6 +653,43 @@ namespace Data {
 		return count;
 	}
 
+
+	inline bool CheckType(TESForm* ref, const std::vector<UInt8> &validtypes) {
+		return std::find(validtypes.begin(), validtypes.end(), ref->formType) != validtypes.end();
+	}
+	template <>	VMResultArray<TESForm*> Lists<TESForm*, UInt32>::FilterByTypes(UInt64 obj, std::string key, VMArray<UInt32> types, bool matching) {
+		VMResultArray<TESForm*> output;
+		if (types.Length() < 1) return output;
+		// Get easier to search type list.
+		std::vector<UInt8> valid;
+		valid.reserve(types.Length());
+		for (UInt32 idx = 0; idx < types.Length(); ++idx) {
+			UInt32 t(0); types.Get(&t, idx);
+			valid.push_back((UInt8)t);
+		}
+		s_dataLock.Enter();
+		boost::to_lower(key);
+		List* vector = GetVector(obj, key);
+		if (vector != NULL && !vector->empty()) {
+			output.reserve(vector->size());
+			for (List::iterator itr = vector->begin(); itr != vector->end(); ++itr) {
+				TESForm* ref = cast(*itr);
+				if (ref != NULL && matching == (std::find(valid.begin(), valid.end(), ref->formType) != valid.end())) {
+					output.push_back(ref);
+				}
+			}
+			output.shrink_to_fit();
+		}
+		s_dataLock.Leave();
+		return output;
+	}
+
+	template <typename T, typename S>
+	VMResultArray<T> Lists<T, S>::FilterByTypes(UInt64 obj, std::string key, VMArray<UInt32> types, bool matching){
+		VMResultArray<T> output;
+		return output;
+	}
+
 	// Special case for strings
 	template <> int Lists<BSFixedString, std::string>::ListFind(UInt64 obj, std::string key, BSFixedString value) {
 		int index = -1;
@@ -734,18 +772,22 @@ namespace Data {
 		if (itr != Data.end()) {
 			UInt32 type = (UInt32)(obj >> 32);
 			UInt32 id = (UInt32)(obj);
-			_MESSAGE("Found handle[%llu] with id: %lu", obj, id);
+			_MESSAGE("Removed VALUE handle[%llu][%lu] with id: %lu", obj, type, id);
 			Data.erase(itr);
 		}
 		s_dataLock.Leave();
 	}
 
 	template <typename T, typename S>
-	void Lists<T, S>::RemoveForm(UInt64 obj) {
+	void Lists<T, S>::RemoveForm(UInt64 &obj) {
 		s_dataLock.Enter();
 		Map::iterator itr = Data.find(obj);
-		if (itr != Data.end())
+		if (itr != Data.end()){
+			UInt32 type = (UInt32)(obj >> 32);
+			UInt32 id = (UInt32)(obj);
+			_MESSAGE("Removed LIST handle[%llu][%lu] with id: %lu", obj, type, id);
 			Data.erase(itr);
+		}
 		s_dataLock.Leave();
 	}
 
@@ -1027,7 +1069,7 @@ namespace Data {
 				}
 			}
 			else {
-				_MESSAGE("\t Discaring empty: %llu", i->first);
+				_MESSAGE("\t Discarding empty: %llu", i->first);
 			}
 			
 		}
@@ -1062,7 +1104,7 @@ namespace Data {
 					}
 				}
 				else {
-					_MESSAGE("\t Discaring empty: %llu", i->first);
+					_MESSAGE("\t Discarding empty: %llu", i->first);
 				}
 				
 			}
@@ -1097,3 +1139,5 @@ namespace Data {
 
 
 
+
+ 

@@ -40,4 +40,10 @@ namespace Forms {
 	int GameGetForm(int formId);
 	bool IsValidObject(TESForm* obj, UInt64 formId);
 
+
+	/*class FormStore {
+	public:
+		FormStore(TESForm*);
+	};*/
+
 }

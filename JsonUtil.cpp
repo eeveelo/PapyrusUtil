@@ -29,10 +29,20 @@ namespace JsonUtil {
 	template <> inline BSFixedString Empty<BSFixedString>() { return BSFixedString(""); }
 	template <> inline TESForm* Empty<TESForm*>() { return NULL; }
 
+	std::string Filename(std::string name){
+		if (name.empty()) name = "noname.json";
+		else if (name.find(".json") == std::string::npos) name += ".json";
+		return "Data\\SKSE\\Plugins\\StorageUtilData\\" + name;
+	}
+
 	bool SaveJson(StaticFunctionTag* base, BSFixedString name, bool styled){
 		ExternalFile* File = GetFile(name.data);
 		if (!File) return false;
-		else return File->SaveFile(styled);
+		else{
+			bool output = File->SaveFile(styled);
+			External::UnloadFile(name.data);
+			return output;
+		}
 	}
 	bool LoadJson(StaticFunctionTag* base, BSFixedString name){
 		ExternalFile* File = GetFile(name.data);
@@ -46,12 +56,33 @@ namespace JsonUtil {
 	}
 
 	bool UnloadFile(StaticFunctionTag* base, BSFixedString name, bool savechanges, bool minify){
-		return External::RevertFile(name.data, savechanges, minify);
+		bool output = External::RevertFile(name.data, savechanges, minify);
+		if (output) External::UnloadFile(name.data);
+		return output;
 	}
 	bool IsPendingSave(StaticFunctionTag* base, BSFixedString name){
 		return External::ChangesPending(name.data);
 	}
 
+
+	bool IsGood(StaticFunctionTag* base, BSFixedString name) {
+		ExternalFile* File = GetFile(name.data);
+		return File && File->IsGood();
+	}
+
+	BSFixedString GetErrors(StaticFunctionTag* base, BSFixedString name) {
+		ExternalFile* File = GetFile(name.data);
+		if (File) return BSFixedString(File->GetErrors().c_str());
+		else return BSFixedString("");
+	}
+
+	void ClearPath(StaticFunctionTag* base, BSFixedString name, BSFixedString path) {
+		//_MESSAGE("ClearPath(%s, %s)", name.data, path.data);
+		if (FileExists(name.data)){
+			ExternalFile* File = GetFile(name.data);
+			if (File && IsValidKey(path)) File->ClearPath(path.data);
+		}
+	}
 
 	template <typename T>
 	void SetPathValue(StaticFunctionTag* base, BSFixedString name, BSFixedString path, T value) {
@@ -73,12 +104,26 @@ namespace JsonUtil {
 		else return File->GetPathValue<T>(path.data, missing);
 	}
 
-	template <> BSFixedString GetPathValue(StaticFunctionTag* base, BSFixedString name, BSFixedString path, BSFixedString missing) {
+
+	template <typename T>
+	void SetPathArray(StaticFunctionTag* base, BSFixedString name, BSFixedString path, VMArray<T> arr, bool append) {
+		ExternalFile* File = GetFile(name.data);
+		if (File && IsValidKey(path))
+			File->SetPathArray<T>(path.data, arr, append);
+	}
+
+	bool SetRawPathValue(StaticFunctionTag* base, BSFixedString name, BSFixedString path, BSFixedString raw) {
+		ExternalFile* File = GetFile(name.data);
+		if (!File || !IsValidKey(path)) return false;
+		else return File->SetRawPathValue(path.data, raw.data);
+	}
+
+	/*template <> BSFixedString GetPathValue(StaticFunctionTag* base, BSFixedString name, BSFixedString path, BSFixedString missing) {
 		ExternalFile* File = GetFile(name.data);
 		if (!File || !IsValidKey(path)) return missing;
 		std::string value = File->GetPathValue(path.data, std::string(missing.data));
 		return BSFixedString(value.c_str());
-	}
+	}*/
 
 
 	template <typename T> VMResultArray<T> PathElements(StaticFunctionTag* base, BSFixedString name, BSFixedString path, T invalidType) {
@@ -124,6 +169,12 @@ namespace JsonUtil {
 	bool IsForm(StaticFunctionTag* base, BSFixedString name, BSFixedString path) {
 		ExternalFile* File = GetFile(name.data);
 		return File && IsValidKey(path) && File->IsForm(path.data);
+	}
+
+	template <typename T>
+	SInt32 FindPathElement(StaticFunctionTag* base, BSFixedString name, BSFixedString path, T value) {
+		ExternalFile* File = GetFile(name.data);
+		return (File && IsValidKey(path)) ? File->FindPathElement<T>(path.data, MakeValue<T>(value)) : -1;
 	}
 
 	template <typename T>
@@ -398,22 +449,33 @@ void JsonUtil::RegisterFuncs(VMClassRegistry* registry){
 	registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, void, BSFixedString>("ClearAll", "JsonUtil", ClearAll, registry));
 	registry->SetFunctionFlags("JsonUtil", "ClearAll", VMClassRegistry::kFunctionFlag_NoWait);
 
-	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, bool, BSFixedString, bool, bool>("UnloadFile", "JsonUtil", UnloadFile, registry));
-	//registry->SetFunctionFlags("JsonUtil", "UnloadFile", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, bool, BSFixedString, bool, bool>("Unload", "JsonUtil", UnloadFile, registry));
+	//registry->SetFunctionFlags("JsonUtil", "Unload", VMClassRegistry::kFunctionFlag_NoWait);
 
 	registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, bool, BSFixedString>("IsPendingSave", "JsonUtil", IsPendingSave, registry));
 	registry->SetFunctionFlags("JsonUtil", "IsPendingSave", VMClassRegistry::kFunctionFlag_NoWait);
 
+	registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, bool, BSFixedString>("IsGood", "JsonUtil", IsGood, registry));
+	registry->SetFunctionFlags("JsonUtil", "IsGood", VMClassRegistry::kFunctionFlag_NoWait);
+
+	registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, BSFixedString, BSFixedString>("GetErrors", "JsonUtil", GetErrors, registry));
+	registry->SetFunctionFlags("JsonUtil", "GetErrors", VMClassRegistry::kFunctionFlag_NoWait);
+
+	//registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, bool, BSFixedString>("JsonExists", "JsonUtil", FileExists, registry));
+	//registry->SetFunctionFlags("JsonUtil", "JsonExists", VMClassRegistry::kFunctionFlag_NoWait);
+
+	registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, void, BSFixedString, BSFixedString>("ClearPath", "JsonUtil", ClearPath, registry));
+	registry->SetFunctionFlags("JsonUtil", "ClearPath", VMClassRegistry::kFunctionFlag_NoWait);
 
 	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, void, BSFixedString, BSFixedString, SInt32>("SetPathIntValue", "JsonUtil", SetPathValue<SInt32>, registry));
 	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, void, BSFixedString, BSFixedString, float>("SetPathFloatValue", "JsonUtil", SetPathValue<float>, registry));
 	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, void, BSFixedString, BSFixedString, BSFixedString>("SetPathStringValue", "JsonUtil", SetPathValue<BSFixedString>, registry));
 	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, void, BSFixedString, BSFixedString, TESForm*>("SetPathFormValue", "JsonUtil", SetPathValue<TESForm*>, registry));
 	//registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, void, BSFixedString, BSFixedString, bool>("SetPathBoolValue", "JsonUtil", SetPathValue<bool>, registry));
-	//registry->SetFunctionFlags("JsonUtil", "SetPathIntValue", VMClassRegistry::kFunctionFlag_NoWait);
-	//registry->SetFunctionFlags("JsonUtil", "SetPathFloatValue", VMClassRegistry::kFunctionFlag_NoWait);
-	//registry->SetFunctionFlags("JsonUtil", "SetPathStringValue", VMClassRegistry::kFunctionFlag_NoWait);
-	//registry->SetFunctionFlags("JsonUtil", "SetPathFormValue", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("JsonUtil", "SetPathIntValue", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("JsonUtil", "SetPathFloatValue", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("JsonUtil", "SetPathStringValue", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("JsonUtil", "SetPathFormValue", VMClassRegistry::kFunctionFlag_NoWait);
 
 	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, SInt32, BSFixedString, BSFixedString, SInt32>("GetPathIntValue", "JsonUtil", GetPathValue<SInt32>, registry));
 	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, float, BSFixedString, BSFixedString, float>("GetPathFloatValue", "JsonUtil", GetPathValue<float>, registry));
@@ -434,6 +496,25 @@ void JsonUtil::RegisterFuncs(VMClassRegistry* registry){
 	registry->SetFunctionFlags("JsonUtil", "PathFloatElements", VMClassRegistry::kFunctionFlag_NoWait);
 	registry->SetFunctionFlags("JsonUtil", "PathStringElements", VMClassRegistry::kFunctionFlag_NoWait);
 	registry->SetFunctionFlags("JsonUtil", "PathFormElements", VMClassRegistry::kFunctionFlag_NoWait);
+
+	registry->RegisterFunction(new NativeFunction4<StaticFunctionTag, void, BSFixedString, BSFixedString, VMArray<SInt32>, bool>("SetPathIntArray", "JsonUtil", SetPathArray<SInt32>, registry));
+	registry->RegisterFunction(new NativeFunction4<StaticFunctionTag, void, BSFixedString, BSFixedString, VMArray<float>, bool>("SetPathFloatArray", "JsonUtil", SetPathArray<float>, registry));
+	registry->RegisterFunction(new NativeFunction4<StaticFunctionTag, void, BSFixedString, BSFixedString, VMArray<BSFixedString>, bool>("SetPathStringArray", "JsonUtil", SetPathArray<BSFixedString>, registry));
+	registry->RegisterFunction(new NativeFunction4<StaticFunctionTag, void, BSFixedString, BSFixedString, VMArray<TESForm*>, bool>("SetPathFormArray", "JsonUtil", SetPathArray<TESForm*>, registry));
+	//registry->SetFunctionFlags("JsonUtil", "SetPathIntArray", VMClassRegistry::kFunctionFlag_NoWait);
+	//registry->SetFunctionFlags("JsonUtil", "SetPathFloatArray", VMClassRegistry::kFunctionFlag_NoWait);
+	//registry->SetFunctionFlags("JsonUtil", "SetPathStringArray", VMClassRegistry::kFunctionFlag_NoWait);
+	//registry->SetFunctionFlags("JsonUtil", "SetPathFormArray", VMClassRegistry::kFunctionFlag_NoWait);
+
+
+	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, SInt32, BSFixedString, BSFixedString, SInt32>("FindPathIntElement", "JsonUtil", FindPathElement<SInt32>, registry));
+	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, SInt32, BSFixedString, BSFixedString, float>("FindPathFloatElement", "JsonUtil", FindPathElement<float>, registry));
+	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, SInt32, BSFixedString, BSFixedString, BSFixedString>("FindPathStringElement", "JsonUtil", FindPathElement<BSFixedString>, registry));
+	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, SInt32, BSFixedString, BSFixedString, TESForm*>("FindPathFormElement", "JsonUtil", FindPathElement<TESForm*>, registry));
+	registry->SetFunctionFlags("JsonUtil", "FindPathIntElement", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("JsonUtil", "FindPathFloatElement", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("JsonUtil", "FindPathStringElement", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("JsonUtil", "FindPathFormElement", VMClassRegistry::kFunctionFlag_NoWait);
 
 	registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, VMResultArray<BSFixedString>, BSFixedString, BSFixedString>("PathMembers", "JsonUtil", PathMembers, registry));
 	registry->SetFunctionFlags("JsonUtil", "PathMembers", VMClassRegistry::kFunctionFlag_NoWait);
@@ -462,15 +543,18 @@ void JsonUtil::RegisterFuncs(VMClassRegistry* registry){
 	registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, bool, BSFixedString, BSFixedString>("IsPathForm", "JsonUtil", IsForm, registry));
 	registry->SetFunctionFlags("JsonUtil", "IsPathForm", VMClassRegistry::kFunctionFlag_NoWait);
 
+	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, bool, BSFixedString, BSFixedString, BSFixedString>("SetRawPathValue", "JsonUtil", SetRawPathValue, registry));
+	//registry->SetFunctionFlags("JsonUtil", "SetRawPathValue", VMClassRegistry::kFunctionFlag_NoWait);
+
 	// Global  values
-	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, SInt32, BSFixedString, BSFixedString, SInt32>("SetIntValue2", "JsonUtil", SetValue2<SInt32>, registry));
+	/*registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, SInt32, BSFixedString, BSFixedString, SInt32>("SetIntValue2", "JsonUtil", SetValue2<SInt32>, registry));
 	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, float, BSFixedString, BSFixedString, float>("SetFloatValue2", "JsonUtil", SetValue2<float>, registry));
 	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, BSFixedString, BSFixedString, BSFixedString, BSFixedString>("SetStringValue2", "JsonUtil", SetValue2<BSFixedString>, registry));
 	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, TESForm*, BSFixedString, BSFixedString, TESForm*>("SetFormValue2", "JsonUtil", SetValue2<TESForm*>, registry));
-	//registry->SetFunctionFlags("JsonUtil", "SetIntValue2", VMClassRegistry::kFunctionFlag_NoWait);
-	//registry->SetFunctionFlags("JsonUtil", "SetFloatValue2", VMClassRegistry::kFunctionFlag_NoWait);
-	//registry->SetFunctionFlags("JsonUtil", "SetStringValue2", VMClassRegistry::kFunctionFlag_NoWait);
-	//registry->SetFunctionFlags("JsonUtil", "SetFormValue2", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("JsonUtil", "SetIntValue2", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("JsonUtil", "SetFloatValue2", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("JsonUtil", "SetStringValue2", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("JsonUtil", "SetFormValue2", VMClassRegistry::kFunctionFlag_NoWait);
 
 	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, SInt32, BSFixedString, BSFixedString, SInt32>("SetIntValue2NoWait", "JsonUtil", SetValue2<SInt32>, registry));
 	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, float, BSFixedString, BSFixedString, float>("SetFloatValue2NoWait", "JsonUtil", SetValue2<float>, registry));
@@ -488,26 +572,26 @@ void JsonUtil::RegisterFuncs(VMClassRegistry* registry){
 	registry->SetFunctionFlags("JsonUtil", "GetIntValue2", VMClassRegistry::kFunctionFlag_NoWait);
 	registry->SetFunctionFlags("JsonUtil", "GetFloatValue2", VMClassRegistry::kFunctionFlag_NoWait);
 	registry->SetFunctionFlags("JsonUtil", "GetStringValue2", VMClassRegistry::kFunctionFlag_NoWait);
-	registry->SetFunctionFlags("JsonUtil", "GetFormValue2", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("JsonUtil", "GetFormValue2", VMClassRegistry::kFunctionFlag_NoWait);*/
 
 
 	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, SInt32, BSFixedString, BSFixedString, SInt32>("SetIntValue", "JsonUtil", SetValue<SInt32>, registry));
 	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, float, BSFixedString, BSFixedString, float>("SetFloatValue", "JsonUtil", SetValue<float>, registry));
 	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, BSFixedString, BSFixedString, BSFixedString, BSFixedString>("SetStringValue", "JsonUtil", SetValue<BSFixedString>, registry));
 	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, TESForm*, BSFixedString, BSFixedString, TESForm*>("SetFormValue", "JsonUtil", SetValue<TESForm*>, registry));
-	//registry->SetFunctionFlags("JsonUtil", "SetIntValue", VMClassRegistry::kFunctionFlag_NoWait);
-	//registry->SetFunctionFlags("JsonUtil", "SetFloatValue", VMClassRegistry::kFunctionFlag_NoWait);
-	//registry->SetFunctionFlags("JsonUtil", "SetStringValue", VMClassRegistry::kFunctionFlag_NoWait);
-	//registry->SetFunctionFlags("JsonUtil", "SetFormValue", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("JsonUtil", "SetIntValue", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("JsonUtil", "SetFloatValue", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("JsonUtil", "SetStringValue", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("JsonUtil", "SetFormValue", VMClassRegistry::kFunctionFlag_NoWait);
 
-	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, SInt32, BSFixedString, BSFixedString, SInt32>("SetIntValueNoWait", "JsonUtil", SetValue<SInt32>, registry));
+	/*registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, SInt32, BSFixedString, BSFixedString, SInt32>("SetIntValueNoWait", "JsonUtil", SetValue<SInt32>, registry));
 	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, float, BSFixedString, BSFixedString, float>("SetFloatValueNoWait", "JsonUtil", SetValue<float>, registry));
 	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, BSFixedString, BSFixedString, BSFixedString, BSFixedString>("SetStringValueNoWait", "JsonUtil", SetValue<BSFixedString>, registry));
 	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, TESForm*, BSFixedString, BSFixedString, TESForm*>("SetFormValueNoWait", "JsonUtil", SetValue<TESForm*>, registry));
 	registry->SetFunctionFlags("JsonUtil", "SetIntValueNoWait", VMClassRegistry::kFunctionFlag_NoWait);
 	registry->SetFunctionFlags("JsonUtil", "SetFloatValueNoWait", VMClassRegistry::kFunctionFlag_NoWait);
 	registry->SetFunctionFlags("JsonUtil", "SetStringValueNoWait", VMClassRegistry::kFunctionFlag_NoWait);
-	registry->SetFunctionFlags("JsonUtil", "SetFormValueNoWait", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("JsonUtil", "SetFormValueNoWait", VMClassRegistry::kFunctionFlag_NoWait);*/
 
 	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, SInt32, BSFixedString, BSFixedString, SInt32>("GetIntValue", "JsonUtil", GetValue<SInt32>, registry));
 	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, float, BSFixedString, BSFixedString, float>("GetFloatValue", "JsonUtil", GetValue<float>, registry));
@@ -520,17 +604,17 @@ void JsonUtil::RegisterFuncs(VMClassRegistry* registry){
 
 	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, SInt32, BSFixedString, BSFixedString, SInt32>("AdjustIntValue", "JsonUtil", AdjustValue<SInt32>, registry));
 	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, float, BSFixedString, BSFixedString, float>("AdjustFloatValue", "JsonUtil", AdjustValue<float>, registry));
-	//registry->SetFunctionFlags("JsonUtil", "AdjustIntValue", VMClassRegistry::kFunctionFlag_NoWait);
-	//registry->SetFunctionFlags("JsonUtil", "AdjustFloatValue", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("JsonUtil", "AdjustIntValue", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("JsonUtil", "AdjustFloatValue", VMClassRegistry::kFunctionFlag_NoWait);
 
 	registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, bool, BSFixedString, BSFixedString>("UnsetIntValue", "JsonUtil", UnsetValue<SInt32>, registry));
 	registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, bool, BSFixedString, BSFixedString>("UnsetFloatValue", "JsonUtil", UnsetValue<float>, registry));
 	registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, bool, BSFixedString, BSFixedString>("UnsetStringValue", "JsonUtil", UnsetValue<BSFixedString>, registry));
 	registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, bool, BSFixedString, BSFixedString>("UnsetFormValue", "JsonUtil", UnsetValue<TESForm*>, registry));
-	//registry->SetFunctionFlags("JsonUtil", "UnsetIntValue", VMClassRegistry::kFunctionFlag_NoWait);
-	//registry->SetFunctionFlags("JsonUtil", "UnsetFloatValue", VMClassRegistry::kFunctionFlag_NoWait);
-	//registry->SetFunctionFlags("JsonUtil", "UnsetStringValue", VMClassRegistry::kFunctionFlag_NoWait);
-	//registry->SetFunctionFlags("JsonUtil", "UnsetFormValue", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("JsonUtil", "UnsetIntValue", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("JsonUtil", "UnsetFloatValue", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("JsonUtil", "UnsetStringValue", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("JsonUtil", "UnsetFormValue", VMClassRegistry::kFunctionFlag_NoWait);
 
 	registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, bool, BSFixedString, BSFixedString>("HasIntValue", "JsonUtil", HasValue<SInt32>, registry));
 	registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, bool, BSFixedString, BSFixedString>("HasFloatValue", "JsonUtil", HasValue<float>, registry));
@@ -546,10 +630,10 @@ void JsonUtil::RegisterFuncs(VMClassRegistry* registry){
 	registry->RegisterFunction(new NativeFunction4<StaticFunctionTag, SInt32, BSFixedString, BSFixedString, float, bool>("FloatListAdd", "JsonUtil", ListAdd<float>, registry));
 	registry->RegisterFunction(new NativeFunction4<StaticFunctionTag, SInt32, BSFixedString, BSFixedString, BSFixedString, bool>("StringListAdd", "JsonUtil", ListAdd<BSFixedString>, registry));
 	registry->RegisterFunction(new NativeFunction4<StaticFunctionTag, SInt32, BSFixedString, BSFixedString, TESForm*, bool>("FormListAdd", "JsonUtil", ListAdd<TESForm*>, registry));
-	//registry->SetFunctionFlags("JsonUtil", "IntListAdd", VMClassRegistry::kFunctionFlag_NoWait);
-	//registry->SetFunctionFlags("JsonUtil", "FloatListAdd", VMClassRegistry::kFunctionFlag_NoWait);
-	//registry->SetFunctionFlags("JsonUtil", "StringListAdd", VMClassRegistry::kFunctionFlag_NoWait);
-	//registry->SetFunctionFlags("JsonUtil", "FormListAdd", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("JsonUtil", "IntListAdd", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("JsonUtil", "FloatListAdd", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("JsonUtil", "StringListAdd", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("JsonUtil", "FormListAdd", VMClassRegistry::kFunctionFlag_NoWait);
 
 	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, SInt32, BSFixedString, BSFixedString, UInt32>("IntListGet", "JsonUtil", ListGet<SInt32>, registry));
 	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, float, BSFixedString, BSFixedString, UInt32>("FloatListGet", "JsonUtil", ListGet<float>, registry));
@@ -562,53 +646,53 @@ void JsonUtil::RegisterFuncs(VMClassRegistry* registry){
 
 	registry->RegisterFunction(new NativeFunction4<StaticFunctionTag, SInt32, BSFixedString, BSFixedString, UInt32, SInt32>("IntListAdjust", "JsonUtil", ListAdjust<SInt32>, registry));
 	registry->RegisterFunction(new NativeFunction4<StaticFunctionTag, float, BSFixedString, BSFixedString, UInt32, float>("FloatListAdjust", "JsonUtil", ListAdjust<float>, registry));
-	//registry->SetFunctionFlags("JsonUtil", "IntListAdjust", VMClassRegistry::kFunctionFlag_NoWait);
-	//registry->SetFunctionFlags("JsonUtil", "FloatListAdjust", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("JsonUtil", "IntListAdjust", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("JsonUtil", "FloatListAdjust", VMClassRegistry::kFunctionFlag_NoWait);
 
 	registry->RegisterFunction(new NativeFunction4<StaticFunctionTag, SInt32, BSFixedString, BSFixedString, UInt32, SInt32>("IntListSet", "JsonUtil", ListSet<SInt32>, registry));
 	registry->RegisterFunction(new NativeFunction4<StaticFunctionTag, float, BSFixedString, BSFixedString, UInt32, float>("FloatListSet", "JsonUtil", ListSet<float>, registry));
 	registry->RegisterFunction(new NativeFunction4<StaticFunctionTag, BSFixedString, BSFixedString, BSFixedString, UInt32, BSFixedString>("StringListSet", "JsonUtil", ListSet<BSFixedString>, registry));
 	registry->RegisterFunction(new NativeFunction4<StaticFunctionTag, TESForm*, BSFixedString, BSFixedString, UInt32, TESForm*>("FormListSet", "JsonUtil", ListSet<TESForm*>, registry));
-	//registry->SetFunctionFlags("JsonUtil", "IntListSet", VMClassRegistry::kFunctionFlag_NoWait);
-	//registry->SetFunctionFlags("JsonUtil", "FloatListSet", VMClassRegistry::kFunctionFlag_NoWait);
-	//registry->SetFunctionFlags("JsonUtil", "StringListSet", VMClassRegistry::kFunctionFlag_NoWait);
-	//registry->SetFunctionFlags("JsonUtil", "FormListSet", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("JsonUtil", "IntListSet", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("JsonUtil", "FloatListSet", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("JsonUtil", "StringListSet", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("JsonUtil", "FormListSet", VMClassRegistry::kFunctionFlag_NoWait);
 
 	registry->RegisterFunction(new NativeFunction4<StaticFunctionTag, UInt32, BSFixedString, BSFixedString, SInt32, bool>("IntListRemove", "JsonUtil", ListRemove<SInt32>, registry));
 	registry->RegisterFunction(new NativeFunction4<StaticFunctionTag, UInt32, BSFixedString, BSFixedString, float, bool>("FloatListRemove", "JsonUtil", ListRemove<float>, registry));
 	registry->RegisterFunction(new NativeFunction4<StaticFunctionTag, UInt32, BSFixedString, BSFixedString, BSFixedString, bool>("StringListRemove", "JsonUtil", ListRemove<BSFixedString>, registry));
 	registry->RegisterFunction(new NativeFunction4<StaticFunctionTag, UInt32, BSFixedString, BSFixedString, TESForm*, bool>("FormListRemove", "JsonUtil", ListRemove<TESForm*>, registry));
-	//registry->SetFunctionFlags("JsonUtil", "IntListRemove", VMClassRegistry::kFunctionFlag_NoWait);
-	//registry->SetFunctionFlags("JsonUtil", "FloatListRemove", VMClassRegistry::kFunctionFlag_NoWait);
-	//registry->SetFunctionFlags("JsonUtil", "StringListRemove", VMClassRegistry::kFunctionFlag_NoWait);
-	//registry->SetFunctionFlags("JsonUtil", "FormListRemove", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("JsonUtil", "IntListRemove", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("JsonUtil", "FloatListRemove", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("JsonUtil", "StringListRemove", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("JsonUtil", "FormListRemove", VMClassRegistry::kFunctionFlag_NoWait);
 
 	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, bool, BSFixedString, BSFixedString, UInt32>("IntListRemoveAt", "JsonUtil", ListRemoveAt<SInt32>, registry));
 	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, bool, BSFixedString, BSFixedString, UInt32>("FloatListRemoveAt", "JsonUtil", ListRemoveAt<float>, registry));
 	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, bool, BSFixedString, BSFixedString, UInt32>("StringListRemoveAt", "JsonUtil", ListRemoveAt<BSFixedString>, registry));
 	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, bool, BSFixedString, BSFixedString, UInt32>("FormListRemoveAt", "JsonUtil", ListRemoveAt<TESForm*>, registry));
-	//registry->SetFunctionFlags("JsonUtil", "IntListRemoveAt", VMClassRegistry::kFunctionFlag_NoWait);
-	//registry->SetFunctionFlags("JsonUtil", "FloatListRemoveAt", VMClassRegistry::kFunctionFlag_NoWait);
-	//registry->SetFunctionFlags("JsonUtil", "StringListRemoveAt", VMClassRegistry::kFunctionFlag_NoWait);
-	//registry->SetFunctionFlags("JsonUtil", "FormListRemoveAt", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("JsonUtil", "IntListRemoveAt", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("JsonUtil", "FloatListRemoveAt", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("JsonUtil", "StringListRemoveAt", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("JsonUtil", "FormListRemoveAt", VMClassRegistry::kFunctionFlag_NoWait);
 
 	registry->RegisterFunction(new NativeFunction4<StaticFunctionTag, bool, BSFixedString, BSFixedString, UInt32, SInt32>("IntListInsertAt", "JsonUtil", ListInsertAt<SInt32>, registry));
 	registry->RegisterFunction(new NativeFunction4<StaticFunctionTag, bool, BSFixedString, BSFixedString, UInt32, float>("FloatListInsertAt", "JsonUtil", ListInsertAt<float>, registry));
 	registry->RegisterFunction(new NativeFunction4<StaticFunctionTag, bool, BSFixedString, BSFixedString, UInt32, BSFixedString>("StringListInsertAt", "JsonUtil", ListInsertAt<BSFixedString>, registry));
 	registry->RegisterFunction(new NativeFunction4<StaticFunctionTag, bool, BSFixedString, BSFixedString, UInt32, TESForm*>("FormListInsertAt", "JsonUtil", ListInsertAt<TESForm*>, registry));
-	//registry->SetFunctionFlags("JsonUtil", "IntListInsertAt", VMClassRegistry::kFunctionFlag_NoWait);
-	//registry->SetFunctionFlags("JsonUtil", "FloatListInsertAt", VMClassRegistry::kFunctionFlag_NoWait);
-	//registry->SetFunctionFlags("JsonUtil", "StringListInsertAt", VMClassRegistry::kFunctionFlag_NoWait);
-	//registry->SetFunctionFlags("JsonUtil", "FormListInsertAt", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("JsonUtil", "IntListInsertAt", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("JsonUtil", "FloatListInsertAt", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("JsonUtil", "StringListInsertAt", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("JsonUtil", "FormListInsertAt", VMClassRegistry::kFunctionFlag_NoWait);
 
 	registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, UInt32, BSFixedString, BSFixedString>("IntListClear", "JsonUtil", ListClear<SInt32>, registry));
 	registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, UInt32, BSFixedString, BSFixedString>("FloatListClear", "JsonUtil", ListClear<float>, registry));
 	registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, UInt32, BSFixedString, BSFixedString>("StringListClear", "JsonUtil", ListClear<BSFixedString>, registry));
 	registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, UInt32, BSFixedString, BSFixedString>("FormListClear", "JsonUtil", ListClear<TESForm*>, registry));
-	//registry->SetFunctionFlags("JsonUtil", "IntListClear", VMClassRegistry::kFunctionFlag_NoWait);
-	//registry->SetFunctionFlags("JsonUtil", "FloatListClear", VMClassRegistry::kFunctionFlag_NoWait);
-	//registry->SetFunctionFlags("JsonUtil", "StringListClear", VMClassRegistry::kFunctionFlag_NoWait);
-	//registry->SetFunctionFlags("JsonUtil", "FormListClear", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("JsonUtil", "IntListClear", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("JsonUtil", "FloatListClear", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("JsonUtil", "StringListClear", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("JsonUtil", "FormListClear", VMClassRegistry::kFunctionFlag_NoWait);
 
 	registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, UInt32, BSFixedString, BSFixedString>("IntListCount", "JsonUtil", ListCount<SInt32>, registry));
 	registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, UInt32, BSFixedString, BSFixedString>("FloatListCount", "JsonUtil", ListCount<float>, registry));
@@ -659,10 +743,10 @@ void JsonUtil::RegisterFuncs(VMClassRegistry* registry){
 	registry->RegisterFunction(new NativeFunction4 <StaticFunctionTag, SInt32, BSFixedString, BSFixedString, UInt32, float>("FloatListResize", "JsonUtil", ListResize<float>, registry));
 	registry->RegisterFunction(new NativeFunction4 <StaticFunctionTag, SInt32, BSFixedString, BSFixedString, UInt32, BSFixedString>("StringListResize", "JsonUtil", ListResize<BSFixedString>, registry));
 	registry->RegisterFunction(new NativeFunction4 <StaticFunctionTag, SInt32, BSFixedString, BSFixedString, UInt32, TESForm*>("FormListResize", "JsonUtil", ListResize<TESForm*>, registry));
-	//registry->SetFunctionFlags("JsonUtil", "IntListResize", VMClassRegistry::kFunctionFlag_NoWait);
-	//registry->SetFunctionFlags("JsonUtil", "FloatListResize", VMClassRegistry::kFunctionFlag_NoWait);
-	//registry->SetFunctionFlags("JsonUtil", "StringListResize", VMClassRegistry::kFunctionFlag_NoWait);
-	//registry->SetFunctionFlags("JsonUtil", "FormListResize", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("JsonUtil", "IntListResize", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("JsonUtil", "FloatListResize", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("JsonUtil", "StringListResize", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("JsonUtil", "FormListResize", VMClassRegistry::kFunctionFlag_NoWait);
 
 	registry->RegisterFunction(new NativeFunction3 <StaticFunctionTag, bool, BSFixedString, BSFixedString, VMArray<SInt32>>("IntListCopy", "JsonUtil", ListCopy<SInt32>, registry));
 	registry->RegisterFunction(new NativeFunction3 <StaticFunctionTag, bool, BSFixedString, BSFixedString, VMArray<float>>("FloatListCopy", "JsonUtil", ListCopy<float>, registry));

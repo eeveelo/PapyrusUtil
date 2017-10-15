@@ -68,8 +68,16 @@ namespace Data {
 
 	void FormDelete(UInt64 handle){
 		if (intValues){
-			//_MESSAGE("Form Delete Handle: %llu", handle);
+			_MESSAGE("Form Delete Handle: %llu", handle);
 			intValues->RemoveForm(handle);
+			floatValues->RemoveForm(handle);
+			stringValues->RemoveForm(handle);
+			formValues->RemoveForm(handle);
+
+			intLists->RemoveForm(handle);
+			floatLists->RemoveForm(handle);
+			stringLists->RemoveForm(handle);
+			formLists->RemoveForm(handle);
 		}
 	}
 
@@ -246,26 +254,37 @@ namespace Data {
 	void Serialization_Revert(SKSESerializationInterface* intfc) {
 		_MESSAGE("Storage Reverting...");
 
-		InitLists();
+		_MESSAGE("\t - Mod List");
 		Forms::ClearModList();
 		//Forms::LoadCurrentMods();
 		//Forms::ClearPreviousMods();
 
+
+		_MESSAGE("\t - StorageUtil: Values");
 		intValues->Revert();
 		floatValues->Revert();
 		stringValues->Revert();
 		formValues->Revert();
 
+		_MESSAGE("\t - StorageUtil: Lists");
 		intLists->Revert();
 		floatLists->Revert();
 		stringLists->Revert();
 		formLists->Revert();
 
+		_MESSAGE("\t - Package Overrides");
 		PackageData::GetPackages()->Revert();
 
 		// Revert external files
+		_MESSAGE("\t - JSON Files");
 		External::RevertFiles();
 
+		_MESSAGE("\t - Re-Init");
+		InitLists();
+
 		_MESSAGE("Done!\n");
+		
+		//_MESSAGE("Revert skip!\n");
+
 	}
 }

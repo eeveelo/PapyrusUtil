@@ -428,6 +428,13 @@ namespace StorageUtil {
 		return count;
 	}
 
+	VMResultArray<TESForm*> FilterByTypes(StaticFunctionTag* base, TESForm* obj, BSFixedString key, VMArray<UInt32> types, bool matching) {
+		Data::Lists<TESForm*, UInt32>* Data = Data::GetLists<TESForm*, UInt32>();
+		if (!Data || !IsValidKey(key)) { VMResultArray<TESForm*> arr;  return arr; }
+		else return Data->FilterByTypes(GetFormKey(obj), key.data, types, matching);
+	}
+
+
 } // StorageUtil
 
 #ifdef _GLOBAL_EXTERNAL
@@ -585,10 +592,10 @@ void StorageUtil::RegisterFuncs(VMClassRegistry* registry) {
 	registry->RegisterFunction(new NativeFunction3 <StaticFunctionTag, float, TESForm*, BSFixedString, float>("SetFloatValue", "StorageUtil", SetValue<float, float>, registry));
 	registry->RegisterFunction(new NativeFunction3 <StaticFunctionTag, BSFixedString, TESForm*, BSFixedString, BSFixedString>("SetStringValue", "StorageUtil", SetValue<BSFixedString, std::string>, registry));
 	registry->RegisterFunction(new NativeFunction3 <StaticFunctionTag, TESForm*, TESForm*, BSFixedString, TESForm*>("SetFormValue", "StorageUtil", SetValue<TESForm*, UInt32>, registry));
-	//registry->SetFunctionFlags("StorageUtil", "SetIntValue", VMClassRegistry::kFunctionFlag_NoWait);
-	//registry->SetFunctionFlags("StorageUtil", "SetFloatValue", VMClassRegistry::kFunctionFlag_NoWait);
-	//registry->SetFunctionFlags("StorageUtil", "SetStringValue", VMClassRegistry::kFunctionFlag_NoWait);
-	//registry->SetFunctionFlags("StorageUtil", "SetFormValue", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "SetIntValue", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "SetFloatValue", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "SetStringValue", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "SetFormValue", VMClassRegistry::kFunctionFlag_NoWait);
 
 	registry->RegisterFunction(new NativeFunction3 <StaticFunctionTag, SInt32, TESForm*, BSFixedString, SInt32>("GetIntValue", "StorageUtil", GetValue<SInt32, SInt32>, registry));
 	registry->RegisterFunction(new NativeFunction3 <StaticFunctionTag, float, TESForm*, BSFixedString, float>("GetFloatValue", "StorageUtil", GetValue<float, float>, registry));
@@ -601,8 +608,8 @@ void StorageUtil::RegisterFuncs(VMClassRegistry* registry) {
 
 	registry->RegisterFunction(new NativeFunction3 <StaticFunctionTag, SInt32, TESForm*, BSFixedString, SInt32>("AdjustIntValue", "StorageUtil", AdjustValue<SInt32, SInt32>, registry));
 	registry->RegisterFunction(new NativeFunction3 <StaticFunctionTag, float, TESForm*, BSFixedString, float>("AdjustFloatValue", "StorageUtil", AdjustValue<float, float>, registry));
-	//registry->SetFunctionFlags("StorageUtil", "AdjustIntValue", VMClassRegistry::kFunctionFlag_NoWait);
-	//registry->SetFunctionFlags("StorageUtil", "AdjustFloatValue", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "AdjustIntValue", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "AdjustFloatValue", VMClassRegistry::kFunctionFlag_NoWait);
 
 	registry->RegisterFunction(new NativeFunction3 <StaticFunctionTag, SInt32, TESForm*, BSFixedString, SInt32>("PluckIntValue", "StorageUtil", PluckValue<SInt32, SInt32>, registry));
 	registry->RegisterFunction(new NativeFunction3 <StaticFunctionTag, float, TESForm*, BSFixedString, float>("PluckFloatValue", "StorageUtil", PluckValue<float, float>, registry));
@@ -617,10 +624,10 @@ void StorageUtil::RegisterFuncs(VMClassRegistry* registry) {
 	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, bool, TESForm*, BSFixedString>("UnsetFloatValue", "StorageUtil", UnsetValue<float, float>, registry));
 	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, bool, TESForm*, BSFixedString>("UnsetStringValue", "StorageUtil", UnsetValue<BSFixedString, std::string>, registry));
 	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, bool, TESForm*, BSFixedString>("UnsetFormValue", "StorageUtil", UnsetValue<TESForm*, UInt32>, registry));
-	//registry->SetFunctionFlags("StorageUtil", "UnsetIntValue", VMClassRegistry::kFunctionFlag_NoWait);
-	//registry->SetFunctionFlags("StorageUtil", "UnsetFloatValue", VMClassRegistry::kFunctionFlag_NoWait);
-	//registry->SetFunctionFlags("StorageUtil", "UnsetStringValue", VMClassRegistry::kFunctionFlag_NoWait);
-	//registry->SetFunctionFlags("StorageUtil", "UnsetFormValue", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "UnsetIntValue", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "UnsetFloatValue", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "UnsetStringValue", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "UnsetFormValue", VMClassRegistry::kFunctionFlag_NoWait);
 
 	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, bool, TESForm*, BSFixedString>("HasIntValue", "StorageUtil", HasValue<SInt32, SInt32>, registry));
 	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, bool, TESForm*, BSFixedString>("HasFloatValue", "StorageUtil", HasValue<float, float>, registry));
@@ -635,10 +642,10 @@ void StorageUtil::RegisterFuncs(VMClassRegistry* registry) {
 	registry->RegisterFunction(new NativeFunction4 <StaticFunctionTag, SInt32, TESForm*, BSFixedString, float, bool>("FloatListAdd", "StorageUtil", ListAdd<float, float>, registry));
 	registry->RegisterFunction(new NativeFunction4 <StaticFunctionTag, SInt32, TESForm*, BSFixedString, BSFixedString, bool>("StringListAdd", "StorageUtil", ListAdd<BSFixedString, std::string>, registry));
 	registry->RegisterFunction(new NativeFunction4 <StaticFunctionTag, SInt32, TESForm*, BSFixedString, TESForm*, bool>("FormListAdd", "StorageUtil", ListAdd<TESForm*, UInt32>, registry));
-	//registry->SetFunctionFlags("StorageUtil", "IntListAdd", VMClassRegistry::kFunctionFlag_NoWait);
-	//registry->SetFunctionFlags("StorageUtil", "FloatListAdd", VMClassRegistry::kFunctionFlag_NoWait);
-	//registry->SetFunctionFlags("StorageUtil", "StringListAdd", VMClassRegistry::kFunctionFlag_NoWait);
-	//registry->SetFunctionFlags("StorageUtil", "FormListAdd", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "IntListAdd", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "FloatListAdd", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "StringListAdd", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "FormListAdd", VMClassRegistry::kFunctionFlag_NoWait);
 
 	registry->RegisterFunction(new NativeFunction3 <StaticFunctionTag, SInt32, TESForm*, BSFixedString, UInt32>("IntListGet", "StorageUtil", ListGet<SInt32, SInt32>, registry));
 	registry->RegisterFunction(new NativeFunction3 <StaticFunctionTag, float, TESForm*, BSFixedString, UInt32>("FloatListGet", "StorageUtil", ListGet<float, float>, registry));
@@ -653,10 +660,10 @@ void StorageUtil::RegisterFuncs(VMClassRegistry* registry) {
 	registry->RegisterFunction(new NativeFunction4 <StaticFunctionTag, float, TESForm*, BSFixedString, UInt32, float>("FloatListSet", "StorageUtil", ListSet<float, float>, registry));
 	registry->RegisterFunction(new NativeFunction4 <StaticFunctionTag, BSFixedString, TESForm*, BSFixedString, UInt32, BSFixedString>("StringListSet", "StorageUtil", ListSet<BSFixedString, std::string>, registry));
 	registry->RegisterFunction(new NativeFunction4 <StaticFunctionTag, TESForm*, TESForm*, BSFixedString, UInt32, TESForm*>("FormListSet", "StorageUtil", ListSet<TESForm*, UInt32>, registry));
-	//registry->SetFunctionFlags("StorageUtil", "IntListSet", VMClassRegistry::kFunctionFlag_NoWait);
-	//registry->SetFunctionFlags("StorageUtil", "FloatListSet", VMClassRegistry::kFunctionFlag_NoWait);
-	//registry->SetFunctionFlags("StorageUtil", "StringListSet", VMClassRegistry::kFunctionFlag_NoWait);
-	//registry->SetFunctionFlags("StorageUtil", "FormListSet", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "IntListSet", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "FloatListSet", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "StringListSet", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "FormListSet", VMClassRegistry::kFunctionFlag_NoWait);
 
 	registry->RegisterFunction(new NativeFunction4 <StaticFunctionTag, SInt32, TESForm*, BSFixedString, UInt32, SInt32>("IntListPluck", "StorageUtil", ListPluck<SInt32, SInt32>, registry));
 	registry->RegisterFunction(new NativeFunction4 <StaticFunctionTag, float, TESForm*, BSFixedString, UInt32, float>("FloatListPluck", "StorageUtil", ListPluck<float, float>, registry));
@@ -689,44 +696,44 @@ void StorageUtil::RegisterFuncs(VMClassRegistry* registry) {
 
 	registry->RegisterFunction(new NativeFunction4 <StaticFunctionTag, SInt32, TESForm*, BSFixedString, UInt32, SInt32>("IntListAdjust", "StorageUtil", ListAdjust<SInt32, SInt32>, registry));
 	registry->RegisterFunction(new NativeFunction4 <StaticFunctionTag, float, TESForm*, BSFixedString, UInt32, float>("FloatListAdjust", "StorageUtil", ListAdjust<float, float>, registry));
-	//registry->SetFunctionFlags("StorageUtil", "IntListAdjust", VMClassRegistry::kFunctionFlag_NoWait);
-	//registry->SetFunctionFlags("StorageUtil", "FloatListAdjust", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "IntListAdjust", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "FloatListAdjust", VMClassRegistry::kFunctionFlag_NoWait);
 
 	registry->RegisterFunction(new NativeFunction4 <StaticFunctionTag, UInt32, TESForm*, BSFixedString, SInt32, bool>("IntListRemove", "StorageUtil", ListRemove<SInt32, SInt32>, registry));
 	registry->RegisterFunction(new NativeFunction4 <StaticFunctionTag, UInt32, TESForm*, BSFixedString, float, bool>("FloatListRemove", "StorageUtil", ListRemove<float, float>, registry));
 	registry->RegisterFunction(new NativeFunction4 <StaticFunctionTag, UInt32, TESForm*, BSFixedString, BSFixedString, bool>("StringListRemove", "StorageUtil", ListRemove<BSFixedString, std::string>, registry));
 	registry->RegisterFunction(new NativeFunction4 <StaticFunctionTag, UInt32, TESForm*, BSFixedString, TESForm*, bool>("FormListRemove", "StorageUtil", ListRemove<TESForm*, UInt32>, registry));
-	//registry->SetFunctionFlags("StorageUtil", "IntListRemove", VMClassRegistry::kFunctionFlag_NoWait);
-	//registry->SetFunctionFlags("StorageUtil", "FloatListRemove", VMClassRegistry::kFunctionFlag_NoWait);
-	//registry->SetFunctionFlags("StorageUtil", "StringListRemove", VMClassRegistry::kFunctionFlag_NoWait);
-	//registry->SetFunctionFlags("StorageUtil", "FormListRemove", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "IntListRemove", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "FloatListRemove", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "StringListRemove", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "FormListRemove", VMClassRegistry::kFunctionFlag_NoWait);
 
 	registry->RegisterFunction(new NativeFunction4 <StaticFunctionTag, bool, TESForm*, BSFixedString, UInt32, SInt32>("IntListInsert", "StorageUtil", ListInsertAt<SInt32, SInt32>, registry));
 	registry->RegisterFunction(new NativeFunction4 <StaticFunctionTag, bool, TESForm*, BSFixedString, UInt32, float>("FloatListInsert", "StorageUtil", ListInsertAt<float, float>, registry));
 	registry->RegisterFunction(new NativeFunction4 <StaticFunctionTag, bool, TESForm*, BSFixedString, UInt32, BSFixedString>("StringListInsert", "StorageUtil", ListInsertAt<BSFixedString, std::string>, registry));
 	registry->RegisterFunction(new NativeFunction4 <StaticFunctionTag, bool, TESForm*, BSFixedString, UInt32, TESForm*>("FormListInsert", "StorageUtil", ListInsertAt<TESForm*, UInt32>, registry));
-	//registry->SetFunctionFlags("StorageUtil", "IntListInsert", VMClassRegistry::kFunctionFlag_NoWait);
-	//registry->SetFunctionFlags("StorageUtil", "FloatListInsert", VMClassRegistry::kFunctionFlag_NoWait);
-	//registry->SetFunctionFlags("StorageUtil", "StringListInsert", VMClassRegistry::kFunctionFlag_NoWait);
-	//registry->SetFunctionFlags("StorageUtil", "FormListInsert", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "IntListInsert", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "FloatListInsert", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "StringListInsert", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "FormListInsert", VMClassRegistry::kFunctionFlag_NoWait);
 
 	registry->RegisterFunction(new NativeFunction3 <StaticFunctionTag, bool, TESForm*, BSFixedString, UInt32>("IntListRemoveAt", "StorageUtil", ListRemoveAt<SInt32, SInt32>, registry));
 	registry->RegisterFunction(new NativeFunction3 <StaticFunctionTag, bool, TESForm*, BSFixedString, UInt32>("FloatListRemoveAt", "StorageUtil", ListRemoveAt<float, float>, registry));
 	registry->RegisterFunction(new NativeFunction3 <StaticFunctionTag, bool, TESForm*, BSFixedString, UInt32>("StringListRemoveAt", "StorageUtil", ListRemoveAt<BSFixedString, std::string>, registry));
 	registry->RegisterFunction(new NativeFunction3 <StaticFunctionTag, bool, TESForm*, BSFixedString, UInt32>("FormListRemoveAt", "StorageUtil", ListRemoveAt<TESForm*, UInt32>, registry));
-	//registry->SetFunctionFlags("StorageUtil", "IntListRemoveAt", VMClassRegistry::kFunctionFlag_NoWait);
-	//registry->SetFunctionFlags("StorageUtil", "FloatListRemoveAt", VMClassRegistry::kFunctionFlag_NoWait);
-	//registry->SetFunctionFlags("StorageUtil", "StringListRemoveAt", VMClassRegistry::kFunctionFlag_NoWait);
-	//registry->SetFunctionFlags("StorageUtil", "FormListRemoveAt", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "IntListRemoveAt", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "FloatListRemoveAt", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "StringListRemoveAt", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "FormListRemoveAt", VMClassRegistry::kFunctionFlag_NoWait);
 
 	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, UInt32, TESForm*, BSFixedString>("IntListClear", "StorageUtil", ListClear<SInt32, SInt32>, registry));
 	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, UInt32, TESForm*, BSFixedString>("FloatListClear", "StorageUtil", ListClear<float, float>, registry));
 	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, UInt32, TESForm*, BSFixedString>("StringListClear", "StorageUtil", ListClear<BSFixedString, std::string>, registry));
 	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, UInt32, TESForm*, BSFixedString>("FormListClear", "StorageUtil", ListClear<TESForm*, UInt32>, registry));
-	//registry->SetFunctionFlags("StorageUtil", "IntListClear", VMClassRegistry::kFunctionFlag_NoWait);
-	//registry->SetFunctionFlags("StorageUtil", "FloatListClear", VMClassRegistry::kFunctionFlag_NoWait);
-	//registry->SetFunctionFlags("StorageUtil", "StringListClear", VMClassRegistry::kFunctionFlag_NoWait);
-	//registry->SetFunctionFlags("StorageUtil", "FormListClear", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "IntListClear", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "FloatListClear", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "StringListClear", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "FormListClear", VMClassRegistry::kFunctionFlag_NoWait);
 
 	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, UInt32, TESForm*, BSFixedString>("IntListCount", "StorageUtil", ListCount<SInt32, SInt32>, registry));
 	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, UInt32, TESForm*, BSFixedString>("FloatListCount", "StorageUtil", ListCount<float, float>, registry));
@@ -768,10 +775,10 @@ void StorageUtil::RegisterFuncs(VMClassRegistry* registry) {
 	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, void, TESForm*, BSFixedString>("FloatListSort", "StorageUtil", ListSort<float, float>, registry));
 	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, void, TESForm*, BSFixedString>("StringListSort", "StorageUtil", ListSort<BSFixedString, std::string>, registry));
 	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, void, TESForm*, BSFixedString>("FormListSort", "StorageUtil", ListSort<TESForm*, UInt32>, registry));
-	//registry->SetFunctionFlags("StorageUtil", "IntListSort", VMClassRegistry::kFunctionFlag_NoWait);
-	//registry->SetFunctionFlags("StorageUtil", "FloatListSort", VMClassRegistry::kFunctionFlag_NoWait);
-	//registry->SetFunctionFlags("StorageUtil", "StringListSort", VMClassRegistry::kFunctionFlag_NoWait);
-	//registry->SetFunctionFlags("StorageUtil", "FormListSort", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "IntListSort", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "FloatListSort", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "StringListSort", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "FormListSort", VMClassRegistry::kFunctionFlag_NoWait);
 
 	registry->RegisterFunction(new NativeFunction4 <StaticFunctionTag, void, TESForm*, BSFixedString, VMArray<SInt32>, UInt32>("IntListSlice", "StorageUtil", ListSlice<SInt32, SInt32>, registry));
 	registry->RegisterFunction(new NativeFunction4 <StaticFunctionTag, void, TESForm*, BSFixedString, VMArray<float>, UInt32>("FloatListSlice", "StorageUtil", ListSlice<float, float>, registry));
@@ -786,10 +793,10 @@ void StorageUtil::RegisterFuncs(VMClassRegistry* registry) {
 	registry->RegisterFunction(new NativeFunction4 <StaticFunctionTag, SInt32, TESForm*, BSFixedString, UInt32, float>("FloatListResize", "StorageUtil", ListResize<float, float>, registry));
 	registry->RegisterFunction(new NativeFunction4 <StaticFunctionTag, SInt32, TESForm*, BSFixedString, UInt32, BSFixedString>("StringListResize", "StorageUtil", ListResize<BSFixedString, std::string>, registry));
 	registry->RegisterFunction(new NativeFunction4 <StaticFunctionTag, SInt32, TESForm*, BSFixedString, UInt32, TESForm*>("FormListResize", "StorageUtil", ListResize<TESForm*, UInt32>, registry));
-	//registry->SetFunctionFlags("StorageUtil", "IntListResize", VMClassRegistry::kFunctionFlag_NoWait);
-	//registry->SetFunctionFlags("StorageUtil", "FloatListResize", VMClassRegistry::kFunctionFlag_NoWait);
-	//registry->SetFunctionFlags("StorageUtil", "StringListResize", VMClassRegistry::kFunctionFlag_NoWait);
-	//registry->SetFunctionFlags("StorageUtil", "FormListResize", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "IntListResize", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "FloatListResize", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "StringListResize", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "FormListResize", VMClassRegistry::kFunctionFlag_NoWait);
 
 	registry->RegisterFunction(new NativeFunction3 <StaticFunctionTag, bool, TESForm*, BSFixedString, VMArray<SInt32>>("IntListCopy", "StorageUtil", ListCopy<SInt32, SInt32>, registry));
 	registry->RegisterFunction(new NativeFunction3 <StaticFunctionTag, bool, TESForm*, BSFixedString, VMArray<float>>("FloatListCopy", "StorageUtil", ListCopy<float, float>, registry));
@@ -882,6 +889,9 @@ void StorageUtil::RegisterFuncs(VMClassRegistry* registry) {
 	registry->SetFunctionFlags("StorageUtil", "ClearObjFormListPrefix", VMClassRegistry::kFunctionFlag_NoWait);
 
 	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, UInt32, TESForm*, BSFixedString>("ClearAllObjPrefix", "StorageUtil", ObjClearAllPrefix, registry));
+
+	registry->RegisterFunction(new NativeFunction4 <StaticFunctionTag, VMResultArray<TESForm*>, TESForm*, BSFixedString, VMArray<UInt32>, bool>("FormListFilterByTypes", "StorageUtil", FilterByTypes, registry));
+	registry->SetFunctionFlags("StorageUtil", "FormListFilterByTypes", VMClassRegistry::kFunctionFlag_NoWait);
 
 	// Debug Functions
 	registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, void, TESForm*>("debug_DeleteValues", "StorageUtil", DeleteValues, registry));

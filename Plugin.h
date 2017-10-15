@@ -1,6 +1,6 @@
 #pragma once
 
-#define PAPYRUSUTIL_VERSION 32
+#define PAPYRUSUTIL_VERSION 33
 
 #include "skse/PluginAPI.h"
 #include "skse/GameAPI.h"
@@ -11,6 +11,5 @@ namespace Plugin {
 	void InitPlugin();
 	bool RegisterFuncs(VMClassRegistry* registry);
 	void HandleSKSEMessage(SKSEMessagingInterface::Message * msg);
-	void Update();
 	UInt32 GetVersion(StaticFunctionTag* base);
 }

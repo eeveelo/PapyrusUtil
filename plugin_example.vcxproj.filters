@@ -335,15 +335,6 @@
     <Filter Include="skse\netimmerse">
       <UniqueIdentifier>{c2ead6c7-abdc-4a78-9659-442e1286e94f}</UniqueIdentifier>
     </Filter>
-    <Filter Include="skse\papyrus">
-      <UniqueIdentifier>{f2b7d48c-8c8e-4440-951d-3ed7eb2a28d4}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="skse\papyrus\vm">
-      <UniqueIdentifier>{8f95c2de-7bbb-4e89-88e4-5691347b3c0e}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="skse\papyrus\internals">
-      <UniqueIdentifier>{eb2da9b5-0165-4292-8b6e-d2c94043727a}</UniqueIdentifier>
-    </Filter>
     <Filter Include="skse\internals">
       <UniqueIdentifier>{3d2469da-14fe-4885-a9e9-114571a1a7d8}</UniqueIdentifier>
     </Filter>
@@ -355,6 +346,15 @@
     </Filter>
     <Filter Include="jsoncpp">
       <UniqueIdentifier>{53adaf09-90df-4f79-ad06-c80531cd2932}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="skse\papyrus">
+      <UniqueIdentifier>{f2b7d48c-8c8e-4440-951d-3ed7eb2a28d4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="skse\papyrus\vm">
+      <UniqueIdentifier>{8f95c2de-7bbb-4e89-88e4-5691347b3c0e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="skse\papyrus\internals">
+      <UniqueIdentifier>{eb2da9b5-0165-4292-8b6e-d2c94043727a}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

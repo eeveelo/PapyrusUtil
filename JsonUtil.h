@@ -5,6 +5,8 @@
 
 struct StaticFunctionTag;
 
+//MAKE PATH FUNCTIONS CASE INSENSITIVE
+
 namespace JsonUtil {
 	void RegisterFuncs(VMClassRegistry* registry);
 
