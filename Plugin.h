@@ -2,8 +2,8 @@
 
 #define PAPYRUSUTIL_VERSION 33
 
-#include "skse/PluginAPI.h"
-#include "skse/GameAPI.h"
+#include "skse64/PluginAPI.h"
+#include "skse64/GameAPI.h"
 
 struct StaticFunctionTag;
 

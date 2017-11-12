@@ -1,10 +1,10 @@
 #pragma once
 
-#include "skse/PluginAPI.h"
-#include "skse/GameAPI.h"
-#include "skse/GameTypes.h"
-#include "skse/GameData.h"
-#include "skse/PapyrusVM.h"
+#include "skse64/PluginAPI.h"
+#include "skse64/GameAPI.h"
+#include "skse64/GameTypes.h"
+#include "skse64/GameData.h"
+#include "skse64/PapyrusVM.h"
 
 struct StaticFunctionTag;
 

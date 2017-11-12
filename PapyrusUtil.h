@@ -3,8 +3,8 @@
 //struct StaticFunctionTag;
 //class VMClassRegistry;
 
-#include "skse/GameData.h"
-#include "skse/PapyrusArgs.h"
+#include "skse64/GameData.h"
+#include "skse64/PapyrusArgs.h"
 
 namespace PapyrusUtil {
 	void RegisterFuncs(VMClassRegistry* registry);

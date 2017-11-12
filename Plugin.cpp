@@ -1,9 +1,9 @@
 #include "Plugin.h"
 
-#include "skse/PapyrusVM.h"
-#include "skse/PapyrusArgs.h"
-#include "skse/PapyrusNativeFunctions.h"
-#include "skse/GameData.h"
+#include "skse64/PapyrusVM.h"
+#include "skse64/PapyrusArgs.h"
+#include "skse64/PapyrusNativeFunctions.h"
+#include "skse64/GameData.h"
 /*
 template <> void UnpackValue(VMArray<TESForm*> * dst, VMValue * src){
 	UnpackArray(dst, src, GetTypeIDFromFormTypeID(TESForm::kTypeID, (*g_skyrimVM)->GetClassRegistry()) | VMValue::kType_Identifier);
@@ -23,16 +23,16 @@ template <> void UnpackValue(VMArray<TESObjectREFR*> * dst, VMValue * src){
 #include "PapyrusUtil.h"
 #include "StorageUtil.h"
 #include "JsonUtil.h"
-#include "ActorUtil.h"
-#include "ObjectUtil.h"
+//#include "ActorUtil.h"
+//#include "ObjectUtil.h"
 #include "MiscUtil.h"
-#include "AnimUtil.h"
-#include "Asm.h"
+//#include "AnimUtil.h"
+//#include "Asm.h"
 
 namespace Plugin {
 
-	int frameUpdate1 = 0x69CC2E;
-	int frameUpdate2 = 0x69CC34;
+	//int frameUpdate1 = 0x69CC2E;
+	//int frameUpdate2 = 0x69CC34;
 
 	UInt32 GetVersion(StaticFunctionTag* base) {
 		return PAPYRUSUTIL_VERSION;
@@ -40,8 +40,8 @@ namespace Plugin {
 
 	void InitPlugin(){
 		_MESSAGE("Init...");
-		PackageData::InitPlugin();
-		ObjectUtil::InitPlugin();
+		//PackageData::InitPlugin();
+		//ObjectUtil::InitPlugin();
 		/*_MESSAGE("Plugin::InitPlugin() - 1");
 		AnimUtil::InitPlugin();
 
@@ -80,8 +80,8 @@ namespace Plugin {
 		PapyrusUtil::RegisterFuncs(registry);
 		StorageUtil::RegisterFuncs(registry);
 		JsonUtil::RegisterFuncs(registry);
-		ActorUtil::RegisterFuncs(registry);
-		ObjectUtil::RegisterFuncs(registry);
+		//ActorUtil::RegisterFuncs(registry);
+		//ObjectUtil::RegisterFuncs(registry);
 		MiscUtil::RegisterFuncs(registry);
 		//AnimUtil::RegisterFuncs(registry);
 		_MESSAGE("-done");

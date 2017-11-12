@@ -1,7 +1,7 @@
 #include "SafeRead.h"
 
-#include "skse/GameData.h"
-#include "skse/GameTypes.h"
+#include "skse64/GameData.h"
+#include "skse64/GameTypes.h"
 
 namespace Lib {
 	UInt32 SafeRead32(UInt32 addr){

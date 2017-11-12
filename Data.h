@@ -9,11 +9,11 @@
 
 #include "common/ICriticalSection.h"
 
-#include "skse/PluginAPI.h"
-#include "skse/GameTypes.h"
-#include "skse/GameData.h"
-#include "skse/PapyrusVM.h"
-#include "skse/PapyrusArgs.h"
+#include "skse64/PluginAPI.h"
+#include "skse64/GameTypes.h"
+#include "skse64/GameData.h"
+#include "skse64/PapyrusVM.h"
+#include "skse64/PapyrusArgs.h"
 
 #include "Forms.h"
 

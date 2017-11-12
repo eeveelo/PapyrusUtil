@@ -2,9 +2,9 @@
 
 #include <sstream>
 
-#include "skse/PluginAPI.h"
-#include "skse/GameTypes.h"
-#include "skse/GameData.h"
+#include "skse64/PluginAPI.h"
+#include "skse64/GameTypes.h"
+#include "skse64/GameData.h"
 
 namespace Forms {
 

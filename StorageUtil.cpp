@@ -3,8 +3,8 @@
 #include "Data.h"
 #include "Forms.h"
 
-#include "skse/GameTypes.h"
-#include "skse/GameForms.h"
+#include "skse64/GameTypes.h"
+#include "skse64/GameForms.h"
 
 #include <boost/algorithm/string.hpp>
 
@@ -585,7 +585,7 @@ namespace StorageUtil {
 #endif
 
 
-#include "skse/PapyrusNativeFunctions.h"
+#include "skse64/PapyrusNativeFunctions.h"
 
 void StorageUtil::RegisterFuncs(VMClassRegistry* registry) {
 	registry->RegisterFunction(new NativeFunction3 <StaticFunctionTag, SInt32, TESForm*, BSFixedString, SInt32>("SetIntValue", "StorageUtil", SetValue<SInt32, SInt32>, registry));

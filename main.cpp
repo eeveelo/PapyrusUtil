@@ -1,7 +1,8 @@
 #include <locale.h>
 
-#include "skse/PluginAPI.h"
-#include "skse/skse_version.h"
+#include "skse64/PluginAPI.h"
+#include "skse64_common/skse_version.h"
+#include "skse64/ScaleformCallbacks.h"
 
 #include "Plugin.h"
 #include "Data.h"
@@ -32,7 +33,7 @@ extern "C" {
 		}
 
 		// Check if version is right.
-		else if(skse->runtimeVersion != RUNTIME_VERSION_1_9_32_0) {
+		else if(skse->runtimeVersion < RUNTIME_VERSION_1_5_3) {
 			_MESSAGE("unsupported runtime version %08X", skse->runtimeVersion);
 			return false;
 		}
@@ -75,7 +76,7 @@ extern "C" {
 
 		g_papyrus->Register(Plugin::RegisterFuncs);
 
-		Plugin::InitPlugin();
+		//Plugin::InitPlugin();
 
 		return true;
 	}

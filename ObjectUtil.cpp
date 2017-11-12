@@ -1,11 +1,11 @@
 #include "ObjectUtil.h"
 
-#include "skse/PluginAPI.h"
-#include "skse/GameAPI.h"
-#include "skse/GameData.h"
-#include "skse/GameRTTI.h"
-#include "skse/SafeWrite.h"
-#include "skse/PapyrusNativeFunctions.h"
+#include "skse64/PluginAPI.h"
+#include "skse64/GameAPI.h"
+#include "skse64/GameData.h"
+#include "skse64/GameRTTI.h"
+#include "skse64/SafeWrite.h"
+#include "skse64/PapyrusNativeFunctions.h"
 
 #include "SafeRead.h"
 #include "Data.h"

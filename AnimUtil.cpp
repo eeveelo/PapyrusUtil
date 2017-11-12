@@ -1,7 +1,7 @@
 #include "AnimUtil.h"
 //#include <boost/algorithm/string.hpp>
 #include "common/ICriticalSection.h"
-#include "skse/SafeWrite.h"
+#include "skse64/SafeWrite.h"
 #include "Asm.h"
 
 namespace AnimUtil {
@@ -208,7 +208,7 @@ namespace AnimUtil {
 	}
 }
 
-#include "skse/PapyrusNativeFunctions.h"
+#include "skse64/PapyrusNativeFunctions.h"
 
 void AnimUtil::RegisterFuncs(VMClassRegistry* registry) {
 	registry->RegisterFunction(new NativeFunction4<StaticFunctionTag, void, TESObjectREFR*, float, float, BSFixedString>("AddSpeedModifier", "AnimUtil", AnimUtil::AddSpeedModifier, registry));

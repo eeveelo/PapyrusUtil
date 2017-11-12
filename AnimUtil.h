@@ -2,9 +2,9 @@
 
 #include <boost/container/list.hpp>
 
-#include "skse/GameForms.h"
-#include "skse/GameTypes.h"
-#include "skse/GameReferences.h"
+#include "skse64/GameForms.h"
+#include "skse64/GameTypes.h"
+#include "skse64/GameReferences.h"
 
 struct StaticFunctionTag;
 class VMClassRegistry;

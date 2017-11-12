@@ -4,10 +4,10 @@
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/string.hpp>
 
-#include "skse/GameAPI.h"
-#include "skse/GameTypes.h"
-#include "skse/GameForms.h"
-#include "skse/GameData.h"
+#include "skse64/GameAPI.h"
+#include "skse64/GameTypes.h"
+#include "skse64/GameForms.h"
+#include "skse64/GameData.h"
 
 #include "Data.h"
 #include "External.h"
@@ -435,7 +435,7 @@ namespace JsonUtil {
 
 
 
-#include "skse/PapyrusNativeFunctions.h"
+#include "skse64/PapyrusNativeFunctions.h"
 
 void JsonUtil::RegisterFuncs(VMClassRegistry* registry){
 

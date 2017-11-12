@@ -7,44 +7,37 @@
 #include <boost/filesystem/fstream.hpp>
 #include <boost/algorithm/string.hpp>
 
-#include "skse/GameAPI.h"
-#include "skse/GameCamera.h"
-#include "skse/GameReferences.h"
-#include "skse/SafeWrite.h"
+#include "skse64/GameAPI.h"
+#include "skse64/GameCamera.h"
+#include "skse64/GameReferences.h"
+#include "skse64/GameSettings.h"
+#include "skse64/GameMenus.h"
+//#include "skse64/SafeWrite.h"
 
-#include "skse/GameRTTI.h"
-#include "skse/GameTypes.h"
-#include "skse/PapyrusArgs.h"
+#include "skse64/GameRTTI.h"
+#include "skse64/GameTypes.h"
+#include "skse64/PapyrusArgs.h"
 
 
-#include "SafeRead.h"
+//#include "SafeRead.h"
 
 // TODO: test TESTScanCellNPCsByFaction and remove prepend
 
 namespace MiscUtil {
 
+	typedef void(*_ToggleFreeCam)(uintptr_t addr, bool stopTime);
 	void ToggleFreeCamera(StaticFunctionTag* base, bool arg1) {
-		//PlayerCamera* pc = PlayerCamera::GetSingleton();
-		//bool WasInFreeCamera = pc ? pc->cameraState->stateId == pc->kCameraState_Free : false;
-		
-		int funcAddr = 0x83E4C0;
-		int thisPtr = Lib::SafeRead32(0x12E7288);
 		int stopTime = arg1 ? 1 : 0;
-		_asm
-		{
-			mov eax, stopTime
-			mov ecx, thisPtr
-			push eax
-			call funcAddr
-		}
-
-		//if (pc && !WasInFreeCamera)
-		//	CALL_MEMBER_FN(pc, SetCameraState)(pc->cameraStates[pc->kCameraState_Free]);
+		RelocAddr<uintptr_t> g_freeCam(0x02EDEF38);
+		RelocAddr<_ToggleFreeCam> ToggleFreeCam(0x00849DC0);
+		ToggleFreeCam(g_freeCam.GetUIntPtr(), stopTime);
 	}
 
+	extern RelocPtr<SettingCollectionList*> g_iniSettingCollection;
 	void SetFreeCameraSpeed(StaticFunctionTag* base, float speed) {
-		if (speed < 0.0f) speed = 1.0f;
-		SafeWriteBuf(0x12B1EEC, &speed, 4);
+		Setting * setting = (*g_iniSettingCollection)->Get("fFreeCameraTranslationSpeed:Camera");
+		if (setting)
+			setting->SetDouble(speed);
 	}
 
 	void SetFreeCameraState(StaticFunctionTag* base, bool enable, float speed) {
@@ -56,7 +49,7 @@ namespace MiscUtil {
 				ToggleFreeCamera(NULL, false);
 			// Enter free camera
 			else if (!InFreeCamera && enable){
-				SetFreeCameraSpeed(NULL, speed);
+				//SetFreeCameraSpeed(NULL, speed);
 				ToggleFreeCamera(NULL, false);
 				//CALL_MEMBER_FN(pc, SetCameraState)(pc->cameraStates[pc->kCameraState_Free]);
 			}
@@ -76,9 +69,12 @@ namespace MiscUtil {
 		}
 	}
 
-	void SetMenus(StaticFunctionTag* base, bool enabled){
+	/*void SetMenus(StaticFunctionTag* base, bool enabled){
 		UInt32 ptr = Lib::SafeRead32(0x12E3548);
 		if (ptr != 0) SafeWrite8(ptr + 0x118, (enabled ? 1 : 0));
+	}*/
+	void SetMenus(StaticFunctionTag* base, bool enabled){
+		MenuManager::GetSingleton()->unk_1C0 = enabled;
 	}
 
 	BSFixedString GetRaceEditorID(StaticFunctionTag* base, TESRace* RaceRef) {
@@ -91,7 +87,7 @@ namespace MiscUtil {
 
 
 
-	struct CellLocker
+	/*struct CellLocker
 	{
 		CellLocker(TESObjectCELL* cell)
 		{
@@ -135,7 +131,7 @@ namespace MiscUtil {
 
 	private:
 		TESObjectCELL * locked;
-	};
+	};*/
 
 	inline bool HasKeyword(TESObjectREFR* ObjRef, BGSKeyword* findKeyword) {
 		BGSKeywordForm* keywords = DYNAMIC_CAST(ObjRef, TESForm, BGSKeywordForm);
@@ -169,7 +165,7 @@ namespace MiscUtil {
 			_MESSAGE("Cell scanning from form: %lu", CenterObj->formID);
 			TESObjectCELL* Cell = CenterObj->parentCell;
 			if (Cell) {
-				CellLocker _locker(Cell);
+				//CellLocker _locker(Cell);
 				tArray<TESObjectREFR*> objList = Cell->objectList;
 				UInt32 count = objList.count;
 				_MESSAGE("\tcell item count: %lu", count);
@@ -193,7 +189,7 @@ namespace MiscUtil {
 			_MESSAGE("Cell scanning from form: %lu", CenterObj->formID);
 			TESObjectCELL* Cell = CenterObj->parentCell;
 			if (Cell) {
-				CellLocker _locker(Cell);
+				//CellLocker _locker(Cell);
 				tArray<TESObjectREFR*> objList = Cell->objectList;
 				UInt32 count = objList.count;
 				_MESSAGE("\tcell item count: %lu", count);
@@ -263,7 +259,7 @@ namespace MiscUtil {
 			_MESSAGE("Cell scanning for faction(%lu, %d, %d) from form: %lu", FindFaction->formID, (int)gte, (int)lte, CenterObj->formID);
 			TESObjectCELL* Cell = CenterObj->parentCell;
 			if (Cell) {
-				CellLocker _locker(Cell);
+				//CellLocker _locker(Cell);
 				tArray<TESObjectREFR*> objList = Cell->objectList;
 				UInt32 count = objList.count;
 				_MESSAGE("\tcell item count: %lu", count);
@@ -370,7 +366,7 @@ namespace MiscUtil {
 } // MiscUtil
 
 
-#include "skse/PapyrusNativeFunctions.h"
+#include "skse64/PapyrusNativeFunctions.h"
 
 void MiscUtil::RegisterFuncs(VMClassRegistry* registry) {
 	registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, void, bool>("ToggleFreeCamera", "MiscUtil", ToggleFreeCamera, registry));
@@ -385,8 +381,8 @@ void MiscUtil::RegisterFuncs(VMClassRegistry* registry) {
 	registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, void, BSFixedString>("PrintConsole", "MiscUtil", PrintConsole, registry));
 	registry->SetFunctionFlags("MiscUtil", "PrintConsole", VMClassRegistry::kFunctionFlag_NoWait);
 
-	registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, void, bool>("SetMenus", "MiscUtil", SetMenus, registry));
-	registry->SetFunctionFlags("MiscUtil", "SetMenus", VMClassRegistry::kFunctionFlag_NoWait);
+	//registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, void, bool>("SetMenus", "MiscUtil", SetMenus, registry));
+	//registry->SetFunctionFlags("MiscUtil", "SetMenus", VMClassRegistry::kFunctionFlag_NoWait);
 
 	registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, BSFixedString, TESRace*>("GetRaceEditorID", "MiscUtil", GetRaceEditorID, registry));
 	registry->SetFunctionFlags("MiscUtil", "GetRaceEditorID", VMClassRegistry::kFunctionFlag_NoWait);
@@ -416,12 +412,12 @@ void MiscUtil::RegisterFuncs(VMClassRegistry* registry) {
 //#include <fstream>
 //#include <ctime>
 
-//#include "skse/NiNodes.h"
-//#include "skse/NiGeometry.h"
-//#include "skse/GameData.h"
-//#include "skse/GameTypes.h"
-//#include "skse/GameForms.h"
-//#include "skse/GameRTTI.h"
+//#include "skse64/NiNodes.h"
+//#include "skse64/NiGeometry.h"
+//#include "skse64/GameData.h"
+//#include "skse64/GameTypes.h"
+//#include "skse64/GameForms.h"
+//#include "skse64/GameRTTI.h"
 
 //#pragma warning(disable: 4996)
 //#pragma warning(disable: 4229)

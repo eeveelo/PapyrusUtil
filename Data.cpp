@@ -1,7 +1,7 @@
 #include "Data.h"
 #include "External.h"
 
-#include "skse/GameForms.h"
+#include "skse64/GameForms.h"
 
 #include <boost/algorithm/string.hpp>
 #include <string>
@@ -797,7 +797,14 @@ namespace Data {
 		s_dataLock.Enter();
 		for (Map::iterator itr = Data.begin(); itr != Data.end();) {
 			if (itr->first != 0) {
-				TESForm* ptr = (TESForm*)Forms::GameGetForm((UInt32)(itr->first & 0xFFFFFFFF));
+				
+				// SKSE64 EDIT
+				//TESForm* ptr = (TESForm*)Forms::GameGetForm((UInt32)(itr->first & 0xFFFFFFFF));
+				// TODO/FIXME SKSE64: not sure if replacing GameGetForm() with LookupFormByID() will work as expected
+				UInt32 id = (itr->first & 0xFFFFFFFF);
+				TESForm* ptr = id <= 0 ? NULL : LookupFormByID(id);
+				// END SKSE64 EDIT
+
 				if (itr->second.empty() || !Forms::IsValidObject(ptr, itr->first)) {
 					itr = Data.erase(itr);
 					removed++;
@@ -816,7 +823,14 @@ namespace Data {
 		s_dataLock.Enter();
 		for (Map::iterator itr = Data.begin(); itr != Data.end();) {
 			if (itr->first != 0) {
-				TESForm* ptr = (TESForm*)Forms::GameGetForm((UInt32)(itr->first & 0xFFFFFFFF));
+				
+				// SKSE64 EDIT
+				//TESForm* ptr = (TESForm*)Forms::GameGetForm((UInt32)(itr->first & 0xFFFFFFFF));
+				// TODO/FIXME SKSE64: not sure if replacing GameGetForm() with LookupFormByID() will work as expected
+				UInt32 id = (itr->first & 0xFFFFFFFF);
+				TESForm* ptr = id <= 0 ? NULL : LookupFormByID(id);
+				// END SKSE64 EDIT
+
 				if (itr->second.empty() || !Forms::IsValidObject(ptr, itr->first)) {
 					itr = Data.erase(itr);
 					removed++;

@@ -1,6 +1,6 @@
 #include "ActorUtil.h"
 
-#include "PackageData.h"
+//#include "PackageData.h"
 
 namespace ActorUtil {
 
@@ -30,7 +30,7 @@ namespace ActorUtil {
 	}
 }
 
-#include "skse/PapyrusNativeFunctions.h"
+#include "skse64/PapyrusNativeFunctions.h"
 
 void ActorUtil::RegisterFuncs(VMClassRegistry* registry) {
 	registry->RegisterFunction(new NativeFunction4<StaticFunctionTag, void, Actor*, TESPackage*, UInt32, UInt32>("AddPackageOverride", "ActorUtil", AddPackage, registry));

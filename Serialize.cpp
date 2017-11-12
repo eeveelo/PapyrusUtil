@@ -2,17 +2,17 @@
 
 #include <sstream>
 
-#include "skse/GameAPI.h"
-#include "skse/PluginAPI.h"
-#include "skse/GameTypes.h"
+#include "skse64/GameAPI.h"
+#include "skse64/PluginAPI.h"
+#include "skse64/GameTypes.h"
 
-#include "skse/PapyrusVM.h"
-#include "skse/PapyrusArgs.h"
+#include "skse64/PapyrusVM.h"
+#include "skse64/PapyrusArgs.h"
 
 #include "Forms.h"
 #include "Data.h"
 #include "External.h"
-#include "PackageData.h"
+//#include "PackageData.h"
 
 //#include <fstream>
 //#include <boost/archive/text_oarchive.hpp>
@@ -142,7 +142,7 @@ namespace Data {
 			
 			case 'PKGO':
 				_MESSAGE("\tPKGO Load");
-				Load(PackageData::GetPackages(), intfc, version, length);
+				//Load(PackageData::GetPackages(), intfc, version, length);
 				break;
 
 			/*case 'PACK':
@@ -241,7 +241,7 @@ namespace Data {
 		_MESSAGE("\tFORL Saved");
 
 		// Overrides
-		Save(PackageData::GetPackages(), intfc, 'PKGO');
+		//Save(PackageData::GetPackages(), intfc, 'PKGO');
 		_MESSAGE("\tPKGO Saved");
 
 		// Save external files
@@ -273,7 +273,7 @@ namespace Data {
 		formLists->Revert();
 
 		_MESSAGE("\t - Package Overrides");
-		PackageData::GetPackages()->Revert();
+		//PackageData::GetPackages()->Revert();
 
 		// Revert external files
 		_MESSAGE("\t - JSON Files");

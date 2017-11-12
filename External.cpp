@@ -13,8 +13,8 @@
 #include <boost/filesystem/fstream.hpp>
 #include <boost/algorithm/string.hpp>
 
-#include "skse/PapyrusVM.h"
-#include "skse/PapyrusNativeFunctions.h"
+#include "skse64/PapyrusVM.h"
+#include "skse64/PapyrusNativeFunctions.h"
 
 namespace External {
 	namespace fs = boost::filesystem;

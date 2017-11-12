@@ -3,11 +3,11 @@
 #include <boost/algorithm/string.hpp>
 #include <vector>
 
-#include "skse/GameAPI.h"
+#include "skse64/GameAPI.h"
 
-#include "skse/GameRTTI.h"
-#include "skse/GameTypes.h"
-#include "skse/GameReferences.h"
+#include "skse64/GameRTTI.h"
+#include "skse64/GameTypes.h"
+#include "skse64/GameReferences.h"
 
 namespace Forms {
 
@@ -19,42 +19,45 @@ namespace Forms {
 		s_numSavefileMods = 0;
 	}
 
-	void LoadModList(SKSESerializationInterface * intfc) {
-		_MESSAGE("Loading mod list...");
+	void LoadModList(SKSESerializationInterface * intfc)
+	{
+		_MESSAGE("Loading mod list:");
 
-		DataHandler *Data = DataHandler::GetSingleton();
+		DataHandler * dhand = DataHandler::GetSingleton();
+
 		char name[0x104] = { 0 };
 		UInt16 nameLen = 0;
 
-		s_numSavefileMods = 0;
 		intfc->ReadRecordData(&s_numSavefileMods, sizeof(s_numSavefileMods));
-		for (UInt32 i = 0; i < s_numSavefileMods; i++) {
+		for (UInt32 i = 0; i < s_numSavefileMods; i++)
+		{
 			intfc->ReadRecordData(&nameLen, sizeof(nameLen));
 			intfc->ReadRecordData(&name, nameLen);
-
 			name[nameLen] = 0;
-			UInt8 newIndex = Data->GetModIndex(name);
-			s_savefileIndexMap[i] = newIndex;
 
-			if (i != newIndex)
-				_MESSAGE("\t(%d -> %d)\t%s", i, newIndex, &name);
+			UInt8 newIndex = dhand->GetModIndex(name);
+			s_savefileIndexMap[i] = newIndex;
+			_MESSAGE("\t(%d -> %d)\t%s", i, newIndex, &name);
 		}
 	}
 
-	void SaveModList(SKSESerializationInterface * intfc) {
-		_MESSAGE("Saving mod list...");
-
-		DataHandler *Data = DataHandler::GetSingleton();
-		UInt8 modCount = Data->modList.loadedModCount;
+	void SaveModList(SKSESerializationInterface * intfc)
+	{
+		DataHandler * dhand = DataHandler::GetSingleton();
+		UInt8 modCount = dhand->modList.loadedMods.count;
 
 		intfc->OpenRecord('MODS', 0);
 		intfc->WriteRecordData(&modCount, sizeof(modCount));
-		for (UInt32 i = 0; i < modCount; i++) {
-			ModInfo * modInfo = Data->modList.loadedMods[i];
+
+		_MESSAGE("Saving mod list:");
+
+		for (UInt32 i = 0; i < modCount; i++)
+		{
+			ModInfo * modInfo = dhand->modList.loadedMods[i];
 			UInt16 nameLen = strlen(modInfo->name);
 			intfc->WriteRecordData(&nameLen, sizeof(nameLen));
 			intfc->WriteRecordData(modInfo->name, nameLen);
-			//_MESSAGE("\t(%d)\t%s", i, &modInfo->name);
+			_MESSAGE("\t(%d)\t%s", i, &modInfo->name);
 		}
 	}
 
@@ -99,7 +102,7 @@ namespace Forms {
 	}
 	
 	// Other
-	int GameGetForm(int formId) {
+	/*int GameGetForm(int formId) {
 		if (formId == 0) return formId;
 		int getTesFormId = 0x451A30;
 		int form = 0;
@@ -112,7 +115,7 @@ namespace Forms {
 				mov form, eax
 		}
 		return form;
-	}
+	}*/
 
 	bool IsValidObject(TESForm* obj, UInt64 formId) {
 		if (obj == NULL) return false;

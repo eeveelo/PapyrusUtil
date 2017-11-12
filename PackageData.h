@@ -5,8 +5,8 @@
 #include <boost/container/flat_map.hpp>
 
 #include "common/ICriticalSection.h"
-#include "skse/GameForms.h"
-#include "skse/GameObjects.h"
+#include "skse64/GameForms.h"
+#include "skse64/GameObjects.h"
 
 namespace PackageData {
 	

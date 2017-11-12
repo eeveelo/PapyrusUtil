@@ -1,8 +1,8 @@
 #include "PackageData.h"
 
-#include "skse/GameRTTI.h"
-#include "skse/GameTypes.h"
-#include "skse/GameReferences.h"
+#include "skse64/GameRTTI.h"
+#include "skse64/GameTypes.h"
+#include "skse64/GameReferences.h"
 
 #include "Forms.h"
 
@@ -168,7 +168,7 @@ namespace PackageData {
 *  Package override handling
 */
 
-#include "skse/SafeWrite.h"
+#include "skse64/SafeWrite.h"
 #include "SafeRead.h"
 #include "Forms.h"
 

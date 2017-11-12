@@ -11,9 +11,9 @@
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/trim.hpp>*/
 
-//#include "skse/GameAPI.h"
-//#include "skse/GameTypes.h"
-//#include "skse/GameForms.h"
+//#include "skse64/GameAPI.h"
+//#include "skse64/GameTypes.h"
+//#include "skse64/GameForms.h"
 
 namespace PapyrusUtil {
 
@@ -361,7 +361,7 @@ namespace PapyrusUtil {
 
 
 
-#include "skse/PapyrusNativeFunctions.h"
+#include "skse64/PapyrusNativeFunctions.h"
 
 void PapyrusUtil::RegisterFuncs(VMClassRegistry* registry) {
 

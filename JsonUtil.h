@@ -1,7 +1,7 @@
 #pragma once
 
-#include "skse/PapyrusArgs.h"
-#include "skse/PapyrusVM.h"
+#include "skse64/PapyrusArgs.h"
+#include "skse64/PapyrusVM.h"
 
 struct StaticFunctionTag;
 
