@@ -35,7 +35,7 @@ namespace Forms {
 			intfc->ReadRecordData(&name, nameLen);
 			name[nameLen] = 0;
 
-			UInt8 newIndex = dhand->GetModIndex(name);
+			UInt8 newIndex = dhand->GetLoadedModIndex(name);
 			s_savefileIndexMap[i] = newIndex;
 			_MESSAGE("\t(%d -> %d)\t%s", i, newIndex, &name);
 		}
@@ -72,8 +72,8 @@ namespace Forms {
 			else std::replace(mod.begin(), mod.end(), (char)0x7, ' ');
 			s_numSavefileMods += mod.length() > 3 ? 1 : 0;
 
-			UInt8 newIndex = Data->GetModIndex(mod.c_str());
-			newIndex = newIndex >= 255 ? -1 : newIndex;
+			UInt8 newIndex = Data->GetLoadedModIndex(mod.c_str());
+			newIndex = (newIndex >= 255 || newIndex == -1) ? -1 : newIndex;
 
 			s_savefileIndexMap[i] = newIndex;
 			_MESSAGE("\tlegacy - (%d -> %d)\t%s", i, newIndex, mod.c_str());
@@ -199,7 +199,7 @@ namespace Forms {
 		}
 		else {
 			// esp & esm objects
-			UInt8 index = DataHandler::GetSingleton()->GetModIndex(mod.c_str());
+			UInt8 index = DataHandler::GetSingleton()->GetLoadedModIndex(mod.c_str());
 			obj = (((UInt32)index) << 24) | obj;
 			return obj == 0 ? NULL : LookupFormByID(obj);
 		}
@@ -214,7 +214,7 @@ namespace Forms {
 	}
 
 	TESForm* ParseForm(UInt32 &obj, const char* mod) {
-		UInt8 index = DataHandler::GetSingleton()->GetModIndex(mod);
+		UInt8 index = DataHandler::GetSingleton()->GetLoadedModIndex(mod);
 		if (index >= 0xFF) index = 0xFF;
 		obj = (((UInt32)index) << 24) | obj;
 		return obj == 0 ? NULL : LookupFormByID(obj);

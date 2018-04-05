@@ -1,9 +1,11 @@
 #include "Plugin.h"
 
+#include "skse64_common\BranchTrampoline.h"
 #include "skse64/PapyrusVM.h"
 #include "skse64/PapyrusArgs.h"
 #include "skse64/PapyrusNativeFunctions.h"
 #include "skse64/GameData.h"
+
 /*
 template <> void UnpackValue(VMArray<TESForm*> * dst, VMValue * src){
 	UnpackArray(dst, src, GetTypeIDFromFormTypeID(TESForm::kTypeID, (*g_skyrimVM)->GetClassRegistry()) | VMValue::kType_Identifier);
@@ -23,7 +25,7 @@ template <> void UnpackValue(VMArray<TESObjectREFR*> * dst, VMValue * src){
 #include "PapyrusUtil.h"
 #include "StorageUtil.h"
 #include "JsonUtil.h"
-//#include "ActorUtil.h"
+#include "ActorUtil.h"
 //#include "ObjectUtil.h"
 #include "MiscUtil.h"
 //#include "AnimUtil.h"
@@ -40,33 +42,25 @@ namespace Plugin {
 
 	void InitPlugin(){
 		_MESSAGE("Init...");
-		//PackageData::InitPlugin();
-		//ObjectUtil::InitPlugin();
-		/*_MESSAGE("Plugin::InitPlugin() - 1");
-		AnimUtil::InitPlugin();
 
+		if (!g_branchTrampoline.Create(1024 * 64))
 		{
-			START_ASM1(FU1)
-			START_ASM2(FU1)
-			START_ASM3(FU1)
+			_ERROR("couldn't create branch trampoline. this is fatal. skipping remainder of init process.");
+			return;
+		}
 
-			pushad
-			pushfd
+		if (!g_localTrampoline.Create(1024 * 64, GetModuleHandle("PapyrusUtil.dll")))
+		{
+			_ERROR("couldn't create codegen buffer. this is fatal. skipping remainder of init process.");
+			return;
+		}
 
-			call Update
 
-			popfd
-			popad
+		_MESSAGE("Plugin::InitPlugin() - 1");
+		PackageData::InitPlugin();
+		//ObjectUtil::InitPlugin();
+		//AnimUtil::InitPlugin();
 
-			mov ecx, 0x1B2E3A8
-			mov ecx, [ecx]
-
-			jmp frameUpdate2
-
-			END_ASM(FU1, frameUpdate1, frameUpdate2)
-		};
-		_MESSAGE("Plugin::InitPlugin() - 2");
-		*/
 		_MESSAGE("-done");
 
 	}
@@ -80,7 +74,7 @@ namespace Plugin {
 		PapyrusUtil::RegisterFuncs(registry);
 		StorageUtil::RegisterFuncs(registry);
 		JsonUtil::RegisterFuncs(registry);
-		//ActorUtil::RegisterFuncs(registry);
+		ActorUtil::RegisterFuncs(registry);
 		//ObjectUtil::RegisterFuncs(registry);
 		MiscUtil::RegisterFuncs(registry);
 		//AnimUtil::RegisterFuncs(registry);

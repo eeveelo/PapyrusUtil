@@ -3,18 +3,20 @@
 #include "skse64/GameRTTI.h"
 #include "skse64/GameTypes.h"
 #include "skse64/GameReferences.h"
+#include "skse64_common/BranchTrampoline.h"
+#include "xbyak/xbyak.h"
 
 #include "Forms.h"
 
 namespace PackageData {
 	static Packages* s_PackageData;
-	Packages* GetPackages(){ if (!s_PackageData) { s_PackageData = new Packages(); } return s_PackageData; }
+	Packages* GetPackages() { if (!s_PackageData) { s_PackageData = new Packages(); } return s_PackageData; }
 
 	/*
 	*  Package override serialize
 	*/
 
-	void Packages::LoadStream(std::stringstream &ss){
+	void Packages::LoadStream(std::stringstream &ss) {
 		int count;
 		ss >> count;
 		if (count < 1) return;
@@ -54,15 +56,15 @@ namespace PackageData {
 				}
 				Data[newID].shrink_to_fit();
 			}
-			
+
 		}
 		Data.shrink_to_fit();
 		s_dataLock.Leave();
 	}
-	void Packages::SaveStream(std::stringstream &ss){
+	void Packages::SaveStream(std::stringstream &ss) {
 		s_dataLock.Enter();
 		// Cleanup
-		for (PackageMap::iterator ActorItr = Data.begin(); ActorItr != Data.end();){
+		for (PackageMap::iterator ActorItr = Data.begin(); ActorItr != Data.end();) {
 			if (ActorItr->second.size() < 1) Data.erase(ActorItr);
 			else ++ActorItr;
 		}
@@ -79,7 +81,7 @@ namespace PackageData {
 		}
 		s_dataLock.Leave();
 	}
-	void Packages::Revert(){
+	void Packages::Revert() {
 		s_dataLock.Enter();
 		Data.clear();
 		s_dataLock.Leave();
@@ -90,8 +92,8 @@ namespace PackageData {
 	*  Package override interface
 	*/
 
-	void Packages::AddPackage(Actor* ActorRef, TESPackage* PackageRef, UInt32 priority, UInt32 flags){
-		if (ActorRef && PackageRef){
+	void Packages::AddPackage(Actor* ActorRef, TESPackage* PackageRef, UInt32 priority, UInt32 flags) {
+		if (ActorRef && PackageRef) {
 			if (priority > 100) priority = 100;
 			else if (priority < 1) priority = 1;
 			if (flags != 1) flags = 0;
@@ -102,12 +104,12 @@ namespace PackageData {
 		}
 	}
 
-	bool Packages::RemovePackage(Actor* ActorRef, TESPackage* PackageRef){
+	bool Packages::RemovePackage(Actor* ActorRef, TESPackage* PackageRef) {
 		bool removed = false;
-		if (ActorRef && PackageRef && Data.size() > 0){
+		if (ActorRef && PackageRef && Data.size() > 0) {
 			s_dataLock.Enter();
 			ActorPackages* ActorPacks = GetActor(ActorRef);
-			if (ActorPacks != NULL){
+			if (ActorPacks != NULL) {
 				// Remove
 				ActorPackages::iterator PacksItr = ActorPacks->find(PackageRef->formID);
 				if (PacksItr != ActorPacks->end())
@@ -122,9 +124,9 @@ namespace PackageData {
 		return removed;
 	}
 
-	UInt32 Packages::CountPackages(Actor* ActorRef){
+	UInt32 Packages::CountPackages(Actor* ActorRef) {
 		UInt32 count = 0;
-		if (ActorRef && Data.size() > 0){
+		if (ActorRef && Data.size() > 0) {
 			s_dataLock.Enter();
 			ActorPackages* ActorPacks = GetActor(ActorRef);
 			count = ActorPacks != NULL ? ActorPacks->size() : 0;
@@ -133,9 +135,9 @@ namespace PackageData {
 		return count;
 	}
 
-	UInt32 Packages::ClearActor(Actor* ActorRef){
+	UInt32 Packages::ClearActor(Actor* ActorRef) {
 		UInt32 count = 0;
-		if (ActorRef && Data.size() > 0){
+		if (ActorRef && Data.size() > 0) {
 			s_dataLock.Enter();
 			count = Data[ActorRef->formID].size();
 			Data.erase(ActorRef->formID);
@@ -144,17 +146,17 @@ namespace PackageData {
 		return count;
 	}
 
-	UInt32 Packages::ClearPackage(TESPackage* PackageRef){
+	UInt32 Packages::ClearPackage(TESPackage* PackageRef) {
 		UInt32 count = 0;
-		if (PackageRef && Data.size() > 0){
+		if (PackageRef && Data.size() > 0) {
 			s_dataLock.Enter();
-			for (PackageMap::iterator ActorItr = Data.begin(); ActorItr != Data.end(); ++ActorItr){
+			for (PackageMap::iterator ActorItr = Data.begin(); ActorItr != Data.end(); ++ActorItr) {
 				ActorPackages *ActorPacks = &ActorItr->second;
 				ActorPackages::iterator PacksItr = ActorPacks->find(PackageRef->formID);
-				if (PacksItr != ActorPacks->end()){
+				if (PacksItr != ActorPacks->end()) {
 					ActorPacks->erase(PackageRef->formID);
 					count++;
-				}	
+				}
 			}
 			s_dataLock.Leave();
 		}
@@ -168,34 +170,34 @@ namespace PackageData {
 *  Package override handling
 */
 
-#include "skse64/SafeWrite.h"
+#include "skse64_common/SafeWrite.h"
 #include "SafeRead.h"
 #include "Forms.h"
 
 namespace PackageData {
 
-	UInt32 DecidePackage(int ActorID, int PackageID){
+	TESPackage *DecidePackage(Actor *ActorID, TESPackage *PackageID) {
 		if (s_PackageData && ActorID != 0) return s_PackageData->DecidePackage(ActorID, PackageID);
 		else return PackageID;
 	}
-	UInt32 Packages::DecidePackage(int ActorID, int PackageID){
+	TESPackage *Packages::DecidePackage(Actor *ActorID, TESPackage *PackageID) {
 		if (Data.size() == 0 || ActorID == 0) return PackageID;
 		s_dataLock.Enter();
 		ActorPackages* Overrides = GetActor((TESForm*)ActorID);
-		if (Overrides != NULL){
+		if (Overrides != NULL) {
 			UInt32 pickedPack = 0;
 			Flags pickedFlags = Flags(0, 0);
-			for (ActorPackages::iterator itr = Overrides->begin(); itr != Overrides->end(); ++itr){
-				if (itr->second.first >= pickedFlags.first){
-					pickedPack  = itr->first;
+			for (ActorPackages::iterator itr = Overrides->begin(); itr != Overrides->end(); ++itr) {
+				if (itr->second.first >= pickedFlags.first) {
+					pickedPack = itr->first;
 					pickedFlags = itr->second;
 					//_MESSAGE("Package[%lu] Priority[%lu] Flag[%lu]", pickedPack, pickedFlags.first, pickedFlags.second);
 				}
 			}
-			int pid = Forms::GameGetForm(pickedPack);
+			TESPackage *pid = (TESPackage *)LookupFormByID(pickedPack);
 			TESForm* FormRef = pid == 0 ? NULL : (TESForm*)pid;
-			if (FormRef && FormRef->formType == kFormType_Package){
-				if (pickedFlags.second == 1 || IsValidPackage(pid, ActorID)){
+			if (FormRef && FormRef->formType == kFormType_Package) {
+				if (pickedFlags.second == 1 || IsValidPackage(pid, ActorID)) {
 					//_MESSAGE("Override Picked -- Package[%lu] Priority[%lu] Flag[%lu]", pid, pickedFlags.first, pickedFlags.second);
 					PackageID = pid;
 				}
@@ -204,37 +206,30 @@ namespace PackageData {
 		s_dataLock.Leave();
 		return PackageID;
 	}
-	bool Packages::IsValidPackage(int PackageID, int ActorID) {
-		int IsValid = 0;
-		int FuncAddr = 0x05E1F40;
-		_asm
-		{
-			mov ecx, PackageID
-				push ActorID
-				call FuncAddr
-				mov IsValid, eax
-		}
-		return IsValid != 0;
+
+	typedef int(*_IsValid)(TESPackage *PackageID, Actor *ActorID);
+	bool Packages::IsValidPackage(TESPackage *PackageID, Actor *ActorID) {
+		static RelocAddr<_IsValid> IsValid(0x0043B0A0);
+		return (IsValid(PackageID, ActorID) != 0);
 	}
 
-
-	int EndPackID  = 0;
+	int EndPackID = 0;
 	int EndActorID = 0;
-	void PackageEnded(){
+	void PackageEnded() {
 		if (s_PackageData && EndPackID != 0 && EndActorID != 0)
 			s_PackageData->PackageEnded();
-		EndPackID  = 0;
+		EndPackID = 0;
 		EndActorID = 0;
 	}
-	void Packages::PackageEnded(){
+	void Packages::PackageEnded() {
 		if (Data.size() == 0) return;
 
-		TESForm* ActorRef   = LookupFormByID(EndActorID);
+		TESForm* ActorRef = LookupFormByID(EndActorID);
 		TESForm* PackageRef = LookupFormByID(EndPackID);
-		if (ActorRef && PackageRef){
+		if (ActorRef && PackageRef) {
 			s_dataLock.Enter();
 			ActorPackages* ActorPacks = GetActor(ActorRef);
-			if (ActorPacks != NULL){
+			if (ActorPacks != NULL) {
 				// Remove
 				ActorPackages::iterator PacksItr = ActorPacks->find(PackageRef->formID);
 				if (PacksItr != ActorPacks->end()) ActorPacks->erase(PackageRef->formID);
@@ -244,59 +239,63 @@ namespace PackageData {
 			}
 			s_dataLock.Leave();
 		}
-		EndPackID  = 0;
+		EndPackID = 0;
 		EndActorID = 0;
 	}
 
-	int endCall = 0xA51280;
-	int endBack = 0x8CAB59;
-	int packageFunc = 0x40E4F0;
-	int jumpPackage = 0x6A9E95;
+	typedef TESPackage* (*_PackageStartOrig)(void *, Actor *);
+	TESPackage *PackageStartHook(void *pthis, Actor *actor)
+	{
+		static RelocAddr<_PackageStartOrig> PackageStartOrig(0x126B80);
+		TESPackage *pkg = PackageStartOrig(pthis, actor);
+
+		if (actor && actor->formID != 0)
+		{
+			return (TESPackage *)DecidePackage(actor, pkg);
+		}
+
+		return pkg;
+	}
+
+	typedef UInt64(*_PackageEndOrig)(void *, void *);
+	UInt64 PackageEndHook(void *pthis, void *arg1, Actor *actor, int PackID)
+	{
+		static RelocAddr<_PackageEndOrig> PackageEndOrig(0xC284B0);
+
+		EndActorID = (actor) ? actor->formID : 0;
+		EndPackID = PackID;
+
+		PackageEnded();
+
+		return PackageEndOrig(pthis, arg1);
+	}
+
 	void InitPlugin() {
-		void * packageCodeStart;
-		_asm
+
+		static RelocAddr <uintptr_t> PackageStart_Enter(0x005DAFC0 + 0x47);
+		static RelocAddr <uintptr_t> PackageEnd_Enter(0x00927D30 + 0x1BD);
+
+		g_branchTrampoline.Write5Branch(PackageStart_Enter, (uintptr_t)PackageStartHook);
+
 		{
-			mov packageCodeStart, offset packageStart
-				jmp packageEnd
-			packageStart :
-			call packageFunc
-				cmp esi, 0
-				je packageOrig
-				push eax
-				push esi
-				call DecidePackage
-				add esp, 8
-			packageOrig:
-			jmp jumpPackage
-			packageEnd :
+			struct PackageEndHook_Code : Xbyak::CodeGenerator {
+				PackageEndHook_Code(void * buf) : Xbyak::CodeGenerator(4096, buf)
+				{
+					// Extra parameters as r8, r9
+					mov(r8, qword[rsi]);
+					mov(r9, dword[rsi + 8]);
+
+					jmp(ptr[rip]);
+					dq((uintptr_t)PackageEndHook);
+				}
+			};
+
+			void * codeBuf = g_localTrampoline.StartAlloc();
+			PackageEndHook_Code code(codeBuf);
+			g_localTrampoline.EndAlloc(code.getCurr());
+
+			g_branchTrampoline.Write5Call(PackageEnd_Enter, (uintptr_t)code.getCode());
 		}
-
-		WriteRelJump(0x6A9E90, (UInt32)packageCodeStart);
-
-		void * endPackageCodeStart;
-		_asm
-		{
-			mov endPackageCodeStart, offset endPackageStart
-				jmp endPackageEnd
-			endPackageStart :
-			push eax
-				push ecx
-				push edx
-				mov eax, [edi]
-				mov EndActorID, eax
-				mov eax, [edi + 4]
-				mov EndPackID, eax
-				call PackageEnded
-				pop edx
-				pop ecx
-				pop eax
-				//endPackageOrig:
-				call endCall
-				jmp endBack
-			endPackageEnd :
-		}
-
-		WriteRelJump(0x8CAB54, (UInt32)endPackageCodeStart);
 	}
 
 } // PackageData

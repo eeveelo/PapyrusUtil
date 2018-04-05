@@ -38,8 +38,8 @@ namespace PackageData {
 
 		// System Handling
 		void PackageEnded();
-		bool IsValidPackage(int PackageID, int ActorID);
-		UInt32 DecidePackage(int ActorID, int PackageID);
+		bool IsValidPackage(TESPackage *PackageID, Actor *ActorID);
+		TESPackage *DecidePackage(Actor *ActorID, TESPackage *PackageID);
 
 		// Serialization
 		void LoadStream(std::stringstream &ss);
