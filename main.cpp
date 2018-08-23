@@ -22,7 +22,7 @@ extern "C" {
 		// populate info structure
 		info->infoVersion = PluginInfo::kInfoVersion;
 		info->name = "papyrusutil plugin";
-		info->version = 1;
+		info->version = 2;
 
 		// store plugin handle so we can identify ourselves later
 		g_pluginHandle = skse->GetPluginHandle();
@@ -33,7 +33,8 @@ extern "C" {
 		}
 
 		// Check if version is right.
-		else if(skse->runtimeVersion < RUNTIME_VERSION_1_5_3) {
+		//else if (skse->runtimeVersion < RUNTIME_VERSION_1_5_23) {
+		else if (skse->runtimeVersion != RUNTIME_VERSION_1_5_39) {
 			_MESSAGE("unsupported runtime version %08X", skse->runtimeVersion);
 			return false;
 		}
@@ -64,6 +65,7 @@ extern "C" {
 		_MESSAGE("Loading Version: %d", (int)PAPYRUSUTIL_VERSION);
 
 		Data::InitLists();
+		Plugin::InitPlugin();
 
 		// Dev tmp
 		//g_serialization->SetUniqueID(g_pluginHandle, 884792 + 15325);
@@ -76,7 +78,6 @@ extern "C" {
 
 		g_papyrus->Register(Plugin::RegisterFuncs);
 
-		//Plugin::InitPlugin();
 
 		return true;
 	}
