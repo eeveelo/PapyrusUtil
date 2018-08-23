@@ -191,14 +191,14 @@ namespace PackageData {
 				if (itr->second.first >= pickedFlags.first) {
 					pickedPack = itr->first;
 					pickedFlags = itr->second;
-					//_MESSAGE("Package[%lu] Priority[%lu] Flag[%lu]", pickedPack, pickedFlags.first, pickedFlags.second);
+					_MESSAGE("Package[%lu] Priority[%lu] Flag[%lu]", pickedPack, pickedFlags.first, pickedFlags.second);
 				}
 			}
 			TESPackage *pid = (TESPackage *)LookupFormByID(pickedPack);
 			TESForm* FormRef = pid == 0 ? NULL : (TESForm*)pid;
 			if (FormRef && FormRef->formType == kFormType_Package) {
 				if (pickedFlags.second == 1 || IsValidPackage(pid, ActorID)) {
-					//_MESSAGE("Override Picked -- Package[%lu] Priority[%lu] Flag[%lu]", pid, pickedFlags.first, pickedFlags.second);
+					_MESSAGE("Override Picked -- Package[%lu] Priority[%lu] Flag[%lu]", pid, pickedFlags.first, pickedFlags.second);
 					PackageID = pid;
 				}
 			}
@@ -209,7 +209,7 @@ namespace PackageData {
 
 	typedef int(*_IsValid)(TESPackage *PackageID, Actor *ActorID);
 	bool Packages::IsValidPackage(TESPackage *PackageID, Actor *ActorID) {
-		static RelocAddr<_IsValid> IsValid(0x0043B0A0);
+		static RelocAddr<_IsValid> IsValid(0x0043B180);
 		return (IsValid(PackageID, ActorID) != 0);
 	}
 
@@ -260,7 +260,7 @@ namespace PackageData {
 	typedef UInt64(*_PackageEndOrig)(void *, void *);
 	UInt64 PackageEndHook(void *pthis, void *arg1, Actor *actor, int PackID)
 	{
-		static RelocAddr<_PackageEndOrig> PackageEndOrig(0xC284B0);
+		static RelocAddr<_PackageEndOrig> PackageEndOrig(0xC28E80);
 
 		EndActorID = (actor) ? actor->formID : 0;
 		EndPackID = PackID;
@@ -272,8 +272,8 @@ namespace PackageData {
 
 	void InitPlugin() {
 
-		static RelocAddr <uintptr_t> PackageStart_Enter(0x005DAFC0 + 0x47);
-		static RelocAddr <uintptr_t> PackageEnd_Enter(0x00927D30 + 0x1BD);
+		static RelocAddr <uintptr_t> PackageStart_Enter(0x005DB630 + 0x47);
+		static RelocAddr <uintptr_t> PackageEnd_Enter(0x00928590 + 0x1BD);
 
 		g_branchTrampoline.Write5Branch(PackageStart_Enter, (uintptr_t)PackageStartHook);
 
