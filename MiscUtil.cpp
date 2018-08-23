@@ -28,8 +28,8 @@ namespace MiscUtil {
 	typedef void(*_ToggleFreeCam)(uintptr_t addr, bool stopTime);
 	void ToggleFreeCamera(StaticFunctionTag* base, bool arg1) {
 		int stopTime = arg1 ? 1 : 0;
-		RelocPtr<uintptr_t> g_freeCam(0x02EEB938);
-		RelocAddr<_ToggleFreeCam> ToggleFreeCam(0x0084B2A0);
+		RelocPtr<uintptr_t> g_freeCam(0x02EEC9B8);
+		RelocAddr<_ToggleFreeCam> ToggleFreeCam(0x0084BBD0);
 		ToggleFreeCam(*g_freeCam, stopTime);
 	}
 
@@ -85,7 +85,7 @@ namespace MiscUtil {
 	}
 
 
-
+	//https://pastebin.com/i8jzU9wg
 	/*struct CellLocker
 	{
 		CellLocker(TESObjectCELL* cell)
@@ -138,7 +138,8 @@ namespace MiscUtil {
 		else return false;
 	}
 
-	bool IsWithinRadius(TESObjectREFR* CenterObj, TESObjectREFR* ObjRef, float distance) {
+	//bool IsWithinRadius(TESObjectREFR* CenterObj, TESObjectREFR* ObjRef, float distance) {
+	bool IsWithinRadius(TESObjectREFR* CenterObj, TESObjectREFR* ObjRef, float &distance) {
 		NiPoint3 &a = CenterObj->pos;
 		NiPoint3 &b = ObjRef->pos;
 		float tempx, tempy, tempz, tempd;
@@ -158,25 +159,41 @@ namespace MiscUtil {
 		return false;
 	}
 
+	inline bool ValidateCellList(tArray<TESObjectREFR*> &objList) {
+		if (objList.count == 0) {
+			_MESSAGE("\tScanCellObjects ERROR - objectList is empty.");
+			return false;
+		}
+		else if (!objList.entries) {
+			_MESSAGE("\tScanCellObjects ERROR - objectList entries are null.");
+			return false;
+		}
+		else {
+			_MESSAGE("\tScanCellObjects - objectList count: %lu", objList.count);
+			return true;
+		}
+	}
+
 	VMResultArray<TESObjectREFR*> ScanCellObjects(StaticFunctionTag* base, UInt32 FormType, TESObjectREFR* CenterObj, float SearchRadius, BGSKeyword* FindKeyword) {
 		VMResultArray<TESObjectREFR*> output;
 		if (CenterObj != NULL) {
-			_MESSAGE("Cell scanning from form: %lu", CenterObj->formID);
+			_MESSAGE("ScanCellObjects(%d, 0x%X, %.2f) Starting...", FormType, (int)CenterObj->formID, SearchRadius);
 			TESObjectCELL* Cell = CenterObj->parentCell;
 			if (Cell) {
 				//CellLocker _locker(Cell);
 				tArray<TESObjectREFR*> objList = Cell->objectList;
-				UInt32 count = objList.count;
-				_MESSAGE("\tcell item count: %lu", count);
-				for (UInt32 idx = 0; idx < count; ++idx) {
-					TESObjectREFR* ObjRef = objList[idx];
-					if (ObjRef == NULL || ObjRef->baseForm->GetFormType() != FormType) continue;
-					else if (SearchRadius > 0.0f && !IsWithinRadius(CenterObj, ObjRef, SearchRadius)) continue;
-					else if (FindKeyword && !HasKeyword(ObjRef, FindKeyword)) continue;
-					else output.push_back(ObjRef);
+				if (ValidateCellList(objList)) {
+					UInt32 count = objList.count;
+					for (UInt32 idx = 0; idx < count; ++idx) {
+						TESObjectREFR* ObjRef = objList[idx];
+						if (ObjRef == NULL || ObjRef->baseForm->GetFormType() != FormType) continue;
+						else if (SearchRadius > 0.0f && !IsWithinRadius(CenterObj, ObjRef, SearchRadius)) continue;
+						else if (FindKeyword && !HasKeyword(ObjRef, FindKeyword)) continue;
+						else output.push_back(ObjRef);
+					}
 				}
 			}
-			_MESSAGE("Cell scanning found: %d", (int)output.size());
+			_MESSAGE("Results: %d", (int)output.size());
 		}
 		return output;
 	}
