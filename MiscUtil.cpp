@@ -12,6 +12,7 @@
 #include "skse64/GameReferences.h"
 #include "skse64/GameSettings.h"
 #include "skse64/GameMenus.h"
+#include "skse64/GameForms.h"
 //#include "skse64/SafeWrite.h"
 
 #include "skse64/GameRTTI.h"
@@ -132,11 +133,106 @@ namespace MiscUtil {
 		TESObjectCELL * locked;
 	};*/
 
-	inline bool HasKeyword(TESObjectREFR* ObjRef, BGSKeyword* findKeyword) {
-		BGSKeywordForm* keywords = DYNAMIC_CAST(ObjRef, TESForm, BGSKeywordForm);
-		if (keywords) return keywords->HasKeyword(findKeyword);
+	typedef void(*_TESObjectCELL_RefLocker_LockUnlock)(TESObjectCELL * thisPtr);
+	RelocAddr<_TESObjectCELL_RefLocker_LockUnlock> TESObjectCELL_CellRefLockEnter(0x00271030);
+	RelocAddr<_TESObjectCELL_RefLocker_LockUnlock> TESObjectCELL_CellRefLockExit(0x00271050);
+	struct CellLocker {
+		CellLocker(TESObjectCELL* cell){
+			locked = cell;
+			if (cell != NULL){
+				TESObjectCELL_CellRefLockEnter(cell);
+			}
+		}
+
+		~CellLocker(){
+			TESObjectCELL * cell = locked;
+			if (cell != NULL){
+				TESObjectCELL_CellRefLockExit(cell);
+			}
+		}
+
+	private:
+		TESObjectCELL * locked;
+	};
+
+
+
+	/*bool HasKeyword(TESObjectREFR* ObjRef, std::string& kw){
+		BGSKeywordForm* pKeywords = DYNAMIC_CAST(ObjRef, TESObjectREFR, BGSKeywordForm);
+		if (!pKeywords) {
+			pKeywords = DYNAMIC_CAST(ObjRef, TESForm, BGSKeywordForm);
+			if (!pKeywords) {
+				pKeywords = DYNAMIC_CAST(ObjRef->baseForm, TESForm, BGSKeywordForm);
+			}
+		}
+		if (!pKeywords || pKeywords->numKeywords < 1) {
+			return false;
+		}
+		
+		for (UInt32 i = 0; i < pKeywords->numKeywords; i++)	{
+			if (pKeywords->keywords[i]) {
+				BSFixedString bskw = pKeywords->keywords[i]->keyword;
+				if (!bskw || !bskw.data || bskw.data[0] == '\0') continue;
+				if (boost::iequals(kw.c_str(), bskw.data)) return true;
+			}
+		}
+		return false;
+	}*/
+
+	bool HasKeyword(Actor* ActorRef, BGSKeyword* findKeyword) {
+		BGSKeywordForm* pKeywords = DYNAMIC_CAST(ActorRef, Actor, BGSKeywordForm);
+		if (!pKeywords) {
+			pKeywords = DYNAMIC_CAST(ActorRef, TESForm, BGSKeywordForm);
+			if (!pKeywords) {
+				pKeywords = DYNAMIC_CAST(ActorRef->baseForm, TESForm, BGSKeywordForm);
+			}
+		}
+		if (pKeywords) return pKeywords->HasKeyword(findKeyword);
 		else return false;
 	}
+
+	bool HasKeyword(TESObjectREFR* ObjRef, BGSKeyword* findKeyword) {
+		BGSKeywordForm* pKeywords = DYNAMIC_CAST(ObjRef, TESObjectREFR, BGSKeywordForm);
+		if (!pKeywords) {
+			pKeywords = DYNAMIC_CAST(ObjRef, TESForm, BGSKeywordForm);
+			if (!pKeywords) {
+				pKeywords = DYNAMIC_CAST(ObjRef->baseForm, TESForm, BGSKeywordForm);
+			}
+		}
+		if (pKeywords) return pKeywords->HasKeyword(findKeyword);
+		else return false;
+	}
+
+	/*bool HasKeyword2(TESObjectREFR* ObjRef, BGSKeyword* findKeyword) {
+		Actor* ActorRef = DYNAMIC_CAST(ObjRef, TESObjectREFR, Actor);
+		BGSKeywordForm* pKeywords = DYNAMIC_CAST(ActorRef, TESObjectREFR, BGSKeywordForm);
+		if (!pKeywords) {
+			pKeywords = DYNAMIC_CAST(ActorRef, TESForm, BGSKeywordForm);
+			if (!pKeywords) {
+				pKeywords = DYNAMIC_CAST(ActorRef->baseForm, TESForm, BGSKeywordForm);
+			}
+		}
+		if (pKeywords) return pKeywords->HasKeyword(findKeyword);
+		else return false;
+	}
+
+	bool HasKeyword(TESObjectREFR* ObjRef, BGSKeyword* findKeyword) {
+		BSFixedString kw = (findKeyword) ? findKeyword->keyword.Get() : NULL;
+		return ObjRef->
+
+		_MESSAGE("Checking keywords");
+		BGSKeywordForm* keywords2 = DYNAMIC_CAST(ObjRef, TESForm, BGSKeywordForm);
+		if(keywords2) _MESSAGE("Ref Keywords: %d", (int)keywords2->numKeywords);
+
+
+		BGSKeywordForm* keywords = DYNAMIC_CAST(ObjRef->baseForm, TESForm, BGSKeywordForm);
+
+		if (keywords) {
+			_MESSAGE("Base Keywords: %d", (int)keywords->numKeywords);
+			return keywords->HasKeyword(findKeyword);
+		}
+		else return false;
+	}*/
 
 	//bool IsWithinRadius(TESObjectREFR* CenterObj, TESObjectREFR* ObjRef, float distance) {
 	bool IsWithinRadius(TESObjectREFR* CenterObj, TESObjectREFR* ObjRef, float &distance) {
@@ -159,41 +255,47 @@ namespace MiscUtil {
 		return false;
 	}
 
-	inline bool ValidateCellList(tArray<TESObjectREFR*> &objList) {
+	/*inline bool ValidateCellList(tArray<TESObjectREFR*> &objList) {
 		if (objList.count == 0) {
-			_MESSAGE("\tScanCellObjects ERROR - objectList is empty.");
+			_MESSAGE("\tERROR - objectList is empty.");
 			return false;
 		}
 		else if (!objList.entries) {
-			_MESSAGE("\tScanCellObjects ERROR - objectList entries are null.");
+			_MESSAGE("\tERROR - objectList entries are null.");
 			return false;
 		}
 		else {
-			_MESSAGE("\tScanCellObjects - objectList count: %lu", objList.count);
+			_MESSAGE("\tobjectList count: %lu", objList.count);
 			return true;
 		}
+	}*/
+
+	inline TESObjectREFR* GetCellObj(TESObjectCELL* Cell, UInt32 &idx) {
+		if (Cell->refData.refArray[idx].unk08 && Cell->refData.refArray[idx].ref) {
+			return Cell->refData.refArray[idx].ref;
+		}
+		return NULL;
 	}
 
-	VMResultArray<TESObjectREFR*> ScanCellObjects(StaticFunctionTag* base, UInt32 FormType, TESObjectREFR* CenterObj, float SearchRadius, BGSKeyword* FindKeyword) {
+	VMResultArray<TESObjectREFR*> ScanCellObjects(StaticFunctionTag* base, UInt32 FindType, TESObjectREFR* CenterObj, float SearchRadius, BGSKeyword* FindKeyword) {
 		VMResultArray<TESObjectREFR*> output;
-		if (CenterObj != NULL) {
-			_MESSAGE("ScanCellObjects(%d, 0x%X, %.2f) Starting...", FormType, (int)CenterObj->formID, SearchRadius);
+		if (CenterObj && CenterObj->parentCell) {
 			TESObjectCELL* Cell = CenterObj->parentCell;
-			if (Cell) {
-				//CellLocker _locker(Cell);
-				tArray<TESObjectREFR*> objList = Cell->objectList;
-				if (ValidateCellList(objList)) {
-					UInt32 count = objList.count;
-					for (UInt32 idx = 0; idx < count; ++idx) {
-						TESObjectREFR* ObjRef = objList[idx];
-						if (ObjRef == NULL || ObjRef->baseForm->GetFormType() != FormType) continue;
-						else if (SearchRadius > 0.0f && !IsWithinRadius(CenterObj, ObjRef, SearchRadius)) continue;
-						else if (FindKeyword && !HasKeyword(ObjRef, FindKeyword)) continue;
-						else output.push_back(ObjRef);
-					}
-				}
+			//TESObjectCELL::ReferenceData refData = Cell->refData;
+
+			_MESSAGE("ScanCellObjects(%d, 0x%X, %.2f) searching cell 0x%X with %d objects", FindType, (int)CenterObj->formID, SearchRadius, (int)Cell->formID, int(Cell->refData.maxSize - Cell->refData.freeEntries));
+			
+			UInt32 count = Cell->refData.maxSize;
+			for (UInt32 idx = 0, n = 0; idx < count; idx++) {
+				TESObjectREFR* ObjRef = GetCellObj(Cell, idx);
+
+				if (ObjRef == NULL || ObjRef->baseForm->formType != FindType) continue; // Invalid
+				else if (SearchRadius > 0.0f && !IsWithinRadius(CenterObj, ObjRef, SearchRadius)) continue; // Outside search radius
+				else if (FindKeyword && !HasKeyword(ObjRef, FindKeyword)) continue; // Missing keyword
+				else output.push_back(ObjRef); // MATCH
+
 			}
-			_MESSAGE("Results: %d", (int)output.size());
+			_MESSAGE("\tResults: %d", (int)output.size());
 		}
 		return output;
 	}
@@ -201,35 +303,32 @@ namespace MiscUtil {
 
 	VMResultArray<Actor*> ScanCellNPCs(StaticFunctionTag* base, TESObjectREFR* CenterObj, float SearchRadius, BGSKeyword* FindKeyword, bool ignoredead) {
 		VMResultArray<Actor*> output;
-		if (CenterObj != NULL) {
-			_MESSAGE("Cell scanning from form: %lu", CenterObj->formID);
+		if (CenterObj && CenterObj->parentCell) {
 			TESObjectCELL* Cell = CenterObj->parentCell;
-			if (Cell) {
-				//CellLocker _locker(Cell);
-				tArray<TESObjectREFR*> objList = Cell->objectList;
-				UInt32 count = objList.count;
-				_MESSAGE("\tcell item count: %lu", count);
-				for (UInt32 idx = 0; idx < count; ++idx) {
-					TESObjectREFR* ObjRef = objList[idx];
-					Actor *ActorRef = ObjRef != NULL ? DYNAMIC_CAST(ObjRef, TESObjectREFR, Actor) : NULL;
-					if (ActorRef == NULL || (ignoredead && ActorRef->IsDead(1))) continue;
-					else if (SearchRadius > 0.0f && !IsWithinRadius(CenterObj, ActorRef, SearchRadius)) continue;
-					else if (FindKeyword && !HasKeyword(ActorRef, FindKeyword)) continue;
-					else output.push_back(ActorRef);
-				}
+			
+			_MESSAGE("ScanCellNPCs(0x%X, %.2f) searching cell 0x%X with %d objects", (int)CenterObj->formID, SearchRadius, (int)Cell->formID, int(Cell->refData.maxSize - Cell->refData.freeEntries));
+			
+			//std::string kw = (FindKeyword != NULL) ? FindKeyword->keyword.Get() : "";
+
+			UInt32 count = Cell->refData.maxSize;
+			for (UInt32 idx = 0, n = 0; idx < count; idx++) {
+				TESObjectREFR* ObjRef = GetCellObj(Cell, idx);
+				Actor *ActorRef = ObjRef != NULL ? DYNAMIC_CAST(ObjRef, TESObjectREFR, Actor) : NULL;
+				if (ActorRef == NULL || (ignoredead && ActorRef->IsDead(1))) continue;
+				else if (SearchRadius > 0.0f && !IsWithinRadius(CenterObj, ActorRef, SearchRadius)) continue;
+				//else if (!kw.empty() && !HasKeyword(ActorRef, kw)) continue;
+				else if (FindKeyword && !HasKeyword(ActorRef, FindKeyword)) continue;
+				else output.push_back(ActorRef);
 			}
-			_MESSAGE("Cell scanning found: %d", (int)output.size());
+			_MESSAGE("\tResults: %d", (int)output.size());
+
 		}
 		return output;
 	}
 
-
-
-
 	// Copied from skse/PapyrusActor.cpp
 	typedef std::set<TESFaction*> FactionRankSet;
-	class CollectUniqueFactions : public Actor::FactionVisitor
-	{
+	class CollectUniqueFactions : public Actor::FactionVisitor {
 	public:
 		CollectUniqueFactions::CollectUniqueFactions(FactionRankSet * rankSet, SInt8 min, SInt8 max, TESFaction* FactionRef) : m_rankSet(rankSet), m_min(min), m_max(max), FindFaction(FactionRef) { }
 		virtual bool Accept(TESFaction * faction, SInt8 rank)
@@ -247,8 +346,8 @@ namespace MiscUtil {
 	};
 	// copied end
 
-	bool IsInFaction(Actor* ActorRef, TESFaction* FactionRef, SInt8 min, SInt8 max){
-		if (ActorRef != NULL && FactionRef != NULL){
+	bool IsInFaction(Actor* ActorRef, TESFaction* FactionRef, SInt8 min, SInt8 max) {
+		if (ActorRef != NULL && FactionRef != NULL) {
 			FactionRankSet rankSet;
 			CollectUniqueFactions factionVisitor(&rankSet, min, max, FactionRef);
 			ActorRef->VisitFactions(factionVisitor);
@@ -261,37 +360,118 @@ namespace MiscUtil {
 
 	VMResultArray<Actor*> ScanCellNPCsByFaction(StaticFunctionTag* base, TESFaction* FindFaction, TESObjectREFR* CenterObj, float SearchRadius, SInt32 gte, SInt32 lte, bool ignoredead) {
 		VMResultArray<Actor*> output;
-		if (CenterObj != NULL && FindFaction != NULL) {
+		if (CenterObj != NULL && FindFaction != NULL && CenterObj->parentCell) {
 
-			if (gte > SCHAR_MAX)
-				gte = SCHAR_MAX;
-			if (gte < SCHAR_MIN)
-				gte = SCHAR_MIN;
-			if (lte < SCHAR_MIN)
-				lte = SCHAR_MIN;
-			if (lte > SCHAR_MAX)
-				lte = SCHAR_MAX;
+			if (gte > SCHAR_MAX) gte = SCHAR_MAX;
+			if (gte < SCHAR_MIN) gte = SCHAR_MIN;
+			if (lte < SCHAR_MIN) lte = SCHAR_MIN;
+			if (lte > SCHAR_MAX) lte = SCHAR_MAX;
 
-			_MESSAGE("Cell scanning for faction(%lu, %d, %d) from form: %lu", FindFaction->formID, (int)gte, (int)lte, CenterObj->formID);
+			TESObjectCELL* Cell = CenterObj->parentCell;
+
+			_MESSAGE("ScanCellNPCsByFaction(0x%X, 0x%X, %.2f) searching cell 0x%X with %d objects", (int)FindFaction->formID, (int)CenterObj->formID, SearchRadius, (int)Cell->formID, int(Cell->refData.maxSize - Cell->refData.freeEntries));
+
+			UInt32 count = Cell->refData.maxSize;
+			for (UInt32 idx = 0, n = 0; idx < count; idx++) {
+				TESObjectREFR* ObjRef = GetCellObj(Cell, idx);
+				Actor *ActorRef = ObjRef != NULL ? DYNAMIC_CAST(ObjRef, TESObjectREFR, Actor) : NULL;
+				if (ActorRef == NULL || (ignoredead && ActorRef->IsDead(1))) continue;
+				else if (SearchRadius > 0.0f && !IsWithinRadius(CenterObj, ActorRef, SearchRadius)) continue;
+				else if (!IsInFaction(ActorRef, FindFaction, gte, lte)) continue;
+				else output.push_back(ActorRef);
+			}
+			_MESSAGE("\tResults: %d", (int)output.size());
+
+		}
+		return output;
+	}
+	
+
+
+
+	/*
+	VMResultArray<TESObjectREFR*> ScanCellObjects2(StaticFunctionTag* base, UInt32 FindType, TESObjectREFR* CenterObj, float SearchRadius, BGSKeyword* FindKeyword) {
+		VMResultArray<TESObjectREFR*> output;
+		if (CenterObj && CenterObj->parentCell) {
+			TESObjectCELL* Cell = CenterObj->parentCell;
+			//TESObjectCELL::ReferenceData refData = Cell->refData;
+
+			UInt32 count = Cell->refData.maxSize;
+			_MESSAGE("ScanCellObjects(%d, 0x%X, %.2f) searching cell 0x%X with %d objects", FindType, (int)CenterObj->formID, SearchRadius, (int)Cell->formID, count);
+
+
+			for (UInt32 idx = 0, n = 0; idx < count; idx++) {
+				if (Cell->refData.refArray[idx].unk08 && Cell->refData.refArray[idx].ref && Cell->refData.refArray[idx].ref->baseForm->formType == FindType) {
+					TESObjectREFR* ObjRef = Cell->refData.refArray[idx].ref;
+					if (ObjRef == NULL) continue; // invalid
+					else if (SearchRadius > 0.0f && !IsWithinRadius(CenterObj, ObjRef, SearchRadius)) continue; // Outside search radius
+					else if (FindKeyword && !HasKeyword(ObjRef, FindKeyword)) continue; // Missing keyword
+					else output.push_back(ObjRef); // MATCH
+				}
+			}
+			_MESSAGE("\tResults: %d", (int)output.size());
+		}
+		return output;
+	}
+
+
+	VMResultArray<TESObjectREFR*> ScanCellObjects(StaticFunctionTag* base, UInt32 FindType, TESObjectREFR* CenterObj, float SearchRadius, BGSKeyword* FindKeyword) {
+		VMResultArray<TESObjectREFR*> output;
+		if (CenterObj && CenterObj->parentCell) {
+			TESObjectCELL* Cell = CenterObj->parentCell;
+			CellLocker _locker(Cell);
+			tArray<TESObjectREFR*> objList = Cell->objectList;
+			_MESSAGE("ScanCellObjects(%d, 0x%X, %.2f) searching cell 0x%X", FindType, (int)CenterObj->formID, SearchRadius, (int)Cell->formID);
+
+			TESObjectCELL::ReferenceData refData = Cell->refData;
+			_MESSAGE("ref: 0x%X, type: %d", (int)refData.refArray->ref->formID, (int)refData.refArray->ref->formType);
+			TESObjectCELL* Cell2 = refData.refArray->ref->parentCell;
+			_MESSAGE("parentCell: 0x%X, type: %d", (int)Cell2->formID, (int)Cell2->formType);
+
+			if (ValidateCellList(objList)) {
+				UInt32 count = objList.count;
+				for (UInt32 idx = 0; idx < count; ++idx) {
+					TESObjectREFR* ObjRef = objList[idx];
+					if (ObjRef == NULL || ObjRef->baseForm->GetFormType() != FindType) continue; // Wrong type
+					else if (SearchRadius > 0.0f && !IsWithinRadius(CenterObj, ObjRef, SearchRadius)) continue; // Outside search radius
+					else if (FindKeyword && !HasKeyword(ObjRef, FindKeyword)) continue; // Missing keyword
+					else output.push_back(ObjRef); // MATCH
+				}
+				_MESSAGE("\tResults: %d", (int)output.size());
+			}
+		}
+		return output;
+	}
+
+
+		VMResultArray<Actor*> ScanCellNPCs(StaticFunctionTag* base, TESObjectREFR* CenterObj, float SearchRadius, BGSKeyword* FindKeyword, bool ignoredead) {
+		VMResultArray<Actor*> output;
+		if (CenterObj != NULL) {
+			_MESSAGE("ScanCellNPCs(Center: 0x%X, Radius: %.2f) Starting...", (int)CenterObj->formID, SearchRadius);
 			TESObjectCELL* Cell = CenterObj->parentCell;
 			if (Cell) {
 				//CellLocker _locker(Cell);
 				tArray<TESObjectREFR*> objList = Cell->objectList;
 				UInt32 count = objList.count;
-				_MESSAGE("\tcell item count: %lu", count);
 				for (UInt32 idx = 0; idx < count; ++idx) {
 					TESObjectREFR* ObjRef = objList[idx];
 					Actor *ActorRef = ObjRef != NULL ? DYNAMIC_CAST(ObjRef, TESObjectREFR, Actor) : NULL;
 					if (ActorRef == NULL || (ignoredead && ActorRef->IsDead(1))) continue;
 					else if (SearchRadius > 0.0f && !IsWithinRadius(CenterObj, ActorRef, SearchRadius)) continue;
-					else if (!IsInFaction(ActorRef, FindFaction, gte, lte)) continue;
+					else if (FindKeyword && !HasKeyword(ActorRef, FindKeyword)) continue;
 					else output.push_back(ActorRef);
 				}
 			}
-			_MESSAGE("Cell scanning found: %d", (int)output.size());
+			_MESSAGE("\tResults: %d", (int)output.size());
 		}
 		return output;
 	}
+	*/
+
+
+
+
+
 
 
 	namespace fs = boost::filesystem;
