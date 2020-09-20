@@ -96,8 +96,13 @@ namespace Data {
 		while (intfc->GetNextRecordInfo(&type, &version, &length)) {
 			switch (type) {
 			case 'MODS':
-				_MESSAGE("\tMODS Load");
+				_MESSAGE("\tMODS Load (old)");
 				Forms::LoadModList(intfc);
+				break;
+
+			case 'PLGN':
+				_MESSAGE("\tPLGN Load");
+				Forms::LoadPluginList(intfc);
 				break;
 
 			case 'INTV':
@@ -150,7 +155,7 @@ namespace Data {
 				Load(packageLists, intfc, version, length);
 				break;*/
 			
-			case 'DATA':
+			/*case 'DATA':
 				if (version == kSerializationDataVersion && length > 0) {
 					char *buf = new char[length + 1];
 					intfc->ReadRecordData(buf, length);
@@ -160,7 +165,7 @@ namespace Data {
 					_MESSAGE("DATA: %d", strlen(tmp.c_str()));
 					int ver;
 					ss >> ver;
-					Forms::LoadPreviousMods(ss);
+					//Forms::LoadPreviousMods(ss);
 					if (ver == -1) {
 						_MESSAGE("-- Legacy Data");
 						intValues->LoadStream(ss);
@@ -175,7 +180,7 @@ namespace Data {
 					}
 					delete[] buf;
 				}
-				break;
+				break;*/
 
 			default:
 				_MESSAGE("unhandled type %08X", type);
@@ -204,8 +209,10 @@ namespace Data {
 			intfc->WriteRecordData(cstr, strlen(cstr));
 		}*/
 		// Save load order
-		Forms::SaveModList(intfc);
-		_MESSAGE("\tMODS Saved");
+		//Forms::SaveModList(intfc);
+		
+		Forms::SavePluginsList(intfc);
+		_MESSAGE("\tPLGN Saved");
 
 		// Cleanup removed forms
 		/*int cleaned = 0;

@@ -8,7 +8,9 @@
 #include "Data.h"
 #include "Serialize.h"
 
-IDebugLog	gLog("PapyrusUtilDev.log");
+#include <shlobj.h>
+
+IDebugLog	gLog;
 
 PluginHandle	g_pluginHandle = kPluginHandle_Invalid;
 
@@ -19,6 +21,8 @@ SKSEPapyrusInterface       * g_papyrus = NULL;
 extern "C" {
 
 	bool SKSEPlugin_Query(const SKSEInterface * skse, PluginInfo * info) {
+		gLog.OpenRelative(CSIDL_MYDOCUMENTS, "\\My Games\\Skyrim Special Edition\\SKSE\\PapyrusUtilDev.log");
+
 		// populate info structure
 		info->infoVersion = PluginInfo::kInfoVersion;
 		info->name = "papyrusutil plugin";
@@ -33,8 +37,8 @@ extern "C" {
 		}
 
 		// Check if version is right.
-		//else if (skse->runtimeVersion < RUNTIME_VERSION_1_5_23) {
-		else if (skse->runtimeVersion != RUNTIME_VERSION_1_5_39) {
+		//else if (skse->runtimeVersion < RUNTIME_VERSION_1_5_53) {
+		else if (skse->runtimeVersion != RUNTIME_VERSION_1_5_97) {
 			_MESSAGE("unsupported runtime version %08X", skse->runtimeVersion);
 			return false;
 		}

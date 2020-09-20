@@ -84,6 +84,14 @@ namespace JsonUtil {
 		}
 	}
 
+	void ClearPathIndex(StaticFunctionTag* base, BSFixedString name, BSFixedString path, SInt32 idx) {
+		//_MESSAGE("ClearPath(%s, %s)", name.data, path.data);
+		if (FileExists(name.data)) {
+			ExternalFile* File = GetFile(name.data);
+			if (File && IsValidKey(path)) File->ClearPathIndex(path.data, idx);
+		}
+	}
+
 	template <typename T>
 	void SetPathValue(StaticFunctionTag* base, BSFixedString name, BSFixedString path, T value) {
 		ExternalFile* File = GetFile(name.data);
@@ -466,6 +474,9 @@ void JsonUtil::RegisterFuncs(VMClassRegistry* registry){
 
 	registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, void, BSFixedString, BSFixedString>("ClearPath", "JsonUtil", ClearPath, registry));
 	registry->SetFunctionFlags("JsonUtil", "ClearPath", VMClassRegistry::kFunctionFlag_NoWait);
+
+	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, void, BSFixedString, BSFixedString, SInt32>("ClearPathIndex", "JsonUtil", ClearPathIndex, registry));
+	registry->SetFunctionFlags("JsonUtil", "ClearPathIndex", VMClassRegistry::kFunctionFlag_NoWait);
 
 	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, void, BSFixedString, BSFixedString, SInt32>("SetPathIntValue", "JsonUtil", SetPathValue<SInt32>, registry));
 	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, void, BSFixedString, BSFixedString, float>("SetPathFloatValue", "JsonUtil", SetPathValue<float>, registry));

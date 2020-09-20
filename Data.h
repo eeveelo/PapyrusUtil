@@ -163,6 +163,9 @@ namespace Data
 	/*
 	* Data storage holders
 	*/
+	// TODO: Change storage method
+	typedef Values<TESForm*, std::pair<UInt32, std::string>> formv;
+	typedef Lists<TESForm*, std::pair<UInt32, std::string>> forml;
 
 	typedef Values<SInt32, SInt32> intv;
 	typedef Values<float, float> flov;

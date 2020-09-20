@@ -631,8 +631,6 @@ namespace External {
 	template void ExternalFile::SetPathValue<BSFixedString>(const std::string &path, Value value);
 	template void ExternalFile::SetPathValue<TESForm*>(const std::string &path, Value value);
 
-
-	
 	void ExternalFile::ClearPath(const std::string &path) {
 		if (!path.empty()) {
 
@@ -646,8 +644,6 @@ namespace External {
 			std::string pathto = path.front() != '.' ? '.' + path : path;
 			Value value = Resolve(pathto, Value(Json::nullValue));
 			if (!value.isNull()){
-
-
 				std::vector<std::string> args;
 				boost::iter_split(args, pathto, boost::first_finder("."));
 
@@ -683,12 +679,59 @@ namespace External {
 
 				isModified = true;
 			}
+			else {
+				_MESSAGE("ClearPath: Unable to resolve %s", path.c_str());
+			}
+			s_dataLock.Leave();
+		}
+	}
 
+	void ExternalFile::ClearPathIndex(const std::string &path, int idx) {
+		if (!path.empty()) {
+			s_dataLock.Enter();
 
-			
+			std::string pathto = path.front() != '.' ? '.' + path : path;
+			Value pathArray = Resolve(pathto, Value(Json::nullValue));
+			if (!pathArray.isNull() && pathArray.isArray()) {
 
+				std::vector<std::string> args;
+				boost::iter_split(args, pathto, boost::first_finder("."));
+				Value value = Value(Json::nullValue);
 
+				switch (args.size()) {
+				case 2:
+					isModified = root[args[1]].removeIndex(idx, &value);
+					break;
+				case 3:
+					isModified = root[args[1]][args[2]].removeIndex(idx, &value);
+					break;
+				case 4:
+					isModified = root[args[1]][args[2]][args[3]].removeIndex(idx, &value);
+					break;
+				case 5:
+					isModified = root[args[1]][args[2]][args[3]][args[4]].removeIndex(idx, &value);
+					break;
+				case 6:
+					isModified = root[args[1]][args[2]][args[3]][args[4]][args[5]].removeIndex(idx, &value);
+					break;
+				case 7:
+					isModified = root[args[1]][args[2]][args[3]][args[4]][args[5]][args[6]].removeIndex(idx, &value);
+					break;
+				case 8:
+					isModified = root[args[1]][args[2]][args[3]][args[4]][args[5]][args[6]][args[7]].removeIndex(idx, &value);
+					break;
+				case 9:
+					isModified = root[args[1]][args[2]][args[3]][args[4]][args[5]][args[6]][args[7]][args[8]].removeIndex(idx, &value);
+					break;
+				}
 
+				if (isModified) _MESSAGE("ClearPathIndex: Removed Index %d from array %s", idx, path.c_str());
+				else _MESSAGE("ClearPathIndex: FAILED. Index was likely out of range.");
+
+			}
+			else {
+				_MESSAGE("ClearPathIndex: Unable to resolve an array at %s", path.c_str());
+			}
 			s_dataLock.Leave();
 		}
 	}

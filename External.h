@@ -175,6 +175,7 @@ namespace External {
 		template <typename T> void SetPathValue(const std::string &path, Value var);
 		template <typename T> void SetPathArray(const std::string &path, VMArray<T> arr, bool append);
 		void ClearPath(const std::string &path);
+		void ClearPathIndex(const std::string &path, int idx);
 		template <typename T> T GetPathValue(const std::string &path, T defaultValue);
 		template <typename T> VMResultArray<T> PathElements(const std::string &path, T invalidType);
 		VMResultArray<BSFixedString> PathMembers(const std::string &path);

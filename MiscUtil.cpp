@@ -26,12 +26,19 @@
 
 namespace MiscUtil {
 
-	typedef void(*_ToggleFreeCam)(uintptr_t addr, bool stopTime);
+	/*typedef void(*_ToggleFreeCam)(uintptr_t addr, bool stopTime);
 	void ToggleFreeCamera(StaticFunctionTag* base, bool arg1) {
 		int stopTime = arg1 ? 1 : 0;
 		RelocPtr<uintptr_t> g_freeCam(0x02EEC9B8);
 		RelocAddr<_ToggleFreeCam> ToggleFreeCam(0x0084BBD0);
 		ToggleFreeCam(*g_freeCam, stopTime);
+	}*/
+
+	typedef void(*_ToggleFreeCam)(PlayerCamera * camera, bool stopTime);
+	void ToggleFreeCamera(StaticFunctionTag* base, bool arg1) {
+		int stopTime = arg1 ? 1 : 0;
+		RelocAddr<_ToggleFreeCam> ToggleFreeCam(0x0084B720);
+		ToggleFreeCam(PlayerCamera::GetSingleton(), stopTime);
 	}
 
 	//extern RelocPtr<SettingCollectionList*> g_iniSettingCollection;
@@ -133,7 +140,7 @@ namespace MiscUtil {
 		TESObjectCELL * locked;
 	};*/
 
-	typedef void(*_TESObjectCELL_RefLocker_LockUnlock)(TESObjectCELL * thisPtr);
+	/*typedef void(*_TESObjectCELL_RefLocker_LockUnlock)(TESObjectCELL * thisPtr);
 	RelocAddr<_TESObjectCELL_RefLocker_LockUnlock> TESObjectCELL_CellRefLockEnter(0x00271030);
 	RelocAddr<_TESObjectCELL_RefLocker_LockUnlock> TESObjectCELL_CellRefLockExit(0x00271050);
 	struct CellLocker {
@@ -153,7 +160,7 @@ namespace MiscUtil {
 
 	private:
 		TESObjectCELL * locked;
-	};
+	};*/
 
 
 
@@ -179,7 +186,23 @@ namespace MiscUtil {
 		return false;
 	}*/
 
-	bool HasKeyword(Actor* ActorRef, BGSKeyword* findKeyword) {
+
+	bool HasKeyword2(Actor* ActorRef, BGSKeyword* findKeyword) {
+		TESNPC* npc = DYNAMIC_CAST(ActorRef->baseForm, TESForm, TESNPC);
+		if (!npc) return false;
+
+		BGSKeywordForm* pKeywords = DYNAMIC_CAST(npc, TESNPC, BGSKeywordForm);
+		if (!pKeywords) {
+			pKeywords = DYNAMIC_CAST(npc, TESForm, BGSKeywordForm);
+			if (!pKeywords) {
+				pKeywords = DYNAMIC_CAST(npc, TESForm, BGSKeywordForm);
+			}
+		}
+		if (pKeywords) return pKeywords->HasKeyword(findKeyword);
+		else return false;
+	}
+
+	/*bool HasKeyword(Actor* ActorRef, BGSKeyword* findKeyword) {
 		BGSKeywordForm* pKeywords = DYNAMIC_CAST(ActorRef, Actor, BGSKeywordForm);
 		if (!pKeywords) {
 			pKeywords = DYNAMIC_CAST(ActorRef, TESForm, BGSKeywordForm);
@@ -189,7 +212,7 @@ namespace MiscUtil {
 		}
 		if (pKeywords) return pKeywords->HasKeyword(findKeyword);
 		else return false;
-	}
+	}*/
 
 	bool HasKeyword(TESObjectREFR* ObjRef, BGSKeyword* findKeyword) {
 		BGSKeywordForm* pKeywords = DYNAMIC_CAST(ObjRef, TESObjectREFR, BGSKeywordForm);
@@ -317,7 +340,7 @@ namespace MiscUtil {
 				if (ActorRef == NULL || (ignoredead && ActorRef->IsDead(1))) continue;
 				else if (SearchRadius > 0.0f && !IsWithinRadius(CenterObj, ActorRef, SearchRadius)) continue;
 				//else if (!kw.empty() && !HasKeyword(ActorRef, kw)) continue;
-				else if (FindKeyword && !HasKeyword(ActorRef, FindKeyword)) continue;
+				else if (FindKeyword && !HasKeyword2(ActorRef, FindKeyword)) continue;
 				else output.push_back(ActorRef);
 			}
 			_MESSAGE("\tResults: %d", (int)output.size());
@@ -501,8 +524,28 @@ namespace MiscUtil {
 						std::string file = filepath.filename().generic_string();
 						//std::string ext = filepath.extension().generic_string();
 						//_MESSAGE("file: %s ext: %s", file.c_str(), ext.c_str());
-						if (ext == "*" || boost::iequals(filepath.extension().generic_string(), ext))
+						if (ext == ".*" || boost::iequals(filepath.extension().generic_string(), ext))
 							arr.push_back(BSFixedString(file.c_str()));
+					}
+				}
+			}
+		}
+		return arr;
+	}
+
+	VMResultArray<BSFixedString> FoldersInFolder(StaticFunctionTag* base, BSFixedString dirpath) {
+		VMResultArray<BSFixedString> arr;
+		if (dirpath.data && dirpath.data[0] != '\0') {
+			fs::path dir(dirpath.data);
+			fs::directory_iterator end_iter;
+			if (fs::exists(dir) && fs::is_directory(dir)) {
+				_MESSAGE("dir: %s", dirpath.data);
+
+				for (fs::directory_iterator dir_iter(dir); dir_iter != end_iter; ++dir_iter) {
+					if (fs::is_directory(dir_iter->status())) {
+						fs::path filepath = dir_iter->path();
+						std::string file = filepath.filename().generic_string();
+						arr.push_back(BSFixedString(file.c_str()));
 					}
 				}
 			}
@@ -596,6 +639,9 @@ void MiscUtil::RegisterFuncs(VMClassRegistry* registry) {
 
 	registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, VMResultArray<BSFixedString>, BSFixedString, BSFixedString>("FilesInFolder", "MiscUtil", FilesInFolder, registry));
 	registry->SetFunctionFlags("MiscUtil", "FilesInFolder", VMClassRegistry::kFunctionFlag_NoWait);
+
+	registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, VMResultArray<BSFixedString>, BSFixedString>("FoldersInFolder", "MiscUtil", FoldersInFolder, registry));
+	registry->SetFunctionFlags("MiscUtil", "FoldersInFolder", VMClassRegistry::kFunctionFlag_NoWait);
 
 	registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, BSFixedString, BSFixedString>("ReadFromFile", "MiscUtil", ReadFromFile, registry));
 	registry->RegisterFunction(new NativeFunction4<StaticFunctionTag, bool, BSFixedString, BSFixedString, bool, bool>("WriteToFile", "MiscUtil", WriteToFile, registry));

@@ -15,6 +15,8 @@
 //#include "skse64/GameTypes.h"
 //#include "skse64/GameForms.h"
 
+#include "Forms.h"
+
 namespace PapyrusUtil {
 
 	template <typename T>
@@ -357,6 +359,42 @@ namespace PapyrusUtil {
 		return BSFixedString(str);
 	}
 
+	bool TestForm(StaticFunctionTag*, TESForm* ref) {
+		if (!ref) { return false; }
+		UInt64 fkey = Forms::GetFormKey(ref);
+		_MESSAGE("TestForm(0x%X) / %lu", ref->formID, ref->formID);
+		_MESSAGE("\tFormKey: (0x%X) / %llu", fkey, fkey);
+
+
+		UInt64 key = ref->formID;
+		UInt64 testi = ((UInt64)ref->formType) << 32;
+		_MESSAGE("\tFormType: %d", (int)ref->formType);
+		_MESSAGE("\tShift: (0x%X) / %llu", (int)testi, testi);
+		key |= testi;
+		_MESSAGE("\tShifted: (0x%X) / %llu", (int)key, key);
+
+
+		UInt32 type = (UInt32)(key >> 32);
+		UInt32 id = (UInt32)(key);
+		_MESSAGE("\tShifted Type: %lu", type);
+		_MESSAGE("\tShifted ID: (0x%X) / %lu", (int)id, id);
+
+
+		UInt32 baseID = id & 0x00FFFFFF;
+		_MESSAGE("\tbaseID: 0x%X", (int)baseID);
+
+		UInt8 oldMod = (UInt8)(id >> 24);
+
+		_MESSAGE("\toldMod: 0x%X / %d", (int)oldMod, (int)oldMod);
+
+
+
+		//UInt32 id2 = Forms::ResolveFormID((UInt32)(key));
+		//_MESSAGE("\tResolved: 0x%X / %lu", (int)id2, id2);
+
+		return true;
+	}
+
 }
 
 
@@ -364,6 +402,9 @@ namespace PapyrusUtil {
 #include "skse64/PapyrusNativeFunctions.h"
 
 void PapyrusUtil::RegisterFuncs(VMClassRegistry* registry) {
+
+	//registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, bool, TESForm*>("TestForm", "PapyrusUtil", TestForm, registry));
+	//registry->SetFunctionFlags("PapyrusUtil", "TestForm", VMClassRegistry::kFunctionFlag_NoWait);
 
 	registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, void, VMArray<SInt32>, bool>("SortIntArray", "PapyrusUtil", SortArray<SInt32>, registry));
 	registry->SetFunctionFlags("PapyrusUtil", "SortIntArray", VMClassRegistry::kFunctionFlag_NoWait);

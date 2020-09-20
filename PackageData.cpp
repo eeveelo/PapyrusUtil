@@ -209,7 +209,7 @@ namespace PackageData {
 
 	typedef int(*_IsValid)(TESPackage *PackageID, Actor *ActorID);
 	bool Packages::IsValidPackage(TESPackage *PackageID, Actor *ActorID) {
-		static RelocAddr<_IsValid> IsValid(0x0043B180);
+		static RelocAddr<_IsValid> IsValid(0x0043AE40);
 		return (IsValid(PackageID, ActorID) != 0);
 	}
 
@@ -246,7 +246,7 @@ namespace PackageData {
 	typedef TESPackage* (*_PackageStartOrig)(void *, Actor *);
 	TESPackage *PackageStartHook(void *pthis, Actor *actor)
 	{
-		static RelocAddr<_PackageStartOrig> PackageStartOrig(0x126B80);
+		static RelocAddr<_PackageStartOrig> PackageStartOrig(0x00126A00);
 		TESPackage *pkg = PackageStartOrig(pthis, actor);
 
 		if (actor && actor->formID != 0)
@@ -260,7 +260,7 @@ namespace PackageData {
 	typedef UInt64(*_PackageEndOrig)(void *, void *);
 	UInt64 PackageEndHook(void *pthis, void *arg1, Actor *actor, int PackID)
 	{
-		static RelocAddr<_PackageEndOrig> PackageEndOrig(0xC28E80);
+		static RelocAddr<_PackageEndOrig> PackageEndOrig(0x00C28E20);
 
 		EndActorID = (actor) ? actor->formID : 0;
 		EndPackID = PackID;
@@ -272,8 +272,8 @@ namespace PackageData {
 
 	void InitPlugin() {
 
-		static RelocAddr <uintptr_t> PackageStart_Enter(0x005DB630 + 0x47);
-		static RelocAddr <uintptr_t> PackageEnd_Enter(0x00928590 + 0x1BD);
+		static RelocAddr <uintptr_t> PackageStart_Enter(0x005DB180 + 0x47);
+		static RelocAddr <uintptr_t> PackageEnd_Enter(0x009280E0 + 0x1BD);
 
 		g_branchTrampoline.Write5Branch(PackageStart_Enter, (uintptr_t)PackageStartHook);
 
