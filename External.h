@@ -75,7 +75,8 @@ namespace External {
 	private:
 		Value root;
 		ICriticalSection s_dataLock;
-		Json::Reader reader;
+		//Json::Reader reader;
+		Json::CharReaderBuilder reader;
 		std::string readErrors;
 	public:
 		std::string name;
@@ -85,9 +86,15 @@ namespace External {
 		bool isLoaded;
 		bool minify;
 
-		ExternalFile(std::string doc) : isModified(false), isLoaded(false), minify(false) { name = doc; docpath = "Data\\SKSE\\Plugins\\StorageUtilData\\" + doc; /*opened = std::time(0);*/ LoadFile(); } //reader = Json::Features::strictMode(); 
+		ExternalFile(std::string doc) : isModified(false), isLoaded(false), minify(false) {
+			name = doc;
+			docpath = "Data\\SKSE\\Plugins\\StorageUtilData\\" + doc;
+			/*opened = std::time(0);*/
+			root = Json::objectValue;
+			LoadFile();
+		} //reader = Json::Features::strictMode(); 
 		
-		bool IsGood() { return reader.good() && readErrors.empty(); }
+		bool IsGood() { return readErrors.empty(); }
 		std::string GetErrors() { return readErrors; }
 
 		inline Value make(SInt32 v) const;

@@ -1010,7 +1010,14 @@ namespace External {
 		bool parsed = false;
 		s_dataLock.Enter();
 		Value value = Json::Value(Json::nullValue);
-		parsed = reader.parse(raw, value, false);
+		//parsed = reader.parse(raw, value, false);
+		std::stringstream ss;
+		ss.str(raw);
+		parsed = Json::parseFromStream(reader, ss, &value, &readErrors);
+		if (!readErrors.empty()) {
+			_MESSAGE("JSON PARSER ERROR (SetRawPathValue):");
+			_MESSAGE("%s\n", readErrors.c_str());
+		}
 
 		Path pathto(path.front() != '.' ? '.' + path : path);
 		pathto.make(root).swap(value);
@@ -1195,7 +1202,9 @@ namespace External {
 		// Check if file exists
 		if (!fs::exists(Path)) {
 			_MESSAGE("JSON: File does not exist, init empty root object...");
-			reader.parse("{}", root, false);
+			//reader.parse("{}", root, false);
+			root.clear();
+			root = Json::objectValue;
 			return false; // File doesn't exists, why bother?
 		}
 
@@ -1210,10 +1219,11 @@ namespace External {
 			if (!doc.fail()) {
 				std::stringstream ss;
 				ss << doc.rdbuf();
-				std::string str = ss.str();
-				parsed = reader.parse(str, root, false);
-				if (!reader.good()) {
-					readErrors = reader.getFormattedErrorMessages();
+				//std::string str = ss.str();
+				//parsed = reader.parse(str, root, false);
+				//root = Json::objectValue;
+				parsed = Json::parseFromStream(reader, ss, &root, &readErrors);
+				if (!readErrors.empty()) {
 					_MESSAGE("JSON READER ERROR:");
 					_MESSAGE("%s\n", readErrors.c_str());
 				}
@@ -1232,7 +1242,9 @@ namespace External {
 		if (!parsed || !root.isObject()) {
 			_MESSAGE("JSON: Failed to parse file, init empty root object...");
 			_MESSAGE("\n");
-			reader.parse("{}", root, false);
+			root.clear();
+			root = Json::objectValue;
+			//reader.parse("{}", root, false);
 		}
 
 
@@ -1274,9 +1286,15 @@ namespace External {
 		{
 			doc.open(Path, fs::ofstream::out | fs::ofstream::trunc);
 			if (!doc.fail()) {
-				if (root.empty() || root.isNull()) reader.parse("{}", root, false);
-				Json::StyledStreamWriter writer;
-				writer.write(doc, root);
+				if (root.empty() || root.isNull()) {
+					//reader.parse("{}", root, false);
+					root = Json::objectValue;
+				}
+				//Json::StyledStreamWriter writer;
+				//writer.write(doc, root);
+				Json::StreamWriterBuilder builder;
+				std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
+				writer->write(root, &doc);
 				isModified = false;
 			}
 		}
@@ -1303,7 +1321,8 @@ namespace External {
 	void ExternalFile::ClearAll() {
 		s_dataLock.Enter();
 		root.clear();
-		reader.parse("{}", root, false);
+		root = Json::objectValue;
+		//reader.parse("{}", root, false);
 		//Value empty = Value(Json::objectValue);
 		//root.swap(empty);
 		isModified = true;

@@ -120,7 +120,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
-      <AdditionalIncludeDirectories>$(SolutionDir);$(SolutionDir)..;%(AdditionalIncludeDirectories);E:\Libs\boost171;E:\Libs\jsoncpp</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir);$(SolutionDir)..;%(AdditionalIncludeDirectories);E:\Libs\boost171;E:\Libs\jsoncpp19</AdditionalIncludeDirectories>
       <ForcedIncludeFiles>common/IPrefix.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
