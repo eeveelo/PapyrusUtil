@@ -398,11 +398,16 @@ namespace Forms {
 		if (ends_with(objString, ".FF")) {
 			// Temp objects - check form type
 			mod.resize((mod.length() - 3));
-			UInt8 type = atoi(mod.c_str());
+			//UInt8 type = atoi(mod.c_str());
+			UInt8 type = std::stoi(mod.c_str(), nullptr, 16);
 			obj = (((UInt32)0xFF) << 24) | obj;
 			TESForm* objform = obj == 0 ? NULL : LookupFormByID(obj);
 			if (objform && objform->formType == type) return objform;
-			else return NULL;
+			else {
+				//_MESSAGE("Checking Form: 0x%X", (int)obj);
+				//_MESSAGE("Type: %u - Expected: %u / 0x%X", type, objform->formType, (int)objform->formType);
+				return NULL;
+			}
 		}
 		else {
 			// esp & esm objects
