@@ -81,6 +81,7 @@ namespace PapyrusUtil {
 		return ResizeArray(NULL, arr, (arr.Length() + 1), push);
 	}
 
+
 	template<typename T>
 	UInt32 CountValues(StaticFunctionTag*, VMArray<T> arr, T find){
 		UInt32 count(0), length(arr.Length());
@@ -216,6 +217,162 @@ namespace PapyrusUtil {
 		if(removeDupe) Output.shrink_to_fit();
 		return Output;
 	}
+
+	template <typename T>
+	VMResultArray<T> RemoveDupe(StaticFunctionTag*, VMArray<T> arr1) {
+		VMResultArray<T> Output;
+		UInt32 length1(arr1.Length());
+		Output.reserve(length1);
+		for (UInt32 idx = 0; idx < length1; ++idx) {
+			T var;
+			arr1.Get(&var, idx);
+			if (std::find(Output.begin(), Output.end(), var) == Output.end()) {
+				Output.push_back(var);
+				//length2 += 1;
+			}
+		}
+		Output.shrink_to_fit();
+		return Output;
+	}
+
+	template <>	VMResultArray<BSFixedString> RemoveDupe(StaticFunctionTag*, VMArray<BSFixedString> arr1) {
+		VMResultArray<BSFixedString> Output;
+		UInt32 length1(arr1.Length());
+		Output.reserve(length1);
+		for (UInt32 idx = 0; idx < length1; ++idx) {
+			BSFixedString var;
+			arr1.Get(&var, idx);
+			if (!var.data) var = BSFixedString("");
+			if (std::find(Output.begin(), Output.end(), var) == Output.end()) {
+				Output.push_back(var);
+				//length2 += 1;
+			}
+		}
+		Output.shrink_to_fit();
+		return Output;
+	}
+
+
+	template<typename T>
+	bool HasValue(VMArray<T> arr, T find) {
+		UInt32 length(arr.Length());
+		if (length > 0) {
+			for (UInt32 idx = 0; idx < length; ++idx) {
+				T var;
+				arr.Get(&var, idx);
+				if (var == find) return true;
+			}
+		}
+		return false;
+	}
+
+	template <>	bool HasValue(VMArray<BSFixedString> arr, BSFixedString find) {
+		UInt32 length(arr.Length());
+		if (length > 0) {
+			const char* str = find.data;
+			for (UInt32 idx = 0; idx < length; ++idx) {
+				BSFixedString var;
+				arr.Get(&var, idx);
+				if (!var.data) var = BSFixedString("");
+				if (boost::iequals(var.data, str)) return true;
+			}
+		}
+		return false;
+	}
+
+	template <typename T>
+	VMResultArray<T> GetDiff(StaticFunctionTag*, VMArray<T> arr1, VMArray<T> arr2, bool checkBoth, bool allowDupe) {
+		VMResultArray<T> Output;
+		UInt32 length1(arr1.Length()), length2(arr2.Length());
+		Output.reserve((length1 + length2));
+
+		for (UInt32 idx = 0; idx < length1; ++idx) {
+			T var;
+			arr1.Get(&var, idx);
+			if ( (!HasValue<T>(arr2, var)) && (allowDupe || std::find(Output.begin(), Output.end(), var) == Output.end()) ) {
+				Output.push_back(var);
+			}
+		}
+
+		if (checkBoth) {
+			for (UInt32 idx = 0; idx < length2; ++idx) {
+				T var;
+				arr2.Get(&var, idx);
+				if ((!HasValue<T>(arr1, var)) && (allowDupe || std::find(Output.begin(), Output.end(), var) == Output.end())) {
+					Output.push_back(var);
+				}
+			}
+		}
+		
+		Output.shrink_to_fit();
+		return Output;
+	}
+
+	template <>	VMResultArray<BSFixedString> GetDiff(StaticFunctionTag*, VMArray<BSFixedString> arr1, VMArray<BSFixedString> arr2, bool checkBoth, bool allowDupe) {
+		VMResultArray<BSFixedString> Output;
+		UInt32 length1(arr1.Length()), length2(arr2.Length());
+		Output.reserve((length1 + length2));
+
+		for (UInt32 idx = 0; idx < length1; ++idx) {
+			BSFixedString var;
+			arr1.Get(&var, idx);
+			if (!var.data) var = BSFixedString("");
+			if ((!HasValue<BSFixedString>(arr2, var)) && (allowDupe || std::find(Output.begin(), Output.end(), var) == Output.end())) {
+				Output.push_back(var);
+			}
+		}
+
+		if (checkBoth) {
+			for (UInt32 idx = 0; idx < length2; ++idx) {
+				BSFixedString var;
+				arr2.Get(&var, idx);
+				if (!var.data) var = BSFixedString("");
+				if ((!HasValue<BSFixedString>(arr1, var)) && (allowDupe || std::find(Output.begin(), Output.end(), var) == Output.end())) {
+					Output.push_back(var);
+				}
+			}
+		}
+
+		Output.shrink_to_fit();
+		return Output;
+	}
+
+	template <typename T>
+	VMResultArray<T> GetMatching(StaticFunctionTag*, VMArray<T> arr1, VMArray<T> arr2) {
+		VMResultArray<T> Output;
+		UInt32 length1(arr1.Length()), length2(arr2.Length());
+		Output.reserve((length1 + length2));
+
+		for (UInt32 idx = 0; idx < length1; ++idx) {
+			T var;
+			arr1.Get(&var, idx);
+			if ((HasValue<T>(arr2, var)) && std::find(Output.begin(), Output.end(), var) == Output.end()) {
+				Output.push_back(var);
+			}
+		}
+
+		Output.shrink_to_fit();
+		return Output;
+	}
+
+	template <>	VMResultArray<BSFixedString> GetMatching(StaticFunctionTag*, VMArray<BSFixedString> arr1, VMArray<BSFixedString> arr2) {
+		VMResultArray<BSFixedString> Output;
+		UInt32 length1(arr1.Length()), length2(arr2.Length());
+		Output.reserve((length1 + length2));
+
+		for (UInt32 idx = 0; idx < length1; ++idx) {
+			BSFixedString var;
+			arr1.Get(&var, idx);
+			if (!var.data) var = BSFixedString("");
+			if ((HasValue<BSFixedString>(arr2, var)) && std::find(Output.begin(), Output.end(), var) == Output.end()) {
+				Output.push_back(var);
+			}
+		}
+
+		Output.shrink_to_fit();
+		return Output;
+	}
+
 
 	template <typename T>
 	VMResultArray<T> SliceArray(StaticFunctionTag*, VMArray<T> Input, UInt32 idx, SInt32 end_idx){
@@ -510,6 +667,54 @@ void PapyrusUtil::RegisterFuncs(VMClassRegistry* registry) {
 	registry->SetFunctionFlags("PapyrusUtil", "RemoveActor", VMClassRegistry::kFunctionFlag_NoWait);
 	registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, VMResultArray<TESObjectREFR*>, VMArray<TESObjectREFR*>, TESObjectREFR*>("RemoveObjRef", "PapyrusUtil", ClearArray<TESObjectREFR*>, registry));
 	registry->SetFunctionFlags("PapyrusUtil", "RemoveObjRef", VMClassRegistry::kFunctionFlag_NoWait);
+
+	// RemoveDupe
+	registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, VMResultArray<float>, VMArray<float>>("RemoveDupeFloat", "PapyrusUtil", RemoveDupe<float>, registry));
+	registry->SetFunctionFlags("PapyrusUtil", "RemoveDupeFloat", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, VMResultArray<SInt32>, VMArray<SInt32>>("RemoveDupeInt", "PapyrusUtil", RemoveDupe<SInt32>, registry));
+	registry->SetFunctionFlags("PapyrusUtil", "RemoveDupeInt", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, VMResultArray<BSFixedString>, VMArray<BSFixedString>>("RemoveDupeString", "PapyrusUtil", RemoveDupe<BSFixedString>, registry));
+	registry->SetFunctionFlags("PapyrusUtil", "RemoveDupeString", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, VMResultArray<TESForm*>, VMArray<TESForm*>>("RemoveDupeForm", "PapyrusUtil", RemoveDupe<TESForm*>, registry));
+	registry->SetFunctionFlags("PapyrusUtil", "RemoveDupeForm", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, VMResultArray<BGSBaseAlias*>, VMArray<BGSBaseAlias*>>("RemoveDupeAlias", "PapyrusUtil", RemoveDupe<BGSBaseAlias*>, registry));
+	registry->SetFunctionFlags("PapyrusUtil", "RemoveDupeAlias", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, VMResultArray<Actor*>, VMArray<Actor*>>("RemoveDupeActor", "PapyrusUtil", RemoveDupe<Actor*>, registry));
+	registry->SetFunctionFlags("PapyrusUtil", "RemoveDupeActor", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, VMResultArray<TESObjectREFR*>, VMArray<TESObjectREFR*>>("RemoveDupeObjRef", "PapyrusUtil", RemoveDupe<TESObjectREFR*>, registry));
+	registry->SetFunctionFlags("PapyrusUtil", "RemoveDupeObjRef", VMClassRegistry::kFunctionFlag_NoWait);
+
+	// GetDiff
+	registry->RegisterFunction(new NativeFunction4<StaticFunctionTag, VMResultArray<float>, VMArray<float>, VMArray<float>, bool, bool>("GetDiffFloat", "PapyrusUtil", GetDiff<float>, registry));
+	registry->SetFunctionFlags("PapyrusUtil", "GetDiffFloat", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->RegisterFunction(new NativeFunction4<StaticFunctionTag, VMResultArray<SInt32>, VMArray<SInt32>, VMArray<SInt32>, bool, bool>("GetDiffInt", "PapyrusUtil", GetDiff<SInt32>, registry));
+	registry->SetFunctionFlags("PapyrusUtil", "GetDiffInt", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->RegisterFunction(new NativeFunction4<StaticFunctionTag, VMResultArray<BSFixedString>, VMArray<BSFixedString>, VMArray<BSFixedString>, bool, bool>("GetDiffString", "PapyrusUtil", GetDiff<BSFixedString>, registry));
+	registry->SetFunctionFlags("PapyrusUtil", "GetDiffString", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->RegisterFunction(new NativeFunction4<StaticFunctionTag, VMResultArray<TESForm*>, VMArray<TESForm*>, VMArray<TESForm*>, bool, bool>("GetDiffForm", "PapyrusUtil", GetDiff<TESForm*>, registry));
+	registry->SetFunctionFlags("PapyrusUtil", "GetDiffForm", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->RegisterFunction(new NativeFunction4<StaticFunctionTag, VMResultArray<BGSBaseAlias*>, VMArray<BGSBaseAlias*>, VMArray<BGSBaseAlias*>, bool, bool>("GetDiffAlias", "PapyrusUtil", GetDiff<BGSBaseAlias*>, registry));
+	registry->SetFunctionFlags("PapyrusUtil", "GetDiffAlias", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->RegisterFunction(new NativeFunction4<StaticFunctionTag, VMResultArray<Actor*>, VMArray<Actor*>, VMArray<Actor*>, bool, bool>("GetDiffActor", "PapyrusUtil", GetDiff<Actor*>, registry));
+	registry->SetFunctionFlags("PapyrusUtil", "GetDiffActor", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->RegisterFunction(new NativeFunction4<StaticFunctionTag, VMResultArray<TESObjectREFR*>, VMArray<TESObjectREFR*>, VMArray<TESObjectREFR*>, bool, bool>("GetDiffObjRef", "PapyrusUtil", GetDiff<TESObjectREFR*>, registry));
+	registry->SetFunctionFlags("PapyrusUtil", "GetDiffObjRef", VMClassRegistry::kFunctionFlag_NoWait);
+
+	// GetMatching
+	registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, VMResultArray<float>, VMArray<float>, VMArray<float>>("GetMatchingFloat", "PapyrusUtil", GetMatching<float>, registry));
+	registry->SetFunctionFlags("PapyrusUtil", "GetMatchingFloat", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, VMResultArray<SInt32>, VMArray<SInt32>, VMArray<SInt32>>("GetMatchingInt", "PapyrusUtil", GetMatching<SInt32>, registry));
+	registry->SetFunctionFlags("PapyrusUtil", "GetMatchingInt", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, VMResultArray<BSFixedString>, VMArray<BSFixedString>, VMArray<BSFixedString>>("GetMatchingString", "PapyrusUtil", GetMatching<BSFixedString>, registry));
+	registry->SetFunctionFlags("PapyrusUtil", "GetMatchingString", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, VMResultArray<TESForm*>, VMArray<TESForm*>, VMArray<TESForm*>>("GetMatchingForm", "PapyrusUtil", GetMatching<TESForm*>, registry));
+	registry->SetFunctionFlags("PapyrusUtil", "GetMatchingForm", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, VMResultArray<BGSBaseAlias*>, VMArray<BGSBaseAlias*>, VMArray<BGSBaseAlias*>>("GetMatchingAlias", "PapyrusUtil", GetMatching<BGSBaseAlias*>, registry));
+	registry->SetFunctionFlags("PapyrusUtil", "GetMatchingAlias", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, VMResultArray<Actor*>, VMArray<Actor*>, VMArray<Actor*>>("GetMatchingActor", "PapyrusUtil", GetMatching<Actor*>, registry));
+	registry->SetFunctionFlags("PapyrusUtil", "GetMatchingActor", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, VMResultArray<TESObjectREFR*>, VMArray<TESObjectREFR*>, VMArray<TESObjectREFR*>>("GetMatchingObjRef", "PapyrusUtil", GetMatching<TESObjectREFR*>, registry));
+	registry->SetFunctionFlags("PapyrusUtil", "GetMatchingObjRef", VMClassRegistry::kFunctionFlag_NoWait);
 
 	// MergeArray
 	registry->RegisterFunction(new NativeFunction3<StaticFunctionTag, VMResultArray<float>, VMArray<float>, VMArray<float>, bool>("MergeFloatArray", "PapyrusUtil", MergeArray<float>, registry));
