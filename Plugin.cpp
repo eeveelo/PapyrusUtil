@@ -31,6 +31,7 @@ template <> void UnpackValue(VMArray<TESObjectREFR*> * dst, VMValue * src){
 //#include "AnimUtil.h"
 //#include "Asm.h"
 
+
 namespace Plugin {
 
 	//int frameUpdate1 = 0x69CC2E;
@@ -57,9 +58,15 @@ namespace Plugin {
 
 
 		_MESSAGE("Plugin::InitPlugin() - 1");
+
+		//if (!InitAddress()) {
+		//	_ERROR("Failed to load address library!");
+		//}
+
 		PackageData::InitPlugin();
 		//ObjectUtil::InitPlugin();
 		//AnimUtil::InitPlugin();
+
 
 		_MESSAGE("-done");
 

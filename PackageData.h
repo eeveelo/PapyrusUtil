@@ -8,6 +8,8 @@
 #include "skse64/GameForms.h"
 #include "skse64/GameObjects.h"
 
+#include "versiondb.h"
+
 namespace PackageData {
 	
 	class Packages{
@@ -49,5 +51,6 @@ namespace PackageData {
 
 	Packages* GetPackages();
 	void InitPlugin();
+	bool FindAddress(VersionDb* db);
 
 }// PackageData

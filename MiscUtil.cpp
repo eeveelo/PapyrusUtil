@@ -26,6 +26,8 @@
 
 namespace MiscUtil {
 
+
+
 	/*typedef void(*_ToggleFreeCam)(uintptr_t addr, bool stopTime);
 	void ToggleFreeCamera(StaticFunctionTag* base, bool arg1) {
 		int stopTime = arg1 ? 1 : 0;
@@ -37,7 +39,7 @@ namespace MiscUtil {
 	typedef void(*_ToggleFreeCam)(PlayerCamera * camera, bool stopTime);
 	void ToggleFreeCamera(StaticFunctionTag* base, bool arg1) {
 		int stopTime = arg1 ? 1 : 0;
-		RelocAddr<_ToggleFreeCam> ToggleFreeCam(0x0084B720);
+		RelocAddr<_ToggleFreeCam> ToggleFreeCam(0x008773A0);
 		ToggleFreeCam(PlayerCamera::GetSingleton(), stopTime);
 	}
 
@@ -602,7 +604,14 @@ namespace MiscUtil {
 		return output;
 	}
 
+
+	bool FindAddress(VersionDb* db) {
+
+		return true;
+	}
+
 } // MiscUtil
+
 
 
 #include "skse64/PapyrusNativeFunctions.h"
