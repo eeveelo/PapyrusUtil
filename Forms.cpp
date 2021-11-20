@@ -411,17 +411,27 @@ namespace Forms {
 		}
 		else {
 			// esp & esm objects
-			UInt32 index = 0xFF;
 			DataHandler * dhand = DataHandler::GetSingleton();
 			const ModInfo * modInfo = dhand->LookupModByName(mod.c_str());
-			
-			//_MESSAGE("\tMod Name: %s", modInfo->name);
+
+			if (modInfo && modInfo->IsActive()) {
+				obj = modInfo->GetFormID(obj);
+				//_MESSAGE("\tObj: 0x%X", (int)obj);
+			}
+			else {
+				//_MESSAGE("MOD IS INACTIVE!");
+				return NULL; // Couldn't find mod.
+			}
+			/*
+			_MESSAGE("\tMod Name: %s", modInfo->name);
+
+			UInt32 index = 0xFF;
 			if (modInfo) {
 				index = modInfo->GetPartialIndex();
 			}
 
-			//_MESSAGE("\tMod Index: 0x%X", (int)index);
-			//_MESSAGE("\tObj: 0x%X", (int)obj);
+			_MESSAGE("\tMod Index: 0x%X", (int)index);
+			_MESSAGE("\tObj: 0x%X", (int)obj);
 
 			if (index < 0xFF) {
 				obj = (((UInt32)index) << 24) | obj;
@@ -432,7 +442,9 @@ namespace Forms {
 				//_MESSAGE("\tObj ESL: 0x%X", (int)obj);
 			}
 			//UInt8 index = DataHandler::GetSingleton()->GetLoadedModIndex(mod.c_str());
+			*/
 		}
+
 		return obj == 0 ? NULL : LookupFormByID(obj);
 
 	}
