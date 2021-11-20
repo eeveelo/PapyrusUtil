@@ -28,7 +28,7 @@ extern "C" {
 		"PapyrusUtil",
 
 		"Ashal",
-		"",
+		"Ashal@loverslab.com",
 
 		0,	// not version independent
 		{ RUNTIME_VERSION_1_6_318, 0 },	// compatible with 1.6.318

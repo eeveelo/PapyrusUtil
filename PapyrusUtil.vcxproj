@@ -70,7 +70,7 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <OutDir>C:\Modding\MO2\SkyrimAE\mods\PapyrusUtil SE\SKSE\Plugins\</OutDir>
+    <OutDir>C:\Modding\MO2\SkyrimSE\mods\PapyrusUtil SE\SKSE\Plugins\</OutDir>
     <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(IncludePath);</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
