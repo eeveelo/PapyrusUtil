@@ -1,6 +1,5 @@
 #include "MiscUtil.h"
 
-#include "Offsets.h"
 
 #include <sstream>
 #include <set>
@@ -21,14 +20,14 @@
 #include "skse64/GameTypes.h"
 #include "skse64/PapyrusArgs.h"
 
+#include "Offsets.h"
+
 
 //#include "SafeRead.h"
 
 // TODO: test TESTScanCellNPCsByFaction and remove prepend
 
 namespace MiscUtil {
-
-
 
 	/*typedef void(*_ToggleFreeCam)(uintptr_t addr, bool stopTime);
 	void ToggleFreeCamera(StaticFunctionTag* base, bool arg1) {

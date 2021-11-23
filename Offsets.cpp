@@ -1,5 +1,13 @@
 #include "Offsets.h"
 
+unsigned long long Offset_ToggleFreeCam = 0; // 50809
+unsigned long long Offset_IsValidPackage = 0; // 29619
+unsigned long long Offset_PackageStartOrig = 0; // 12057
+unsigned long long Offset_PackageEndOrig = 0; // 69166
+unsigned long long Offset_PackageStart_Enter = 0; // 37398 + 0x47
+unsigned long long Offset_PackageEnd_Enter = 0; // 53984 + 0x103
+
+
 namespace Plugin {
 
 
@@ -58,6 +66,23 @@ namespace Plugin {
 		Offset_PackageEnd_Enter += 0x103;
 
 
+		return true;
+	}
+
+	bool DumpSpecificVersion()
+	{
+		VersionDb db;
+
+		// Try to load database of version 1.5.62.0 regardless of running executable version.
+		if (!db.Load(1, 6, 323, 0))
+		{
+			_FATALERROR("Failed to load database for 1.6.323.0!");
+			return false;
+		}
+
+		// Write out a file called offsets-1.5.62.0.txt where each line is the ID and offset.
+		db.Dump("offsets-1.6.323.0.txt");
+		_MESSAGE("Dumped offsets for 1.6.323.0");
 		return true;
 	}
 

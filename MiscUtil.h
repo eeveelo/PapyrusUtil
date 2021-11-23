@@ -3,6 +3,7 @@
 #include "skse64/GameReferences.h"
 #include "skse64/PapyrusVM.h"
 
+
 struct StaticFunctionTag;
 
 namespace MiscUtil {

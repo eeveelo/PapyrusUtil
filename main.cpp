@@ -1,5 +1,6 @@
 #include <locale.h>
 
+#include "common/IDebugLog.h"
 #include "skse64/PluginAPI.h"
 #include "skse64_common/skse_version.h"
 #include "skse64/ScaleformCallbacks.h"
@@ -34,7 +35,7 @@ extern "C" {
 		"Ashal@loverslab.com",
 
 		SKSEPluginVersionData::kVersionIndependent_AddressLibraryPostAE,
-		{ RUNTIME_VERSION_1_6_318, RUNTIME_VERSION_1_6_323, 0 },	// compatible with 1.6.318
+		{ RUNTIME_VERSION_1_6_318, RUNTIME_VERSION_1_6_323, 0 },
 
 		0,	// works with any version of the script extender. you probably do not need to put anything here
 	};
@@ -51,6 +52,8 @@ extern "C" {
 
 		// Set log path
 		gLog.OpenRelative(CSIDL_MYDOCUMENTS, "\\My Games\\Skyrim Special Edition\\SKSE\\PapyrusUtilDev.log");
+		gLog.SetPrintLevel(IDebugLog::kLevel_DebugMessage);
+		gLog.SetLogLevel(IDebugLog::kLevel_DebugMessage);
 		//_MESSAGE("Loading Version: %d", (int)PAPYRUSUTIL_VERSION);
 
 		// Initialize offsets with address library
