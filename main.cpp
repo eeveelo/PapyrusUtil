@@ -5,18 +5,21 @@
 #include "skse64/ScaleformCallbacks.h"
 
 #include "Plugin.h"
+#include "Offsets.h"
 #include "Data.h"
 #include "Serialize.h"
 
 #include <shlobj.h>
+
+#include "versionlibdb.h"
 
 IDebugLog	gLog;
 
 PluginHandle	g_pluginHandle = kPluginHandle_Invalid;
 
 // SKSE Interfaces
-SKSESerializationInterface * g_serialization = NULL;
-SKSEPapyrusInterface       * g_papyrus = NULL;
+SKSESerializationInterface* g_serialization = NULL;
+SKSEPapyrusInterface* g_papyrus = NULL;
 
 extern "C" {
 	__declspec(dllexport) SKSEPluginVersionData SKSEPlugin_Version =
@@ -30,14 +33,14 @@ extern "C" {
 		"Ashal",
 		"Ashal@loverslab.com",
 
-		0,	// not version independent
-		{ RUNTIME_VERSION_1_6_318, 0 },	// compatible with 1.6.318
+		SKSEPluginVersionData::kVersionIndependent_AddressLibraryPostAE,
+		{ RUNTIME_VERSION_1_6_318, RUNTIME_VERSION_1_6_323, 0 },	// compatible with 1.6.318
 
 		0,	// works with any version of the script extender. you probably do not need to put anything here
 	};
 
 
-	bool SKSEPlugin_Load(const SKSEInterface * skse) {
+	bool SKSEPlugin_Load(const SKSEInterface* skse) {
 		// store plugin handle so we can identify ourselves later
 		g_pluginHandle = skse->GetPluginHandle();
 
@@ -48,7 +51,17 @@ extern "C" {
 
 		// Set log path
 		gLog.OpenRelative(CSIDL_MYDOCUMENTS, "\\My Games\\Skyrim Special Edition\\SKSE\\PapyrusUtilDev.log");
-		_MESSAGE("Loading Version: %d", (int)PAPYRUSUTIL_VERSION);
+		//_MESSAGE("Loading Version: %d", (int)PAPYRUSUTIL_VERSION);
+
+		// Initialize offsets with address library
+		if (!Plugin::InitializeOffsets()) {
+			_MESSAGE("InitializeOffsets failed!");
+			return false;
+		}
+
+		// Init storage
+		Plugin::InitPlugin();
+		Data::InitLists();
 
 		// Get the serialization interface and query its version
 		g_serialization = (SKSESerializationInterface*)skse->QueryInterface(kInterface_Serialization);
@@ -68,9 +81,6 @@ extern "C" {
 			return false;
 		}
 
-		// Init storage
-		Data::InitLists();
-		Plugin::InitPlugin();
 
 		// Serialization handlers
 		g_serialization->SetUniqueID(g_pluginHandle, 884715692 + 227106806);

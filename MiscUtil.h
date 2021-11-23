@@ -3,13 +3,10 @@
 #include "skse64/GameReferences.h"
 #include "skse64/PapyrusVM.h"
 
-#include "versiondb.h"
-
 struct StaticFunctionTag;
 
 namespace MiscUtil {
 	void RegisterFuncs(VMClassRegistry* registry);
-	bool FindAddress(VersionDb* db);
 
 	//void ToggleFreeCamera(StaticFunctionTag* base, bool arg1);
 	//void SetFreeCameraSpeed(StaticFunctionTag* base, float speed);

@@ -144,6 +144,7 @@
     <ClCompile Include="JsonUtil.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MiscUtil.cpp" />
+    <ClCompile Include="Offsets.cpp" />
     <ClCompile Include="PackageData.cpp" />
     <ClCompile Include="PapyrusUtil.cpp" />
     <ClCompile Include="Plugin.cpp" />
@@ -161,12 +162,14 @@
     <ClInclude Include="json\json-forwards.h" />
     <ClInclude Include="json\json.h" />
     <ClInclude Include="MiscUtil.h" />
+    <ClInclude Include="Offsets.h" />
     <ClInclude Include="PackageData.h" />
     <ClInclude Include="PapyrusUtil.h" />
     <ClInclude Include="Plugin.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="Serialize.h" />
     <ClInclude Include="StorageUtil.h" />
+    <ClInclude Include="versionlibdb.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="exports.def" />
