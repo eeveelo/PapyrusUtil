@@ -57,13 +57,14 @@ namespace Plugin {
 		}
 
 
-		_MESSAGE("Plugin::InitPlugin() - 1");
-
+		//_MESSAGE("Plugin::InitPlugin() - 1");
+		
 		//if (!InitAddress()) {
 		//	_ERROR("Failed to load address library!");
 		//}
 
 		PackageData::InitPlugin();
+		
 		//ObjectUtil::InitPlugin();
 		//AnimUtil::InitPlugin();
 

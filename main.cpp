@@ -21,6 +21,7 @@ PluginHandle	g_pluginHandle = kPluginHandle_Invalid;
 // SKSE Interfaces
 SKSESerializationInterface* g_serialization = NULL;
 SKSEPapyrusInterface* g_papyrus = NULL;
+//SKSETrampolineInterface* g_trampoline = NULL;
 
 extern "C" {
 	__declspec(dllexport) SKSEPluginVersionData SKSEPlugin_Version =
@@ -35,7 +36,7 @@ extern "C" {
 		"Ashal@loverslab.com",
 
 		SKSEPluginVersionData::kVersionIndependent_AddressLibraryPostAE,
-		{ RUNTIME_VERSION_1_6_318, RUNTIME_VERSION_1_6_323, 0 },
+		{ RUNTIME_VERSION_1_6_353, 0 },
 
 		0,	// works with any version of the script extender. you probably do not need to put anything here
 	};
@@ -62,6 +63,16 @@ extern "C" {
 			return false;
 		}
 
+		// get trampoline interface
+		/*g_trampoline = (SKSETrampolineInterface*)skse->QueryInterface(kInterface_Trampoline);
+		if (!g_trampoline) {
+			_MESSAGE("couldn't get trampoline interface");
+			return false;
+		}
+
+		g_trampoline->AllocateFromBranchPool(g_pluginHandle, 1024 * 64);
+		g_trampoline->AllocateFromLocalPool(g_pluginHandle, 1024 * 64);*/
+
 		// Init storage
 		Plugin::InitPlugin();
 		Data::InitLists();
@@ -84,6 +95,18 @@ extern "C" {
 			return false;
 		}
 
+
+		/*if (!g_branchTrampoline.Create(1024 * 64))
+		{
+			_ERROR("couldn't create branch trampoline. this is fatal. skipping remainder of init process.");
+			return;
+		}
+
+		if (!g_localTrampoline.Create(1024 * 64, GetModuleHandle("PapyrusUtil.dll")))
+		{
+			_ERROR("couldn't create codegen buffer. this is fatal. skipping remainder of init process.");
+			return;
+		}*/
 
 		// Serialization handlers
 		g_serialization->SetUniqueID(g_pluginHandle, 884715692 + 227106806);

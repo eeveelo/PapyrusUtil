@@ -278,7 +278,7 @@ namespace Forms {
 
 	bool IsValidObject(TESForm* obj, UInt64 formId) {
 		_MESSAGE("IsValidObject(0x%X, 0x%X)", (int)obj->formID, formId);
-		if (obj == NULL) return false;
+		if (!obj || obj == NULL || formId == 0) return false;
 		_MESSAGE("\tType: %d", (int)obj->formType);
 		if ((UInt32)(formId >> 32) != 0 && obj->formType != (UInt32)(formId >> 32)) return false;
 		else if ((formId & 0xFFFFFFFF) != 0 && (UInt32)(formId & 0xFFFFFFFF) != obj->formID) return false;
