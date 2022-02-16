@@ -1,5 +1,6 @@
 #include "MiscUtil.h"
 
+
 #include <sstream>
 #include <set>
 
@@ -19,6 +20,8 @@
 #include "skse64/GameTypes.h"
 #include "skse64/PapyrusArgs.h"
 
+#include "Offsets.h"
+
 
 //#include "SafeRead.h"
 
@@ -37,7 +40,8 @@ namespace MiscUtil {
 	typedef void(*_ToggleFreeCam)(PlayerCamera * camera, bool stopTime);
 	void ToggleFreeCamera(StaticFunctionTag* base, bool arg1) {
 		int stopTime = arg1 ? 1 : 0;
-		RelocAddr<_ToggleFreeCam> ToggleFreeCam(0x0084B720);
+		//RelocAddr<_ToggleFreeCam> ToggleFreeCam(0x008773A0);
+		RelocAddr<_ToggleFreeCam> ToggleFreeCam((std::uintptr_t)Offset_ToggleFreeCam);
 		ToggleFreeCam(PlayerCamera::GetSingleton(), stopTime);
 	}
 
@@ -602,7 +606,9 @@ namespace MiscUtil {
 		return output;
 	}
 
+
 } // MiscUtil
+
 
 
 #include "skse64/PapyrusNativeFunctions.h"
