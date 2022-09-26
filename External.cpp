@@ -596,7 +596,7 @@ namespace External {
 		Value value;
 		if (HasKey(type, key) && root[type][key].size() > 0) {
 			int index = randomIndex(root[type][key].size());
-			_MESSAGE("ListRandom - Size(%d) - randomIndex(%d)", root[type][key].size(), index);
+			//_MESSAGE("ListRandom - Size(%d) - randomIndex(%d)", root[type][key].size(), index);
 			value = root[type][key].get(index, Value::null);
 		}
 			

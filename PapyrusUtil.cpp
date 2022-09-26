@@ -127,6 +127,7 @@ namespace PapyrusUtil {
 		return Output;
 	}
 
+	//FIXME: returns none instead of empty array when removing all elements
 	template <> VMResultArray<BSFixedString> ClearArray(StaticFunctionTag*, VMArray<BSFixedString> arr, BSFixedString remove) {
 		VMResultArray<BSFixedString> Output;
 		if (arr.Length() > 0) {
