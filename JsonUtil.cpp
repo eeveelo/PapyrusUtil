@@ -385,6 +385,15 @@ namespace JsonUtil {
 		return count;
 	}
 
+
+	template <typename T>
+	T ListRandom(StaticFunctionTag* base, BSFixedString name, BSFixedString key) {
+		ExternalFile* File = GetFile(name.data);
+		if (!File || !IsValidKey(key)) return Empty<T>();
+		else return ParseValue<T>(File->ListRandom(List<T>(), key.data));
+	}
+
+
 	/*template <typename T>
 	UInt32 ClearValuePrefix(StaticFunctionTag* base, BSFixedString name, BSFixedString prefix) {
 		ExternalFile* File = GetFile(name.data);
@@ -794,6 +803,15 @@ void JsonUtil::RegisterFuncs(VMClassRegistry* registry){
 	registry->SetFunctionFlags("JsonUtil", "CountFloatListPrefix", VMClassRegistry::kFunctionFlag_NoWait);
 	registry->SetFunctionFlags("JsonUtil", "CountStringListPrefix", VMClassRegistry::kFunctionFlag_NoWait);
 	registry->SetFunctionFlags("JsonUtil", "CountFormListPrefix", VMClassRegistry::kFunctionFlag_NoWait);
+
+	registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, SInt32, BSFixedString, BSFixedString>("IntListRandom", "JsonUtil", ListRandom<SInt32>, registry));
+	registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, float, BSFixedString, BSFixedString>("FloatListRandom", "JsonUtil", ListRandom<float>, registry));
+	registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, BSFixedString, BSFixedString, BSFixedString>("StringListRandom", "JsonUtil", ListRandom<BSFixedString>, registry));
+	registry->RegisterFunction(new NativeFunction2<StaticFunctionTag, TESForm*, BSFixedString, BSFixedString>("FormListRandom", "JsonUtil", ListRandom<TESForm*>, registry));
+	registry->SetFunctionFlags("JsonUtil", "IntListRandom", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("JsonUtil", "FloatListRandom", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("JsonUtil", "StringListRandom", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("JsonUtil", "FormListRandom", VMClassRegistry::kFunctionFlag_NoWait);
 
 	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, UInt32, BSFixedString, BSFixedString>("CountAllPrefix", "JsonUtil", CountAllPrefix, registry));
 	registry->RegisterFunction(new NativeFunction1 <StaticFunctionTag, VMResultArray<BSFixedString>, BSFixedString>("JsonInFolder", "JsonUtil", JsonFilesInFolder, registry));

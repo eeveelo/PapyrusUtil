@@ -161,6 +161,10 @@ namespace External {
 		bool ListHas(std::string type, std::string key, Value value);
 		int ListResize(std::string type, std::string key, int length, Value filler);
 
+
+		Value ListRandom(std::string type, std::string key);
+
+
 		//void ListSort(std::string type, std::string key);
 
 		template <typename T> T ListAdjust(std::string key, int index, T adjustBy);

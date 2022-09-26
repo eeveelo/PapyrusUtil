@@ -13,6 +13,11 @@
 #include <boost/filesystem/fstream.hpp>
 #include <boost/algorithm/string.hpp>
 
+#include <boost/random.hpp>
+#include <boost/generator_iterator.hpp>
+#include <boost/random/random_device.hpp>
+
+
 #include "skse64/PapyrusVM.h"
 #include "skse64/PapyrusNativeFunctions.h"
 
@@ -577,6 +582,28 @@ namespace External {
 		return count;
 	}
 
+
+	//static boost::random_device rd;
+	static boost::random::mt19937 rnd;
+	static int randomIndex(int size) {
+		//rnd.seed(rd());
+		return boost::random::uniform_int_distribution<>(0, (size - 1))(rnd);
+	}
+
+	Value ExternalFile::ListRandom(std::string type, std::string key) {
+		s_dataLock.Enter();
+		boost::to_lower(key);
+		Value value;
+		if (HasKey(type, key) && root[type][key].size() > 0) {
+			int index = randomIndex(root[type][key].size());
+			_MESSAGE("ListRandom - Size(%d) - randomIndex(%d)", root[type][key].size(), index);
+			value = root[type][key].get(index, Value::null);
+		}
+			
+		s_dataLock.Leave();
+		return value;
+	}
+
 #endif
 
 
@@ -925,8 +952,6 @@ namespace External {
 	template int ExternalFile::FindPathElement<float>(const std::string &path, Value toFind);
 	template int ExternalFile::FindPathElement<BSFixedString>(const std::string &path, Value toFind);
 	template int ExternalFile::FindPathElement<TESForm*>(const std::string &path, Value toFind);
-
-
 
 	/*template <> VMResultArray<BSFixedString> ExternalFile::PathElements(std::string path, BSFixedString invalidType) {
 		VMResultArray<BSFixedString> arr;

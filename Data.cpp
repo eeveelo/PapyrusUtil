@@ -3,6 +3,9 @@
 
 #include "skse64/GameForms.h"
 
+#include <boost/random.hpp>
+#include <boost/generator_iterator.hpp>
+
 #include <boost/algorithm/string.hpp>
 #include <string>
 
@@ -760,6 +763,48 @@ namespace Data {
 		s_dataLock.Leave();
 		return count;
 	}
+
+
+
+	//static boost::random_device rd;
+	static boost::random::mt19937 rnd;
+	static int randomIndex(int size) {
+		//rnd.seed(rd());
+		return boost::random::uniform_int_distribution<>(0, (size - 1))(rnd);
+	}
+
+	template <typename T, typename S>
+	T Lists<T, S>::ListRandom(UInt64 obj, std::string key) {
+		S value = S();
+		s_dataLock.Enter();
+		boost::to_lower(key);
+		List* vector = GetVector(obj, key);
+		if (vector != NULL && !vector->empty()) {
+			int index = randomIndex(vector->size());
+			//_MESSAGE("ListRandom - Size(%d) - randomIndex(%d)", root[type][key].size(), index);
+			value = vector->at(index);
+		}
+		s_dataLock.Leave();
+		return cast(value);
+	}
+
+	/*TODO*/
+	template <typename T, typename S>
+	VMResultArray<T>  Lists<T, S>::ListRandomArray(UInt64 obj, std::string key, UInt32 count, bool duplicates) {
+		VMResultArray<T> output;
+		output.reserve(count);
+		s_dataLock.Enter();
+		boost::to_lower(key);
+		List* vector = GetVector(obj, key);
+		if (vector != NULL && !vector->empty()) {
+
+		}
+
+		s_dataLock.Leave();
+		return output;
+	}
+
+
 
 	/*
 	* DEBUG methods

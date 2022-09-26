@@ -434,6 +434,15 @@ namespace StorageUtil {
 		else return Data->FilterByTypes(GetFormKey(obj), key.data, types, matching);
 	}
 
+	template <typename T, typename S>
+	T ListRandom(StaticFunctionTag* base, TESForm* obj, BSFixedString key) {
+		Data::Lists<T, S>* Data = Data::GetLists<T, S>();
+		if (!Data || !IsValidKey(key)) return Empty<T>();
+		else return Data->ListRandom(GetFormKey(obj), key.data);
+	}
+
+
+
 
 } // StorageUtil
 
@@ -892,6 +901,17 @@ void StorageUtil::RegisterFuncs(VMClassRegistry* registry) {
 
 	registry->RegisterFunction(new NativeFunction4 <StaticFunctionTag, VMResultArray<TESForm*>, TESForm*, BSFixedString, VMArray<UInt32>, bool>("FormListFilterByTypes", "StorageUtil", FilterByTypes, registry));
 	registry->SetFunctionFlags("StorageUtil", "FormListFilterByTypes", VMClassRegistry::kFunctionFlag_NoWait);
+
+
+	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, SInt32, TESForm*, BSFixedString>("IntListRandom", "StorageUtil", ListRandom<SInt32, SInt32>, registry));
+	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, float, TESForm*, BSFixedString>("FloatListRandom", "StorageUtil", ListRandom<float, float>, registry));
+	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, BSFixedString, TESForm*, BSFixedString>("StringListRandom", "StorageUtil", ListRandom<BSFixedString, std::string>, registry));
+	registry->RegisterFunction(new NativeFunction2 <StaticFunctionTag, TESForm*, TESForm*, BSFixedString>("FormListRandom", "StorageUtil", ListRandom<TESForm*, UInt32>, registry));
+	registry->SetFunctionFlags("StorageUtil", "IntListRandom", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "FloatListRandom", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "StringListRandom", VMClassRegistry::kFunctionFlag_NoWait);
+	registry->SetFunctionFlags("StorageUtil", "FormListRandom", VMClassRegistry::kFunctionFlag_NoWait);
+
 
 	// Debug Functions
 	registry->RegisterFunction(new NativeFunction1<StaticFunctionTag, void, TESForm*>("debug_DeleteValues", "StorageUtil", DeleteValues, registry));

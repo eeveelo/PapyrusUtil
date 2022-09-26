@@ -132,6 +132,8 @@ namespace Data
 		int ClearPrefixKey(UInt64 obj, std::string prefix);
 		int CountPrefixKey(UInt64 obj, std::string prefix);
 
+		T ListRandom(UInt64 obj, std::string key);
+		VMResultArray<T> ListRandomArray(UInt64 obj, std::string key, UInt32 count, bool duplicates);
 
 
 		List* GetVector(UInt64 &obj, std::string &key){
