@@ -37,7 +37,7 @@ extern "C" {
 
 		0,
 		SKSEPluginVersionData::kVersionIndependent_StructsPost629,
-		{ RUNTIME_VERSION_1_6_640, 0 },
+		{ RUNTIME_VERSION_1_6_1130, 0 },
 
 		0,	// works with any version of the script extender. you probably do not need to put anything here
 	};
