@@ -10,6 +10,32 @@ scriptname MiscUtil Hidden
 ; NOTE: Keyword searches seem a little unpredictable so be sure to test if your usage of it works before using the results.
 ObjectReference[] function ScanCellObjects(int formType, ObjectReference CenterOn, float radius = 0.0, Keyword HasKeyword = none) global native
 
+ObjectReference[] function ScanCellObjectsOfAnyTypeInList(FormList arBaseObjects, ObjectReference arCenterOn, float afRadius = 1000.0)
+	ObjectReference[] Output
+	if !arBaseObjects || arBaseObjects.GetSize() < 1
+		return Output ; Invalid args
+	endIf
+	return ScanCellObjectsOfAnyTypeInArray(arBaseObjects.ToArray(), arCenterOn, afRadius)
+endFunction
+
+ObjectReference[] function ScanCellObjectsOfAnyTypeInArray(Form[] arBaseObjects, ObjectReference arCenterOn, float afRadius = 1000.0)
+	ObjectReference[] Output
+	Form[] TempBaseObjects = PapyrusUtil.RemoveForm(arBaseObjects, none)
+	if !TempBaseObjects || TempBaseObjects.Length < 1 || !arCenterOn || arCenterOn == none || afRadius < 1.0
+		return Output ; Invalid args
+	endIf
+	Cell akTargetCell = arCenterOn.GetParentCell()
+	int iRef = akTargetCell.getNumRefs()
+	ObjectReference TempRef
+	while iRef
+		iRef -= 1
+		TempRef = akTargetCell.getNthRef(iRef)
+		if TempRef && TempRef != arCenterOn && TempRef.GetBaseObject() && TempBaseObjects.Find(TempRef.GetBaseObject()) >= 0 && TempRef.GetDistance(arCenterOn) <= afRadius
+			Output = PapyrusUtil.PushObjRef(Output, TempRef)
+		endIf
+	endWhile
+	return Output
+endFunction
 
 ; Scans the current cell of the given CenterOn for an actor within the given radius and returns an array for all actors that are
 ; currently alive and (optionally) has the given keyword if changed from default none. Setting radius higher than 0.0 will restrict the 

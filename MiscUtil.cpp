@@ -316,7 +316,7 @@ namespace MiscUtil {
 			for (UInt32 idx = 0, n = 0; idx < count; idx++) {
 				TESObjectREFR* ObjRef = GetCellObj(Cell, idx);
 
-				if (ObjRef == NULL || ObjRef->baseForm->formType != FindType) continue; // Invalid
+				if (ObjRef == NULL || ObjRef->baseForm == NULL || ObjRef->baseForm->formType != FindType) continue; // Invalid
 				else if (SearchRadius > 0.0f && !IsWithinRadius(CenterObj, ObjRef, SearchRadius)) continue; // Outside search radius
 				else if (FindKeyword && !HasKeyword(ObjRef, FindKeyword)) continue; // Missing keyword
 				else output.push_back(ObjRef); // MATCH
